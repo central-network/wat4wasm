@@ -1,11 +1,11 @@
-(module $test
-
-    (import "console" "warn" (func $warn<ref> (param externref)))
-    (import "self" "self" (global $self externref))
+(module
+    (import "console" "log" (func $console.log (param externref)))
 
     (include "./test-sub.wat")
 
     (start $main
-    
+        (call $console.log
+            (text "hello world!")
+        )
     )
 )

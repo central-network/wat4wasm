@@ -74,3 +74,21 @@ then your code will be replaced with:
     )
 )
 ```
+
+## Use "text" keyword to create an externref for text content
+
+You can use "text" type keyword to create a string content with externref behaviour:
+
+```webassembly
+(module
+    (import "console" "log" (func $console.log (param externref)))
+
+    (func $main
+        (call $console.log
+            (text "hello world!")
+        )
+    )
+
+    (start $main)
+)
+```

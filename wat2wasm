@@ -5,6 +5,12 @@ import {execSync} from "child_process"
 
 const [ node, wat2wasm, inputFilePath, ...compileOptions ] = process.argv;
 
+const tbl_extern = [ null ];
+const data_text = [];
+let data_text_offset = 0;
+// const encode = TextEncoder.prototype.encode.bind(new TextEncoder);
+const encode = str => new Uint8Array(Uint16Array.from(str.split("").map(c => c.charCodeAt() + 1000)).buffer);
+
 String.prototype.matchFrame = function ( regExp ) {
 
     let match       = this.match(regExp);
@@ -84,8 +90,9 @@ const modifiedContentInputFilePath  = inputFilePath + "2wasm.wat";
 const enableThreadsCompileOptions   = compileOptions.find(o => o.match(/enable-threads/)) || "";
 const debugNamesCompileOptions      = compileOptions.find(o => o.match(/debug-names/)) || "";
 const multiMemoryCompileOptions     = compileOptions.find(o => o.match(/multi-memory/)) || "";
+const noUnlinkCompileOptions        = compileOptions.find(o => o.match(/no-unlink/)) || "";
 
-const include = content => {
+const include   = content => {
     let match;
     
     while (match = content.matchFrame(/\(include\s+/)) {
@@ -106,8 +113,7 @@ const include = content => {
     return content;
 }
 
-
-const start = content => {
+const start     = content => {
     let match;
     
     if (match = content.matchFrame(/\(start\s+\$(.[^\s|\)]*)/)) {
@@ -121,14 +127,208 @@ const start = content => {
     return content;
 }
 
-const compile = () => {
+const textref   = content => {
+
+    let match;
+    
+    while (match = content.matchFrame(/\(text\s+/)) {
+        const text = match.frame.findQuotedText();
+        let index = tbl_extern.indexOf(text);
+
+        if (index === -1) {
+            index += tbl_extern.push( text );
+            const data = { text, index, buffer: encode(text) };
+
+            data.data_text_offset   = data_text_offset;
+            data.data_text_length   = data.buffer.byteLength;
+            data.data_text_end      = data_text_offset += data.data_text_length;
+
+            data_text.push(data);
+        }
+
+        const call = `(table.get $extern (i32.const ${index}))`;
+
+        content = content.replaceFrame( match, call );
+    }   
+    
+    return content;
+};
+
+const appendExternTable = content => {    
+    return content
+        .substring(0, content.lastIndexOf(")"))
+        .concat(`
+    (table $extern ${tbl_extern.length} ${tbl_extern.length} externref)\n`)
+        .concat(
+            content.substring(content.lastIndexOf(")"))
+        )
+    ;
+}
+
+const appendTextFunc = content => {    
+
+    return content;
+}
+
+const insertStartFunc = content => {
+    if (content.match(/\(start\s+\$(.[^\s|\)]*)/)) {
+        return content;
+    }
+        
+    return content
+        .substring(0, content.lastIndexOf(")"))
+        .concat(`
+        (start $wat2wasm/start) 
+        (func $wat2wasm/start 
+            
+        )\n`)
+        .concat(
+            content.substring(content.lastIndexOf(")"))
+        )
+    ;
+}
+
+const callOnStart = (content, call) => {
+    content = insertStartFunc(content);
+
+    const startMatch = content.match(/\(start\s+\$(.[^\s|\)]*)/);
+    const startFuncName = startMatch.at(1);
+    const startFuncMatch = content.match(new RegExp(`\\\(func\\s+\\\$${startFuncName}`));
+    const startFuncContentBegin = startFuncMatch.index + startFuncMatch[0].length;
+
+    return content.substring(
+        0, startFuncContentBegin
+    ).concat( `
+        ${call}    
+    ` ).concat(
+        content.substring( startFuncContentBegin )
+    )
+};
+
+
+const appendTextData = content => {    
+    const hex = data_text.flatMap(d => Array.from(d.buffer)).map(c => c.toString(16).padStart(2,0)).join("\\");
+
+    content = callOnStart( content, `
+        ;;(memory.fill (i32.const 0) (i32.const 0) (i32.const ${data_text_offset}))
+        (data.drop $wat2wasm/text)`);
+
+    content = callOnStart(content, data_text.map(dt => 
+        `(table.set $extern (i32.const ${dt.index}) (call $wat2wasm/text (i32.const ${dt.data_text_offset}) (i32.const ${dt.data_text_length})))`).join("\n\t")
+    );
+
+    content = callOnStart( addPrimaryMemory(content), `
+        (memory.init 0 $wat2wasm/text (i32.const 0) (i32.const 0) (i32.const ${data_text_offset}))`);
+
+    return appendTextFunc( content )
+        .substring(0, content.lastIndexOf(")"))
+        .concat(`
+    (func $wat2wasm/text 
+        (param $offset i32)
+        (param $length i32)
+        (result externref)
+        (local $array externref)
+
+        (if (i32.eqz (local.get $length))
+            (then (return (ref.null extern)))
+        )
+
+        (local.set $array 
+            (call $wat2wasm/Array<>ref)
+        )
+
+        (loop $length--
+            (local.set $length
+                (i32.sub (local.get $length) (i32.const 2))
+            )
+                
+            (call $wat2wasm/Reflect.set<ref.i32x2>
+                (local.get $array)
+                (i32.div_u (local.get $length) (i32.const 2))
+                (i32.sub 
+                    (i32.load16_u 
+                        (i32.add 
+                            (local.get $offset)
+                            (local.get $length)
+                        )
+                    )
+                    (i32.const 1000)
+                )
+            )
+
+            (br_if $length-- (local.get $length))
+        )
+
+        (call $wat2wasm/Reflect.apply<refx3>ref
+            (global.get $wat2wasm/String.fromCharCode)
+            (ref.null extern)
+            (local.get $array)
+        )
+    )
+
+    (data $wat2wasm/text "\\${hex}")\n`)
+        .concat(
+            content.substring(content.lastIndexOf(")"))
+        )
+    ;
+}
+
+const addImports = content => {
+    let firstImportIndex = content.indexOf("(import ");
+    if (firstImportIndex === -1) {
+        firstImportIndex = content.indexOf("(module ") + 8;
+    }
+
+    return content.substring(
+        0, firstImportIndex
+    ).concat(`
+    (import "self" "Array"              (func $wat2wasm/Array<>ref (param) (result externref)))
+    (import "Reflect" "set"             (func $wat2wasm/Reflect.set<ref.i32x2> (param externref i32 i32) (result)))
+    (import "Reflect" "apply"           (func $wat2wasm/Reflect.apply<refx3>ref (param externref externref externref) (result externref)))
+    (import "self" "self"               (global $wat2wasm/self externref))
+    (import "String" "fromCharCode"     (global $wat2wasm/String.fromCharCode externref))
+    `).concat(
+        content.substring(firstImportIndex)
+    )
+};
+
+const addPrimaryMemory = content => {
+    let firstMemoryIndex = content.indexOf("(memory ");
+    if (firstMemoryIndex !== -1) {
+        return content;
+    }
+
+    firstMemoryIndex = content.lastIndexOf(")");
+
+    const pages = Math.ceil(data_text_offset/65535);
+
+    return content.substring(
+        0, firstMemoryIndex
+    ).concat(`
+    (memory $wat2wasm/text ${pages} ${pages})
+    `).concat(
+        content.substring(firstMemoryIndex)
+    )
+};
+
+const compile   = () => {
     const rawFileContentBuffer = readFileSync(inputFilePath);
     const rawFileContentString = rawFileContentBuffer.toString();
 
     let 
     content = rawFileContentString;
+    content = addImports(content);
     content = include(content);
     content = start(content);
+    content = textref(content);
+
+    if (tbl_extern.length > 1) {
+        content = appendExternTable(content);
+    }
+
+    if (data_text_offset > 0) {
+        content = appendTextData(content);
+    }
 
     console.log(" ");
     console.log(Date.now());
@@ -144,7 +344,7 @@ const compile = () => {
             ${debugNamesCompileOptions} 
             -o ${outputFilePath}    
         `.replaceAll(/\s+/g, " ")
-    ) && unlinkSync( modifiedContentInputFilePath );
+    ) && noUnlinkCompileOptions || unlinkSync( modifiedContentInputFilePath );
 };
 
 if (compileOptions.includes("--watch")) {
