@@ -81,14 +81,23 @@ You can use "text" type keyword to create a string content with externref behavi
 
 ```webassembly
 (module
-    (import "console" "log" (func $console.log (param externref)))
 
     (func $main
-        (call $console.log
-            (text "hello world!")
-        )
+        (text "hello world!")
+        (drop)
     )
 
     (start $main)
+)
+```
+
+You can see console output if you want to:
+```webassembly
+(module
+    (import "console" "log" (func $log (param externref)))
+
+    (start $main
+        (call $log (text "hello world!"))
+    )
 )
 ```
