@@ -1,6 +1,9 @@
 # Some Skills for Wat2WASM 
 
-Some helper abilities for regular wat2wasm compiler (at this time you need to install regular wat2wasm compiler). 
+Some helper abilities for regular wat2wasm compiler (at this time you need to install regular wat2wasm compiler). You can compile your "wat" file with regular parameters:
+```javascript
+node wat2wasm test.wat --enable-multi-memory --debug-names
+```
 
 ## Include another WAT file to your code
 
