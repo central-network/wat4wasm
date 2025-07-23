@@ -67,7 +67,9 @@ You can use "start" keyword to define and trigger at the same time:
 then your code will be replaced with:
 ```webassembly
 (module
-    (start $main) (func $main
+    (start $main) 
+    
+    (func $main
         (local $any i32)
     )
 )
