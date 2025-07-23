@@ -81,15 +81,7 @@ then your code will be replaced with:
 You can use "text" type keyword to create a string content with externref behaviour:
 
 ```webassembly
-(module
-
-    (func $main
-        (text "hello world!")
-        (drop)
-    )
-
-    (start $main)
-)
+(text "hello world!")
 ```
 
 You can see console output if you want to:
