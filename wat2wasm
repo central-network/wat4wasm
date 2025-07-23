@@ -92,7 +92,11 @@ const include = content => {
         const includePath = match.frame.findQuotedText();
 
         if (existsSync(includePath)){
-            content = content.replaceFrame( match, readFileSync(includePath) );
+            content = content.replaceFrame( match, 
+                readFileSync(includePath)
+                    .toString()
+                    .trim() 
+            );
         }
         else {
             content = content.removeFrame( match );
@@ -103,15 +107,31 @@ const include = content => {
 }
 
 
+const start = content => {
+    let match;
+    
+    if (match = content.matchFrame(/\(start\s+\$(.[^\s|\)]*)/)) {
+        const funcName = match[1];
+        if (!content.match(new RegExp(`\\\(func\\s+\\\$${funcName}`))) {
+            content = content
+                .replace( match[0], `(start $${funcName}) (func $${funcName} `);
+        }
+    }   
+    
+    return content;
+}
+
 const compile = () => {
     const rawFileContentBuffer = readFileSync(inputFilePath);
     const rawFileContentString = rawFileContentBuffer.toString();
 
     let 
     content = rawFileContentString;
-    content = include(rawFileContentString);
+    content = include(content);
+    content = start(content);
 
-
+    console.log(" ");
+    console.log(Date.now());
     console.log(content);
 
     writeFileSync( modifiedContentInputFilePath, content );

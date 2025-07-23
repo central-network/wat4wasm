@@ -50,3 +50,25 @@ then your compiled wat file will be:
     (func $second)
 )
 ```
+
+
+## Use "start" keyword to define and trigger start function
+
+You can use "start" keyword to define and trigger at the same time:
+
+```webassembly
+(module
+    (start $main
+        (local $any i32)
+    )
+)
+```
+
+then your code will be replaced with:
+```webassembly
+(module
+    (start $main) (func $main
+        (local $any i32)
+    )
+)
+```

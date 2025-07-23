@@ -1,3 +1,3 @@
-(func $test-sub
+    (func $test-sub
 
-)
+    )
