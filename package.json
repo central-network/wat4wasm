@@ -1,0 +1,23 @@
+{
+  "name": "wat2wasm",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/central-network/wat2wasm#readme",
+  "bugs": {
+    "url": "https://github.com/central-network/wat2wasm/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/central-network/wat2wasm.git"
+  },
+  "license": "ISC",
+  "author": "Özgür Fırat Özpolat",
+  "type": "module",
+  "main": "wat2wasm.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

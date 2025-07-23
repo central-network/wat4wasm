@@ -1,0 +1,132 @@
+#!/usr/bin/env node
+
+import {readFileSync, writeFileSync, watchFile, existsSync, unlinkSync } from "fs"
+import {execSync} from "child_process"
+
+const [ node, wat2wasm, inputFilePath, ...compileOptions ] = process.argv;
+
+String.prototype.matchFrame = function ( regExp ) {
+
+    let match       = this.match(regExp);
+    if (match) {
+        
+        let frame       = match[0];
+        let lastIndex   = match.index;
+        let maxIndex    = match.input.length;
+    
+        if (frame.startsWith("(")) {
+            while (frame.split("(").length !== frame.split(")").length) {
+                lastIndex = this.indexOf(")", lastIndex)+1;
+                frame = this.substring( match.index, lastIndex );
+        
+                if (lastIndex >= maxIndex) {
+                    break;
+                }
+            }
+        }
+    
+        match.frame = frame;
+        match.end = lastIndex;
+    }
+
+    return match;
+};
+
+String.prototype.replaceFrame = function ( match, replaceWith = "" ) {
+    return this
+        .substring( 0, match.index )
+        .concat( replaceWith )
+        .concat( this.substring( match.end ) )
+    ;
+};
+
+String.prototype.removeFrame = function ( match ) {
+    return this.replaceFrame( match, "" );
+};
+
+String.prototype.findQuotedText = function () {
+
+    let opener = this.match(/\"|\'|\`/);
+    let qtext  = "";
+
+    if (opener) {
+        
+        let begin       = opener.index;
+        let quote       = opener[0];
+        let maxIndex    = this.length;
+        let nextIndex   = this.indexOf(quote, begin+1);
+
+        if (nextIndex !== -1) {
+
+            while ( this.charAt(nextIndex-1) === "\\" ) {
+                nextIndex = this.indexOf(quote, nextIndex+1);
+                if (nextIndex >= maxIndex) {
+                    break;
+                }
+            }
+        
+            qtext = this.substring(begin+1, nextIndex);
+        }
+    
+    }
+
+    return qtext;
+};
+
+const indexOfOutputPathCompileOptionsParameter = compileOptions.findIndex(opt => opt === "-o") + 1;
+const outputFilePath = 
+    indexOfOutputPathCompileOptionsParameter && 
+    compileOptions[indexOfOutputPathCompileOptionsParameter] || 
+    inputFilePath.replace(".wat", ".wasm")
+;
+
+const modifiedContentInputFilePath  = inputFilePath + "2wasm.wat";
+const enableThreadsCompileOptions   = compileOptions.find(o => o.match(/enable-threads/)) || "";
+const debugNamesCompileOptions      = compileOptions.find(o => o.match(/debug-names/)) || "";
+const multiMemoryCompileOptions     = compileOptions.find(o => o.match(/multi-memory/)) || "";
+
+const compile = () => {
+    const rawFileContentBuffer = readFileSync(inputFilePath);
+    const rawFileContentString = rawFileContentBuffer.toString();
+
+    let match;
+    let content = rawFileContentString;
+    
+    while (match = content.matchFrame(/\(include\s+/)) {
+        const includePath = match.frame.findQuotedText();
+
+        if (existsSync(includePath)){
+            content = content.replaceFrame( match, readFileSync(includePath) );
+        }
+        else {
+            content = content.removeFrame( match );
+        }
+    }
+
+    console.log({
+        rawFileContentString,
+        content,
+        outputFilePath
+    });
+
+    writeFileSync( modifiedContentInputFilePath, content );
+
+    execSync(
+        `wat2wasm 
+            ${modifiedContentInputFilePath} 
+            ${enableThreadsCompileOptions}  
+            ${multiMemoryCompileOptions} 
+            ${debugNamesCompileOptions} 
+            -o ${outputFilePath}    
+        `.replaceAll(/\s+/g, " ")
+    ) && unlinkSync( modifiedContentInputFilePath );
+    
+}
+
+
+if (compileOptions.includes("--watch")) {
+    watchFile( inputFilePath, compile );
+}
+
+compile();
+
