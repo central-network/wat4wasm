@@ -75,6 +75,7 @@ then your code will be replaced with:
 )
 ```
 
+
 ## Use "text" keyword to create an externref for text content
 
 You can use "text" type keyword to create a string content with externref behaviour:
