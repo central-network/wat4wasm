@@ -78,11 +78,13 @@ then your code will be replaced with:
 
 ## Use "text" keyword to create an externref for text content
 
-You can use "text" type keyword to create a string content with externref behaviour:
+Use "text" type keyword to create a string content with externref behaviour:
 
 ```webassembly
 (text "hello world!")
 ```
+
+Compiler will encode your string with char codes and stores in a data segment as u16 integers. When instance raises then start function begins to generate text contents and stores and table to able for getter calls. Every text calls returns an externref value from an externref table.
 
 You can see console output if you want to:
 ```webassembly
