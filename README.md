@@ -2,7 +2,7 @@
 
 Some helper abilities for regular wat2wasm compiler (at this time you need to install regular wat2wasm compiler). 
 
-## Include Skill
+## Include another WAT file to your code
 
 You can use "include" keyword to replace your code with given path file:
 
@@ -12,7 +12,7 @@ You can use "include" keyword to replace your code with given path file:
 )
 ```
 
-This code segment will be replaced with content of "some-path.wat" file. Compiler reads file as a string and replaces with (include "some-path.wat") frame.
+This code segment will be replaced with content of "some-path.wat" file. Compiler reads file as a string and replaces with (include "some-path.wat") frame. This skill works recursively, so you can use another "include" code in your sub-content wat files.
 
 For example, consider that your project folder has two files: 
 - test.wat 
