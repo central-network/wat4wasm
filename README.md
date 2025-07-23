@@ -23,7 +23,9 @@ and your test.wat file content is:
  ```webassembly
 (module 
     (import "a" "b" (global $ab i32))
+
     (include "./test-sub.wat")
+
     (func $second)
 )
 ```
@@ -31,16 +33,22 @@ and your test.wat file content is:
 
 and your test-sub.wat file content is:
  ```webassembly
-(func $test-sub)
-(global $num i32 (i32.const 0))
+    (func $test-sub)
+    (global $num i32 
+        (i32.const 0)
+    )
 ```
 
 then your compiled wat file will be:
  ```webassembly
 (module 
     (import "a" "b" (global $ab i32))
-(func $test-sub)
-(global $num i32 (i32.const 0))
+    
+    (func $test-sub)
+    (global $num i32 
+        (i32.const 0)
+    )
+
     (func $second)
 )
 ```
