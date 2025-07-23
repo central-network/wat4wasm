@@ -85,12 +85,8 @@ const enableThreadsCompileOptions   = compileOptions.find(o => o.match(/enable-t
 const debugNamesCompileOptions      = compileOptions.find(o => o.match(/debug-names/)) || "";
 const multiMemoryCompileOptions     = compileOptions.find(o => o.match(/multi-memory/)) || "";
 
-const compile = () => {
-    const rawFileContentBuffer = readFileSync(inputFilePath);
-    const rawFileContentString = rawFileContentBuffer.toString();
-
+const include = content => {
     let match;
-    let content = rawFileContentString;
     
     while (match = content.matchFrame(/\(include\s+/)) {
         const includePath = match.frame.findQuotedText();
@@ -101,13 +97,22 @@ const compile = () => {
         else {
             content = content.removeFrame( match );
         }
-    }
+    }   
+    
+    return content;
+}
 
-    console.log({
-        rawFileContentString,
-        content,
-        outputFilePath
-    });
+
+const compile = () => {
+    const rawFileContentBuffer = readFileSync(inputFilePath);
+    const rawFileContentString = rawFileContentBuffer.toString();
+
+    let 
+    content = rawFileContentString;
+    content = include(rawFileContentString);
+
+
+    console.log(content);
 
     writeFileSync( modifiedContentInputFilePath, content );
 
@@ -120,9 +125,7 @@ const compile = () => {
             -o ${outputFilePath}    
         `.replaceAll(/\s+/g, " ")
     ) && unlinkSync( modifiedContentInputFilePath );
-    
-}
-
+};
 
 if (compileOptions.includes("--watch")) {
     watchFile( inputFilePath, compile );
