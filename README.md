@@ -7,9 +7,7 @@ Some helper abilities for regular wat2wasm compiler (at this time you need to in
 You can use "include" keyword to replace your code with given path file:
 
 ```webassembly
-(module 
-    (include "some-path.wat")
-)
+(include "some-path.wat")
 ```
 
 This code segment will be replaced with content of "some-path.wat" file. Compiler reads file as a string and replaces with (include "some-path.wat") frame. This skill works recursively, so you can use another "include" code in your sub-content wat files.
