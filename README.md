@@ -5,6 +5,38 @@ Some helper abilities for regular wat2wasm compiler (at this time you need to in
 node wat2wasm test.wat --enable-multi-memory --debug-names
 ```
 
+useable:
+```webassembly      
+(include "some-path.wat")                               ;; replace with file content
+(start $main (local $any i32) ...)                      ;; start to start + func
+(text "hello world!")                                   ;; text to externref
+(global $self.location.origin externref)                ;; text from table get
+(global $ANY_TEXT_GLOBAL "any text global")             ;; text as global 
+(call $self.Array.of<i32>ref (i32.const 2))             ;; direct call
+(apply $self.Math.random f32)                           ;; Reflect.apply
+(log<ref> (global.get $self.location.origin))           ;; console.log
+
+(call $self.requestAnimationFrame<fun>                  ;; auto imported
+    (func $inlinefunction<f32>                          ;; inline function
+        (param $performance.now f32)
+        (error<f32> (local.get $performance.now))
+    )
+)
+
+(apply $self.Math.max<i32x3.f32>i32                     ;; function
+    (self)                                              ;; this
+    (param                                              ;; arguments array
+        (i32.const 2)
+        (i32.const 4)
+        (i32.const 5)
+        (f32.const 1122.2)
+    )
+)
+(self)                                                  ;; default imported
+(null)                                                  ;; ref.null extern
+
+```
+
 ## Include another WAT file to your code
 
 You can use "include" keyword to replace your code with given path file:
