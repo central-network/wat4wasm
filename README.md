@@ -416,7 +416,7 @@ uses:
 ```
 
 
-## shorten: (null)"
+## shorten: (null)
 
 Compiler will convert your null reference getter:
 
