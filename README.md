@@ -209,7 +209,7 @@ multiple references will be joined:
 (call $self.console.log<i32> (i32.const 2))
 ```
 
-will generate:
+compiler appends your wat code:
 ```webassembly
 (import "console" "log" (func $self.console.log<i32> (param i32)))
 ```
