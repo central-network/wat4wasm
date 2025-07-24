@@ -136,3 +136,5 @@ ans full source to see console outputs:
     )
 )
 ```
+
+compiler also knows : means .prototype. and replaces at first. 
