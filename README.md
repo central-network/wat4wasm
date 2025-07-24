@@ -139,6 +139,7 @@ ans full source to see console outputs:
 )
 ```
 
-examples/image.png
+ <img width="100%" alt="console output" src="examples/image.png">
+
 
 compiler also knows : means .prototype. and replaces at first. 
