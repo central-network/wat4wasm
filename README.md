@@ -344,6 +344,7 @@ You can use inline functions. Compiler will be copy your function to outer scope
 ```
 
 will be replaced with (elem definitions also will be generated):
+```webassembly
 (func $inlinefunction<f32>
     (param $performance.now f32)
 
