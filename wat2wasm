@@ -11,6 +11,30 @@ let data_text_offset = 0;
 // const encode = TextEncoder.prototype.encode.bind(new TextEncoder);
 const encode = str => new Uint8Array(Float32Array.from(str.split("").map(c => c.charCodeAt())).buffer);
 
+
+String.prototype.frameAt         = function ( index ) {
+
+    let lastIndex   = this.indexOf(")", index) + 1;
+    let frame       = this.substring(index, lastIndex);
+    let maxIndex    = this.length;
+
+    if (frame.startsWith("(")) {
+        while (frame.split("(").length !== frame.split(")").length) {
+            lastIndex = this.indexOf(")", lastIndex )+1;
+            frame = this.substring( index, lastIndex );
+    
+            if (lastIndex >= maxIndex) {
+                process.exit(console.log("frame error:", frame));
+                break;
+            }
+        }
+    } else {
+        process.exit(console.log("frame not started with (", frame));
+    }
+
+    return frame;
+};
+
 String.prototype.matchFrame         = function ( regExp ) {
 
     let match       = this.match(regExp);
@@ -135,6 +159,31 @@ const start     = content => {
                 .replace( match[0], `(start $${funcName}) (func $${funcName} `);
         }
     }   
+    
+    return content;
+}
+
+const inlinefuncs     = content => {
+    let match;
+    
+    let lastfuncIndex = content.lastIndexOf("(func ", content.length);
+    let lastfuncFrame;
+    
+    
+    while (lastfuncIndex > 0) {
+        lastfuncFrame = content.frameAt(lastfuncIndex);
+        if (lastfuncFrame.indexOf("(func", 1) !== -1) {
+        
+            let nlb = lastfuncFrame.frameAt(lastfuncFrame.lastIndexOf("(func"));
+            let fname = nlb.split("$").at(1).split(/[\s|\(|\)]/).at(0);
+            content = content.substring(0, lastfuncIndex).concat(nlb).concat(content.substring(lastfuncIndex).replace(nlb, `(ref.func $${fname})`))
+
+            return inlinefuncs(content);
+
+        }
+        lastfuncIndex = content.lastIndexOf("(func ", lastfuncIndex-1);
+    }
+
     
     return content;
 }
@@ -497,6 +546,7 @@ const compile   = () => {
     content = include(content);
     content = consoles(content);
     content = start(content);
+    content = inlinefuncs(content);
     content = textref(content);
     content = selfref(content);
     content = elemrefs(content);

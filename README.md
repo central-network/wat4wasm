@@ -323,3 +323,21 @@ At this time you can use combitaions of abilities:
     )
 )
 ```
+
+## inline function definitions
+
+You can use inline functions. Compiler will be copy your function to outer scope and replace it's place with "ref.func". You can see at example:
+
+```webassembly
+(call $self.requestAnimationFrame<fun>
+    (func $inlinefunction<f32>
+        (param $performance.now f32)
+
+        (log<ref.f32>
+            (text "animation frame ready:") 
+            (local.get $performance.now)
+        )
+    )
+)
+```
+

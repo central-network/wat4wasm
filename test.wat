@@ -30,26 +30,14 @@
         )
 
         (call $self.requestAnimationFrame<fun>
-            (ref.func $onanimationframe<f32>)
-        )
+            (func $inlinefunction<f32>
+                (param $performance.now f32)
 
-        (call $self.setTimeout<fun.i32>
-            (ref.func $ontimeout)
-            (i32.const 1000)
-        )
-    )
-
-    (func $onanimationframe<f32>
-        (param $performance.now f32)
-        (log<ref.f32>
-            (text "animation frame ready:") 
-            (local.get $performance.now)
-        )
-    )
-
-    (func $ontimeout
-        (warn<ref> 
-            (text "timer done, 1000ms passed..")
+                (log<ref.f32>
+                    (text "animation frame ready:") 
+                    (local.get $performance.now)
+                )
+            )
         )
     )
 )
