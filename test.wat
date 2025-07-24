@@ -15,6 +15,7 @@
         (call $log<ref> (text "Text to externref is easy!"))
         (call $log<ref> (global.get $self.location.origin))
         (call $log<f32> (global.get $self.screen.width))
+        (call $log<ref> (global.get $self.MessageEvent.prototype.data/get))
         (call $log<ref> (global.get $self.Worker:onmessage/set))
     )
 )

@@ -104,6 +104,7 @@
         (call $log<ref> (table.get $extern (i32.const 13)))
         (call $log<ref> (global.get $self.location.origin))
         (call $log<f32> (global.get $self.screen.width))
+        (call $log<ref> (global.get $self.MessageEvent.prototype.data/get))
         (call $log<ref> (global.get $self.Worker:onmessage/set))
     )
 
