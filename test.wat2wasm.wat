@@ -1,5 +1,5 @@
 (module
-    
+    ;;BEGIN_OF_IMPORTS
     (import "self" "Array"              (func $wat2wasm/Array<>ref (param) (result externref)))
     (import "Reflect" "set"             (func $wat2wasm/Reflect.set<ref.i32x2> (param externref i32 i32) (result)))
     (import "Reflect" "getOwnPropertyDescriptor" (func $wat2wasm/Reflect.getOwnPropertyDescriptor<refx2>ref (param externref externref) (result externref)))
@@ -11,9 +11,13 @@
     (import "Reflect" "apply"           (func $wat2wasm/Reflect.apply<refx3>ref (param externref externref externref) (result externref)))
     (import "self" "self"               (global $wat2wasm/self externref))
     (import "String" "fromCharCode"     (global $wat2wasm/String.fromCharCode externref))
-    (import "console" "log" (func $log<ref> (param externref)))
-    (import "console" "log" (func $log<f32> (param f32)))
-
+   
+	(import "console" "log" (func $self.console.log<ref> (param externref)))
+	(import "console" "log" (func $self.console.log<f32> (param f32)))
+	(import "console" "error" (func $self.console.error<ref> (param externref)))
+	(import "Array" "of" (func $self.Array.of<i32x3.f32>ref (param i32 i32 i32 f32) (result externref)))
+	 ;;END_OF_IMPORTS
+    
     (func $test-sub
 
     )
@@ -29,29 +33,27 @@
 
     (start $main) (func $main
         
-        (memory.init 0 $wat2wasm/text (i32.const 0) (i32.const 0) (i32.const 660))    
+        (memory.init 0 $wat2wasm/text (i32.const 0) (i32.const 0) (i32.const 488))    
     
-        (table.set $extern (i32.const 1) (call $wat2wasm/text (i32.const 0) (i32.const 104)))
-		(table.set $extern (i32.const 2) (call $wat2wasm/text (i32.const 104) (i32.const 24)))
-		(table.set $extern (i32.const 3) (call $wat2wasm/text (i32.const 128) (i32.const 20)))
-		(table.set $extern (i32.const 4) (call $wat2wasm/text (i32.const 148) (i32.const 32)))
-		(table.set $extern (i32.const 5) (call $wat2wasm/text (i32.const 180) (i32.const 24)))
-		(table.set $extern (i32.const 6) (call $wat2wasm/text (i32.const 204) (i32.const 48)))
-		(table.set $extern (i32.const 7) (call $wat2wasm/text (i32.const 252) (i32.const 36)))
-		(table.set $extern (i32.const 8) (call $wat2wasm/text (i32.const 288) (i32.const 16)))
-		(table.set $extern (i32.const 9) (call $wat2wasm/text (i32.const 304) (i32.const 12)))
-		(table.set $extern (i32.const 10) (call $wat2wasm/text (i32.const 316) (i32.const 24)))
-		(table.set $extern (i32.const 11) (call $wat2wasm/text (i32.const 340) (i32.const 36)))
-		(table.set $extern (i32.const 12) (call $wat2wasm/text (i32.const 376) (i32.const 12)))
-		(table.set $extern (i32.const 13) (call $wat2wasm/text (i32.const 388) (i32.const 68)))
-		(table.set $extern (i32.const 14) (call $wat2wasm/text (i32.const 456) (i32.const 60)))
-		(table.set $extern (i32.const 15) (call $wat2wasm/text (i32.const 516) (i32.const 144)))    
+        (table.set $extern (i32.const 1) (call $wat2wasm/text (i32.const 0) (i32.const 144)))
+		(table.set $extern (i32.const 2) (call $wat2wasm/text (i32.const 144) (i32.const 24)))
+		(table.set $extern (i32.const 3) (call $wat2wasm/text (i32.const 168) (i32.const 20)))
+		(table.set $extern (i32.const 4) (call $wat2wasm/text (i32.const 188) (i32.const 32)))
+		(table.set $extern (i32.const 5) (call $wat2wasm/text (i32.const 220) (i32.const 24)))
+		(table.set $extern (i32.const 6) (call $wat2wasm/text (i32.const 244) (i32.const 48)))
+		(table.set $extern (i32.const 7) (call $wat2wasm/text (i32.const 292) (i32.const 36)))
+		(table.set $extern (i32.const 8) (call $wat2wasm/text (i32.const 328) (i32.const 16)))
+		(table.set $extern (i32.const 9) (call $wat2wasm/text (i32.const 344) (i32.const 12)))
+		(table.set $extern (i32.const 10) (call $wat2wasm/text (i32.const 356) (i32.const 24)))
+		(table.set $extern (i32.const 11) (call $wat2wasm/text (i32.const 380) (i32.const 36)))
+		(table.set $extern (i32.const 12) (call $wat2wasm/text (i32.const 416) (i32.const 12)))
+		(table.set $extern (i32.const 13) (call $wat2wasm/text (i32.const 428) (i32.const 60)))    
     
         
-        (memory.fill (i32.const 0) (i32.const 0) (i32.const 660))
+        (memory.fill (i32.const 0) (i32.const 0) (i32.const 488))
         (data.drop $wat2wasm/text)    
     
-        (global.set $ANY_TEXT_GLOBAL (table.get $extern (i32.const 14)))    
+        (global.set $ANY_TEXT_GLOBAL (table.get $extern (i32.const 13)))    
     
         
         (global.set $self.screen.width
@@ -107,15 +109,27 @@
         )
             
      
-        (call $log<ref> (table.get $extern (i32.const 15)))
-        (call $log<ref> (global.get $self.location.origin))
-        (call $log<f32> (global.get $self.screen.width))
-        (call $log<ref> (global.get $self.MessageEvent.prototype.data/get))
-        (call $log<ref> (global.get $self.Worker:onmessage/set))
-        (call $log<ref> (global.get $ANY_TEXT_GLOBAL))
+        (call $self.console.log<ref> (table.get $extern (i32.const 1)))
+        (call $self.console.log<ref> (global.get $self.location.origin))
+        (call $self.console.log<f32> (global.get $self.screen.width))
+        (call $self.console.log<ref> (global.get $self.MessageEvent.prototype.data/get))
+        (call $self.console.log<ref> (global.get $self.Worker:onmessage/set))
+        (call $self.console.log<ref> (global.get $ANY_TEXT_GLOBAL))
+
+
+        (call $self.console.error<ref>
+            (call $self.Array.of<i32x3.f32>ref
+                (i32.const 2)
+                (i32.const 4)
+                (i32.const 5)
+                (f32.const 2.2)
+            )
+        )
+
+
     )
 
-    (table $extern 16 16 externref)
+    (table $extern 14 14 externref)
 
     (func $wat2wasm/text 
         (param $offset i32)
@@ -159,5 +173,5 @@
         )
     )
 
-    (data $wat2wasm/text "\00\00\a8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\e8\42\00\00\de\42\00\00\00\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\dc\42\00\00\e4\42\00\00\ca\42\00\00\cc\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\ca\42\00\00\c2\42\00\00\e6\42\00\00\f2\42\00\00\04\42\00\00\e6\42\00\00\c6\42\00\00\e4\42\00\00\ca\42\00\00\ca\42\00\00\dc\42\00\00\ee\42\00\00\d2\42\00\00\c8\42\00\00\e8\42\00\00\d0\42\00\00\d8\42\00\00\de\42\00\00\c6\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\de\42\00\00\e4\42\00\00\d2\42\00\00\ce\42\00\00\d2\42\00\00\dc\42\00\00\9a\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\e0\42\00\00\e4\42\00\00\de\42\00\00\e8\42\00\00\de\42\00\00\e8\42\00\00\f2\42\00\00\e0\42\00\00\ca\42\00\00\c8\42\00\00\c2\42\00\00\e8\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\ae\42\00\00\de\42\00\00\e4\42\00\00\d6\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\dc\42\00\00\da\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\c2\42\00\00\dc\42\00\00\f2\42\00\00\00\42\00\00\e6\42\00\00\e8\42\00\00\e4\42\00\00\d2\42\00\00\dc\42\00\00\ce\42\00\00\00\42\00\00\ce\42\00\00\d8\42\00\00\de\42\00\00\c4\42\00\00\c2\42\00\00\d8\42\00\00\c2\42\00\00\dc\42\00\00\f2\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\ce\42\00\00\d8\42\00\00\de\42\00\00\c4\42\00\00\c2\42\00\00\d8\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\c2\42\00\00\d8\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\ec\42\00\00\ca\42\00\00\e4\42\00\00\e8\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\e8\42\00\00\de\42\00\00\00\42\00\00\e8\42\00\00\c2\42\00\00\c4\42\00\00\d8\42\00\00\ca\42\00\00\38\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\04\42")
+    (data $wat2wasm/text "\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\c2\42\00\00\d8\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\ec\42\00\00\ca\42\00\00\e4\42\00\00\e8\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\e8\42\00\00\de\42\00\00\00\42\00\00\e8\42\00\00\c2\42\00\00\c4\42\00\00\d8\42\00\00\ca\42\00\00\38\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\04\42\00\00\e6\42\00\00\c6\42\00\00\e4\42\00\00\ca\42\00\00\ca\42\00\00\dc\42\00\00\ee\42\00\00\d2\42\00\00\c8\42\00\00\e8\42\00\00\d0\42\00\00\d8\42\00\00\de\42\00\00\c6\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\de\42\00\00\e4\42\00\00\d2\42\00\00\ce\42\00\00\d2\42\00\00\dc\42\00\00\9a\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\e0\42\00\00\e4\42\00\00\de\42\00\00\e8\42\00\00\de\42\00\00\e8\42\00\00\f2\42\00\00\e0\42\00\00\ca\42\00\00\c8\42\00\00\c2\42\00\00\e8\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\ae\42\00\00\de\42\00\00\e4\42\00\00\d6\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\dc\42\00\00\da\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\c2\42\00\00\dc\42\00\00\f2\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\ce\42\00\00\d8\42\00\00\de\42\00\00\c4\42\00\00\c2\42\00\00\d8\42")
 )

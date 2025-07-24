@@ -289,6 +289,7 @@ const addImports = content => {
     return content.substring(
         0, firstImportIndex
     ).concat(`
+    ;;BEGIN_OF_IMPORTS
     (import "self" "Array"              (func $wat2wasm/Array<>ref (param) (result externref)))
     (import "Reflect" "set"             (func $wat2wasm/Reflect.set<ref.i32x2> (param externref i32 i32) (result)))
     (import "Reflect" "getOwnPropertyDescriptor" (func $wat2wasm/Reflect.getOwnPropertyDescriptor<refx2>ref (param externref externref) (result externref)))
@@ -300,6 +301,7 @@ const addImports = content => {
     (import "Reflect" "apply"           (func $wat2wasm/Reflect.apply<refx3>ref (param externref externref externref) (result externref)))
     (import "self" "self"               (global $wat2wasm/self externref))
     (import "String" "fromCharCode"     (global $wat2wasm/String.fromCharCode externref))
+    ;;END_OF_IMPORTS
     `).concat(
         content.substring(firstImportIndex)
     )
@@ -329,7 +331,7 @@ const selfref           = content => {
     let match;
     let setters = ``;
     
-    while (match = content.matchFrame(/\(global\s+\$(self.[a-zA-Z0-9._:/]+)\s+(i32|f32|i64|f64|externref)\s?\)/)) {
+    while (match = content.matchFrame(/\(global\s+\$(self\.[a-zA-Z0-9._:/]+)\s+(i32|f32|i64|f64|externref)\s?\)/)) {
         const kind = match[2];
         const kindshort = kind.replace("externref", "ref");
         const kinddefiner = `(mut ${kind})`;
@@ -403,6 +405,61 @@ const globaltextref     = content => {
     return callOnStart(content, setters);
 }
 
+
+const selffuncimport    = content => {
+
+    let match;
+    let importers = ``;
+    let replacers = [];
+    
+    while (match = content.matchFrame(/\(call\s+(\$self\.([a-zA-Z0-9._:/]+)<(.*?)>([a-z0-9]*))/)) {
+
+        let [ root, sub, ...rest ] = match[2].trim().split(".");
+
+        if (rest.length) {
+            process.exit("maximum two level deeper allowed:", match.frame);
+        }
+
+        if (!sub) {
+            sub = root;
+            root = "self";
+        }
+
+        const params = String("(param ").concat(match[3].trim().split(".").flatMap(d => {
+            const [kind, multiplier] = d.split("x");
+            const array = new Array( Number(multiplier) || 1 );
+            
+            return array.fill(kind);
+        }).map(k => k.replace('ref', 'externref')).join(" ")).concat(")").replace("(param )", "");
+        
+        const results = String("(result ").concat(match[4].trim().split(".").flatMap(d => {
+            const [kind, multiplier] = d.split("x");
+            const array = new Array( Number(multiplier) || 1 );
+            
+            return array.fill(kind);
+        }).map(k => k.replace('ref', 'externref')).join(" ")).concat(")").replace("(result )", "");
+
+        const definition = `(func ${match[1]} ${params} ${results}`.trim().concat(")");
+        const importer = `\n\t(import "${root}" "${sub}" ${definition})`;
+
+        content = content.replaceFrame( match, match.frame.replace("$self.", "$SELF.") );
+        
+        if (importers.indexOf(importer) === -1) {
+            importers += importer;
+        }
+    }   
+
+    content = content.substring( 0, content.indexOf(";;END_OF_IMPORTS")-1 ).concat(
+        importers
+    ).concat("\n\t").concat( 
+        content.substring( content.indexOf(";;END_OF_IMPORTS")-1 )
+    );
+
+
+    return content.replaceAll("$SELF.", "$self.");
+}
+
+
 const compile   = () => {
     const rawFileContentBuffer = readFileSync(inputFilePath);
     const rawFileContentString = rawFileContentBuffer.toString();
@@ -415,6 +472,7 @@ const compile   = () => {
     content = textref(content);
     content = selfref(content);
     content = globaltextref(content);
+    content = selffuncimport(content);
 
     if (tbl_extern.length > 1) {
         content = appendExternTable(content);
