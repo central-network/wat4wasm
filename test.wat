@@ -37,6 +37,10 @@
         (error<f32>)
 
         (apply $self.Math.random)
+        (nop)
+
+        (apply $self.Math.random ref)
+        (drop)
         
         (call $self.requestAnimationFrame<fun>
             (func $inlinefunction<f32>

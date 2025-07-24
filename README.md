@@ -459,7 +459,7 @@ those examples also works:
 (apply $self.Math.random externref) ;; result is externref (typed like global definition)
 (drop)
 
-(apply $self.Math.random ref)       ;; result is externref (typed like global definition)
+(apply $self.Math.random ref)       ;; result is externref (typed like shorten global def.)
 (drop)
 
 ```

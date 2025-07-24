@@ -23,6 +23,7 @@
 	(import "Array" "of" (func $self.Array.of<>ref  (result externref)))
 	(import "console" "error" (func $self.console.error<f32> (param f32)))
 	(import "Reflect" "apply" (func $self.Reflect.apply<refx3> (param externref externref externref)))
+	(import "Reflect" "apply" (func $self.Reflect.apply<refx3>ref (param externref externref externref) (result externref)))
 	(import "self" "requestAnimationFrame" (func $self.requestAnimationFrame<fun> (param funcref)))
 	 ;;END_OF_IMPORTS
     
@@ -196,6 +197,11 @@
 
         (call $self.Reflect.apply<refx3> 
             (global.get $self.Math.random) (global.get $wat2wasm/self) (call $self.Array.of<>ref))
+        (nop)
+
+        (call $self.Reflect.apply<refx3>ref 
+            (global.get $self.Math.random) (global.get $wat2wasm/self) (call $self.Array.of<>ref))
+        (drop)
         
         (call $self.requestAnimationFrame<fun>
             (ref.func $inlinefunction<f32>)
