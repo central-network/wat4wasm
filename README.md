@@ -252,6 +252,7 @@ Examine those definitions to understand:
 
 use without call requests:
 ```webassembly
+;;[color:red]
 (log<i32> (i32.const 2))
 (warn<ref> (ref.null extern))
 (error<i32.f32x2> (i32.const 2) (f32.const 2.2) (f32.const 0.1))
