@@ -19,7 +19,7 @@ useable:
 (call $self.requestAnimationFrame<fun>                  ;; auto imported
     (func $inlinefunction<f32>                          ;; inline function
         (param $performance.now f32)
-        (error<f32> (local.get $performance.now))
+        (error<f32> (local.get $performance.now))       ;; console.error
     )
 )
 
