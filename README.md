@@ -222,8 +222,8 @@ Examine those definitions to understand:
 <tr><td>Your WAT Code</td><td>Parsed Arguments</td><td>Import definition</td></tr>      
 </thead>
 <tbody>
-<tr><td>(call $name&lt;i32.f32&gt;ref)</td><td>(param i32 f32) (result externref)</td><td>(func $name (param i32 f32) (result externref))</td></tr>      
-<tr><td>(call $name&lt;f32x2&gt;)</td><td>(param f32 f32)</td><td>(func $name (param f32 f32))</td></tr>      
-<tr><td>(call $name&lt;&gt;i32)</td><td>(result i32)</td><td>(func $name (result i32))</td></tr>      
+<tr><td>(call $name&lt;i32.f32&gt;ref)</td><td>in: i32, i32 out: externref</td><td>(func $name (param i32 f32) (result externref))</td></tr>      
+<tr><td>(call $name&lt;f32x2&gt;)</td><td>in: f32 f32</td><td>(func $name (param f32 f32))</td></tr>      
+<tr><td>(call $name&lt;&gt;i32)</td><td>out: i32</td><td>(func $name (result i32))</td></tr>      
 </tbody>
 </table>      
