@@ -218,12 +218,32 @@ The end of the name definition is important because of parameters and result typ
 
 Examine those definitions to understand:
 <table>
-<thead>
-<tr><td>Your WAT Code</td><td>Parsed Arguments</td><td>Import definition</td></tr>      
-</thead>
-<tbody>
-<tr><td>(call $name&lt;i32.f32&gt;ref)</td><td>in: i32, i32 out: externref</td><td>(func $name (param i32 f32) (result externref))</td></tr>      
-<tr><td>(call $name&lt;f32x2&gt;)</td><td>in: f32 f32</td><td>(func $name (param f32 f32))</td></tr>      
-<tr><td>(call $name&lt;&gt;i32)</td><td>out: i32</td><td>(func $name (result i32))</td></tr>      
-</tbody>
-</table>      
+    <thead>
+        <tr>
+            <td>Your WAT Code</td>
+            <td align="center">Input</td>
+            <td align="center">Output</td>
+            <td>Import definition</td>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>(call $name&lt;i32.f32&gt;ref .. )</td>
+            <td align="center">i32, i32</td>
+            <td align="center">externref</td>
+            <td>(func $name (param i32 f32) (result externref))</td>
+        </tr>
+        <tr>
+            <td>(call $name&lt;f32x2&gt; .. )</td>
+            <td align="center">f32 f32</td>
+            <td align="center"></td>
+            <td>(func $name (param f32 f32))</td>
+        </tr>
+        <tr>
+            <td>(call $name&lt;&gt;i32)</td>
+            <td align="center"></td>
+            <td align="center">i32</td>
+            <td>(func $name (result i32))</td>
+        </tr>
+    </tbody>
+</table>
