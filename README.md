@@ -406,9 +406,9 @@ Compiler will convert your Reflect.apply requests as well as:
 
     ... body
 
-    (apply $self.Math.max<i32x3.f32>i32 
-        (self)
-        (param
+    (apply $self.Math.max<i32x3.f32>i32     ;; function
+        (self)                              ;; this
+        (param                              ;; arguments array
             (i32.const 2)
             (i32.const 4)
             (i32.const 5)
