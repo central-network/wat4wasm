@@ -464,6 +464,11 @@ const selffuncimport    = content => {
     let match;
     let importers = ``;
     
+    content = content.replaceAll(/\(call\s+\$self\.([a-zA-Z0-9\.\_]+)\s+(i32|f32|i64|f64|ref|externref)\)/g, 
+        `(call $self.$1<>$2)`
+    ).replaceAll(">externref", ">ref");    
+
+    
     while (match = content.matchFrame(/\(call\s+(\$self\.([a-zA-Z0-9._:/]+)<(.*?)>([a-z0-9]*))/)) {
 
         let [ root, sub, ...rest ] = match[2].trim().split(".");

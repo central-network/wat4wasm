@@ -36,6 +36,9 @@
         (apply $self.Math.random f32)
         (error<f32>)
 
+        (call $self.Math.random f32)
+        (warn<f32>)
+
         (apply $self.Math.random)
         (nop)
 

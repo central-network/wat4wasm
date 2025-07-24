@@ -13,7 +13,8 @@ useable:
 (global $self.location.origin externref)                ;; text from table get
 (global $ANY_TEXT_GLOBAL "any text global")             ;; text as global 
 (call $self.Array.of<i32>ref (i32.const 2))             ;; direct call
-(apply $self.Math.random f32)                           ;; Reflect.apply
+(apply $self.Math.random f32)                           ;; Reflect.apply applied
+(call $self.Math.random f32)                            ;; direct imported call
 (log<ref> (global.get $self.location.origin))           ;; console.log
 
 (call $self.requestAnimationFrame<fun>                  ;; auto imported

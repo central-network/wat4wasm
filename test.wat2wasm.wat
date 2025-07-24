@@ -22,6 +22,8 @@
 	(import "Reflect" "apply" (func $self.Reflect.apply<refx3>f32 (param externref externref externref) (result f32)))
 	(import "Array" "of" (func $self.Array.of<>ref  (result externref)))
 	(import "console" "error" (func $self.console.error<f32> (param f32)))
+	(import "Math" "random" (func $self.Math.random<>f32  (result f32)))
+	(import "console" "warn" (func $self.console.warn<f32> (param f32)))
 	(import "Reflect" "apply" (func $self.Reflect.apply<refx3> (param externref externref externref)))
 	(import "Reflect" "apply" (func $self.Reflect.apply<refx3>ref (param externref externref externref) (result externref)))
 	(import "self" "requestAnimationFrame" (func $self.requestAnimationFrame<fun> (param funcref)))
@@ -194,6 +196,9 @@
         (call $self.Reflect.apply<refx3>f32 
             (global.get $self.Math.random) (global.get $wat2wasm/self) (call $self.Array.of<>ref))
         (call $self.console.error<f32>)
+
+        (call $self.Math.random<>f32)
+        (call $self.console.warn<f32>)
 
         (call $self.Reflect.apply<refx3> 
             (global.get $self.Math.random) (global.get $wat2wasm/self) (call $self.Array.of<>ref))
