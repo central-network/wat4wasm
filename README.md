@@ -88,7 +88,7 @@ then your compiled wat file will be:
 ```
 
 
-## Use "start" keyword to define and trigger start function
+## keyword: start
 
 You can use "start" keyword to define and trigger at the same time:
 
@@ -112,7 +112,7 @@ then your code will be replaced with:
 ```
 
 
-## Use "text" keyword to create an externref for text content
+## keyword: text (table)
 
 Use "text" type keyword to create a string content with externref behaviour:
 
@@ -133,7 +133,7 @@ You can see console output if you want to:
 )
 ```
 
-## Use "$self..." path to assign globals (reflected import)
+## name: $self... (import)
 
 No need to use "import" keyword anymore!
 Now, you can use "global" definitions to reach any object that starts with global path like self.screen.width. Compiler will be split your path and starts to reach last property definition. This process runs in the "start" functions' body and uses Reflect.get and/or Reflect.getOwnPropertyDescriptor calls which means you can assign "getter" and "setter" functions as an externref global too. 
@@ -179,7 +179,7 @@ ans full source to see console outputs:
 compiler also knows : means .prototype. and replaces at first. 
 
 
-## Use texts as globals 
+## keyword: text (global) 
 
 In general, text definitions runs over table get calls. This method also gives opportunitiy to set texts' external references to global variables. 
 ```webassembly
@@ -215,7 +215,7 @@ Compiler modifies your global definiton to mutable externref type and sets globa
 ```
 
 
-## Auto "elem" definitions for "ref.func" usage
+## keyword: ref.func (elem)
 
 Compiler will create an "elem" segment and puts all necessary function pointers. You can simply use ref.func call like before, this is for just "elem" segment definition:
 
@@ -233,7 +233,7 @@ multiple references will be joined:
 (elem $wat2wasm/refs funcref (ref.func $ref1) (ref.func $ref2) ... (ref.func $refN))
 ```
 
-## Auto "imports" for "$self..." calls
+## name: $self... (call)
 
 Compiler will create import definitions for your $self. prefixed calls. Maximum level of deep objects is 2 which means you can use for *Number, Boolean, console.log, Math.floor* etc.. but you can **NOT** use *navigator.permissions.query* because of path has three level of deepness.
 
@@ -281,7 +281,7 @@ Examine those definitions to understand:
     </tbody>
 </table>
 
-## log, warn and error keywords for shorten calls of $self.console..
+## keywords: log, warn, error
 
 use without call requests:
 ```webassembly
@@ -357,7 +357,7 @@ At this time you can use combitaions of abilities:
 )
 ```
 
-## inline function definitions
+## inline functions
 
 You can use inline functions. Compiler will be copy your function to outer scope and replace it's place with "ref.func". You can see at example:
 
@@ -402,7 +402,7 @@ will be replaced with (elem definitions also will be generated):
 ```
 
 
-## keyword for "self"
+## shorten: (self)
 
 Compiler will convert your globalThis getter:
 
@@ -416,7 +416,7 @@ uses:
 ```
 
 
-## keyword for "null"
+## shorten: (null)"
 
 Compiler will convert your null reference getter:
 
@@ -430,7 +430,7 @@ turns into:
 ```
 
 
-## keyword for "apply"
+## keyword: apply
 
 Compiler will convert your Reflect.apply requests as well as:
 
