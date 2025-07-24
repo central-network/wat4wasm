@@ -217,7 +217,7 @@ compiler appends import definition to wat code:
 The end of the name definition is important because of parameters and result types cames from it. Between the &lt;bracets&gt; defines input arguments which every one of it is "param" and result type comes to end. Every type sperates with a dot (.) like i32.f32.i32 and you can also use multiplier (x) symbol like i32x3.. Externref shortened with "ref" keyword and funcref is shortened with "fun" keyword..
 
 Examine those definitions to understand:
-<table border="1">
+<table>
 <thead>
 <tr><td>Your WAT Code</td><td>Parsed Arguments</td><td>Import definition</td></tr>      
 </thead>
