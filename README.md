@@ -383,6 +383,20 @@ uses:
 ```
 
 
+## keyword for "null"
+
+Compiler will convert your null reference getter:
+
+```webassembly
+(null)
+```
+
+turns into:
+```webassembly
+(ref.null extern)
+```
+
+
 ## keyword for "apply"
 
 Compiler will convert your Reflect.apply requests as well as:
