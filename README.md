@@ -218,7 +218,7 @@ The end of the name definition is important because of parameters and result typ
 
 Examine those definitions to understand:
 <table>
-<tr><td>$funcname<i32.f32>ref</td><td>(param i32 f32) (result externref)</td></tr>      
-<tr><td>$funcname<f32x2></td><td>(param f32 f32) (result)</td></tr>      
+<tr><td>$funcname\<i32.f32>ref</td><td>(param i32 f32) (result externref)</td></tr>      
+<tr><td>$funcname\<f32x2></td><td>(param f32 f32) (result)</td></tr>      
 <tr><td>$funcname<>i32</td><td>(param) (result i32)</td></tr>      
 </table>      
