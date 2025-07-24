@@ -448,6 +448,7 @@ you don't need to define (global $self.Math.max externref) your code turns into:
 those examples also works:
 ```webassembly
 (apply $self.Math.random)           ;; no result, no mean :) (no typed, result is empty)
+(nop)
 
 (apply $self.Math.random<>ref)      ;; result is externref (typed in function name)
 (drop)
