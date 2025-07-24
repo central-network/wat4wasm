@@ -99,3 +99,40 @@ You can see console output if you want to:
     )
 )
 ```
+
+## Use "self" keyword to assign globals references from window (reflected import)
+
+No need to use "import" keyword anymore!
+Now, you can use "global" definitions to reach any object that starts with global path like self.screen.width. Compiler will be split your path and starts to reach last property definition. This process runs in the "start" functions' body and uses Reflect.get and/or Reflect.getOwnPropertyDescriptor calls which means you can assign "getter" and "setter" functions as an externref global too. 
+
+Basic definition examples:
+```webassembly
+(global $self.screen.width f32)
+(global $self.location.origin externref)
+(global $self.MessageEvent.prototype.data/get externref)
+(global $self.Worker:onmessage/set externref)
+```
+
+ans full source to see console outputs:
+```webassembly
+(module
+    (import "console" "log" (func $log<ref> (param externref)))
+    (import "console" "log" (func $log<f32> (param f32)))
+
+    (include "./test-sub.wat")
+
+    (global $self.screen.width f32)
+    (global $self.location.origin externref)
+    (global $self.MessageEvent.prototype.data/get externref)
+    (global $self.Worker:onmessage/set externref)
+
+    (memory 10 10 shared)
+
+    (start $main
+        (call $log<ref> (text "Text to externref is easy!"))
+        (call $log<ref> (global.get $self.location.origin))
+        (call $log<f32> (global.get $self.screen.width))
+        (call $log<ref> (global.get $self.Worker:onmessage/set))
+    )
+)
+```
