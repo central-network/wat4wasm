@@ -14,12 +14,12 @@
    
 	(import "console" "log" (func $self.console.log<ref> (param externref)))
 	(import "console" "log" (func $self.console.log<f32> (param f32)))
+	(import "console" "warn" (func $self.console.warn<ref> (param externref)))
 	(import "console" "error" (func $self.console.error<ref> (param externref)))
 	(import "Array" "of" (func $self.Array.of<i32x3.f32>ref (param i32 i32 i32 f32) (result externref)))
 	(import "self" "requestAnimationFrame" (func $self.requestAnimationFrame<fun> (param funcref)))
 	(import "self" "setTimeout" (func $self.setTimeout<fun.i32> (param funcref i32)))
 	(import "console" "log" (func $self.console.log<ref.f32> (param externref f32)))
-	(import "console" "warn" (func $self.console.warn<ref> (param externref)))
 	 ;;END_OF_IMPORTS
     
     (func $test-sub
@@ -133,7 +133,7 @@
         (call $self.console.log<f32> (global.get $self.screen.width))
         (call $self.console.log<ref> (global.get $self.MessageEvent.prototype.data/get))
         (call $self.console.log<ref> (global.get $self.Worker:onmessage/set))
-        (call $self.console.log<ref> (global.get $ANY_TEXT_GLOBAL))
+        (call $self.console.warn<ref> (global.get $ANY_TEXT_GLOBAL))
 
 
         (call $self.console.error<ref>

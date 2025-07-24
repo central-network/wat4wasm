@@ -248,6 +248,16 @@ Examine those definitions to understand:
     </tbody>
 </table>
 
+## log, warn and error keywords for shorten calls of $self.console..
+
+use without call requests:
+```webassembly
+(log<i32> (i32.const 2))
+(warn<ref> (ref.null extern))
+(error<i32.f32x2> (i32.const 2) (f32.const 2.2) (f32.const 0.1))
+```
+
+
 At this time you can use combitaions of abilities:
 ```webassembly
 (module
@@ -264,12 +274,12 @@ At this time you can use combitaions of abilities:
     (memory 10 10 shared)
 
     (start $main
-        (call $self.console.log<ref> (text "interal text converted to table.get!"))
-        (call $self.console.log<ref> (global.get $self.location.origin))
-        (call $self.console.log<f32> (global.get $self.screen.width))
-        (call $self.console.log<ref> (global.get $self.MessageEvent.prototype.data/get))
-        (call $self.console.log<ref> (global.get $self.Worker:onmessage/set))
-        (call $self.console.log<ref> (global.get $ANY_TEXT_GLOBAL))
+        (log<ref> (text "interal text converted to table.get!"))
+        (log<ref> (global.get $self.location.origin))
+        (log<f32> (global.get $self.screen.width))
+        (log<ref> (global.get $self.MessageEvent.prototype.data/get))
+        (log<ref> (global.get $self.Worker:onmessage/set))
+        (log<ref> (global.get $ANY_TEXT_GLOBAL))
 
 
         (call $self.console.error<ref>
@@ -293,14 +303,14 @@ At this time you can use combitaions of abilities:
 
     (func $onanimationframe<f32>
         (param $performance.now f32)
-        (call $self.console.log<ref.f32>
+        (warn<ref.f32>
             (text "animation frame ready:") 
             (local.get $performance.now)
         )
     )
 
     (func $ontimeout
-        (call $self.console.warn<ref> 
+        (error<ref> 
             (text "timer done, 1000ms passed..")
         )
     )

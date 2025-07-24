@@ -121,6 +121,10 @@ const include   = content => {
     return content;
 }
 
+const consoles   = content => {
+    return content.replaceAll(/\((log|warn|error)\</g, "(call $self.console.$1<");
+}
+
 const start     = content => {
     let match;
     
@@ -491,6 +495,7 @@ const compile   = () => {
     content = rawFileContentString;
     content = addImports(content);
     content = include(content);
+    content = consoles(content);
     content = start(content);
     content = textref(content);
     content = selfref(content);
