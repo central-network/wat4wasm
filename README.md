@@ -133,52 +133,6 @@ You can see console output if you want to:
 )
 ```
 
-## name: $self... (import)
-
-No need to use "import" keyword anymore!
-Now, you can use "global" definitions to reach any object that starts with global path like self.screen.width. Compiler will be split your path and starts to reach last property definition. This process runs in the "start" functions' body and uses Reflect.get and/or Reflect.getOwnPropertyDescriptor calls which means you can assign "getter" and "setter" functions as an externref global too. 
-
-Be aware those "self" globals are always mutable.
-
-Basic definition examples:
-```webassembly
-(global $self.screen.width f32)
-(global $self.location.origin externref)
-(global $self.MessageEvent.prototype.data/get externref)
-(global $self.Worker:onmessage/set externref)
-```
-
-ans full source to see console outputs:
-```webassembly
-(module
-    (import "console" "log" (func $log<ref> (param externref)))
-    (import "console" "log" (func $log<f32> (param f32)))
-
-    (include "./test-sub.wat")
-
-    (global $self.screen.width f32)
-    (global $self.location.origin externref)
-    (global $self.MessageEvent.prototype.data/get externref)
-    (global $self.Worker:onmessage/set externref)
-
-    (memory 10 10 shared)
-
-    (start $main
-        (call $log<ref> (text "Text to externref is easy!"))
-        (call $log<ref> (global.get $self.location.origin))
-        (call $log<f32> (global.get $self.screen.width))
-        (call $log<ref> (global.get $self.MessageEvent.prototype.data/get))
-        (call $log<ref> (global.get $self.Worker:onmessage/set))
-    )
-)
-```
-
- <img width="100%" alt="console output" src="image.png">
-
-
-compiler also knows : means .prototype. and replaces at first. 
-
-
 ## keyword: text (global) 
 
 In general, text definitions runs over table get calls. This method also gives opportunitiy to set texts' external references to global variables. 
@@ -233,55 +187,74 @@ multiple references will be joined:
 (elem $wat2wasm/refs funcref (ref.func $ref1) (ref.func $ref2) ... (ref.func $refN))
 ```
 
-## name: $self... (call)
+## keyword: apply
 
-Compiler will create import definitions for your $self. prefixed calls. Maximum level of deep objects is 2 which means you can use for *Number, Boolean, console.log, Math.floor* etc.. but you can **NOT** use *navigator.permissions.query* because of path has three level of deepness.
+Compiler will convert your Reflect.apply requests as well as:
 
-use without definition import:
 ```webassembly
-(call $self.console.log<i32> (i32.const 2))
+(func $example 
+
+    ... body
+
+    (apply $self.Math.max<i32x3.f32>i32     ;; function
+        (self)                              ;; this
+        (param                              ;; arguments array
+            (i32.const 2)
+            (i32.const 4)
+            (i32.const 5)
+            (f32.const 1122.2)
+        )
+    )
+
+    (error<i32>)
+
+    body ...
+)
 ```
 
-compiler appends import definition to wat code:
+you don't need to define (global $self.Math.max externref) your code turns into:
 ```webassembly
-(import "console" "log" (func $self.console.log<i32> (param i32)))
+(func $example 
+
+    ... body
+
+    (call $self.Reflect.apply<refx3>i32     ;; inputs always ref.ref.ref / output from you
+        (global.get $self.Math.max)         ;; auto reflected import
+        (global.get $wat2wasm/self)         ;; default wat2wasm import
+        (call $self.Array.of<i32x3.f32>ref  ;; inputs from you / output always externref
+            (i32.const 2)
+            (i32.const 4)
+            (i32.const 5)
+            (f32.const 1122.2)
+        )
+    )
+
+    (call $self.console.error<i32>)
+
+    body ...
+)
 ```
 
-The end of the name definition is important because of parameters and result types cames from it. Between the &lt;bracets&gt; defines input arguments which every one of it is "param" and result type comes to end. Every type sperates with a dot (.) like i32.f32.i32 and you can also use multiplier (x) symbol like i32x3.. Externref shortened with "ref" keyword and funcref is shortened with "fun" keyword..
+those examples also works:
+```webassembly
+(apply $self.Math.random)           ;; no result, no mean :) (no typed, result is empty)
+(nop)
 
-Examine those definitions to understand:
-<table>
-    <thead>
-        <tr>
-            <td>Your WAT Code</td>
-            <td align="center">Input</td>
-            <td align="center">Output</td>
-            <td>Import definition</td>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>(call $name&lt;i32.f32&gt;ref .. )</td>
-            <td align="center">i32, i32</td>
-            <td align="center">externref</td>
-            <td>(func $name (param i32 f32) (result externref))</td>
-        </tr>
-        <tr>
-            <td>(call $name&lt;f32x2&gt; .. )</td>
-            <td align="center">f32 f32</td>
-            <td align="center"></td>
-            <td>(func $name (param f32 f32))</td>
-        </tr>
-        <tr>
-            <td>(call $name&lt;&gt;i32)</td>
-            <td align="center"></td>
-            <td align="center">i32</td>
-            <td>(func $name (result i32))</td>
-        </tr>
-    </tbody>
-</table>
+(apply $self.Math.random<>ref)      ;; result is externref (typed in function name)
+(drop)
 
-## keywords: log, warn, error
+(apply $self.Math.random f32)       ;; result is float 32 (typed like global definition)
+(drop)
+
+(apply $self.Math.random externref) ;; result is externref (typed like global definition)
+(drop)
+
+(apply $self.Math.random ref)       ;; result is externref (typed shorten global definition)
+(drop)
+
+```
+
+## keyword: log, warn, error
 
 use without call requests:
 ```webassembly
@@ -357,6 +330,129 @@ At this time you can use combitaions of abilities:
 )
 ```
 
+## name: $self... (import)
+
+No need to use "import" keyword anymore!
+Now, you can use "global" definitions to reach any object that starts with global path like self.screen.width. Compiler will be split your path and starts to reach last property definition. This process runs in the "start" functions' body and uses Reflect.get and/or Reflect.getOwnPropertyDescriptor calls which means you can assign "getter" and "setter" functions as an externref global too. 
+
+Be aware those "self" globals are always mutable.
+
+Basic definition examples:
+```webassembly
+(global $self.screen.width f32)
+(global $self.location.origin externref)
+(global $self.MessageEvent.prototype.data/get externref)
+(global $self.Worker:onmessage/set externref)
+```
+
+ans full source to see console outputs:
+```webassembly
+(module
+    (import "console" "log" (func $log<ref> (param externref)))
+    (import "console" "log" (func $log<f32> (param f32)))
+
+    (include "./test-sub.wat")
+
+    (global $self.screen.width f32)
+    (global $self.location.origin externref)
+    (global $self.MessageEvent.prototype.data/get externref)
+    (global $self.Worker:onmessage/set externref)
+
+    (memory 10 10 shared)
+
+    (start $main
+        (call $log<ref> (text "Text to externref is easy!"))
+        (call $log<ref> (global.get $self.location.origin))
+        (call $log<f32> (global.get $self.screen.width))
+        (call $log<ref> (global.get $self.MessageEvent.prototype.data/get))
+        (call $log<ref> (global.get $self.Worker:onmessage/set))
+    )
+)
+```
+
+ <img width="100%" alt="console output" src="image.png">
+
+
+compiler also knows : means .prototype. and replaces at first. 
+
+
+## name: $self... (call)
+
+Compiler will create import definitions for your $self. prefixed calls. Maximum level of deep objects is 2 which means you can use for *Number, Boolean, console.log, Math.floor* etc.. but you can **NOT** use *navigator.permissions.query* because of path has three level of deepness.
+
+use without definition import:
+```webassembly
+(call $self.console.log<i32> (i32.const 2))
+```
+
+compiler appends import definition to wat code:
+```webassembly
+(import "console" "log" (func $self.console.log<i32> (param i32)))
+```
+
+The end of the name definition is important because of parameters and result types cames from it. Between the &lt;bracets&gt; defines input arguments which every one of it is "param" and result type comes to end. Every type sperates with a dot (.) like i32.f32.i32 and you can also use multiplier (x) symbol like i32x3.. Externref shortened with "ref" keyword and funcref is shortened with "fun" keyword..
+
+Examine those definitions to understand:
+<table>
+    <thead>
+        <tr>
+            <td>Your WAT Code</td>
+            <td align="center">Input</td>
+            <td align="center">Output</td>
+            <td>Import definition</td>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>(call $name&lt;i32.f32&gt;ref .. )</td>
+            <td align="center">i32, i32</td>
+            <td align="center">externref</td>
+            <td>(func $name (param i32 f32) (result externref))</td>
+        </tr>
+        <tr>
+            <td>(call $name&lt;f32x2&gt; .. )</td>
+            <td align="center">f32 f32</td>
+            <td align="center"></td>
+            <td>(func $name (param f32 f32))</td>
+        </tr>
+        <tr>
+            <td>(call $name&lt;&gt;i32)</td>
+            <td align="center"></td>
+            <td align="center">i32</td>
+            <td>(func $name (result i32))</td>
+        </tr>
+    </tbody>
+</table>
+
+
+
+## shorten: (self)
+
+Compiler will convert your globalThis getter:
+
+```webassembly
+(self)
+```
+
+uses:
+```webassembly
+(import "self" "self" (global $wat2wasm/self externref))
+```
+
+
+## shorten: (null)
+
+Compiler will convert your null reference getter:
+
+```webassembly
+(null)
+```
+
+turns into:
+```webassembly
+(ref.null extern)
+```
+
 ## inline functions
 
 You can use inline functions. Compiler will be copy your function to outer scope and replace it's place with "ref.func". You can see at example:
@@ -398,101 +494,5 @@ will be replaced with (elem definitions also will be generated):
     body ...
 
 )
-
-```
-
-
-## shorten: (self)
-
-Compiler will convert your globalThis getter:
-
-```webassembly
-(self)
-```
-
-uses:
-```webassembly
-(import "self" "self" (global $wat2wasm/self externref))
-```
-
-
-## shorten: (null)
-
-Compiler will convert your null reference getter:
-
-```webassembly
-(null)
-```
-
-turns into:
-```webassembly
-(ref.null extern)
-```
-
-
-## keyword: apply
-
-Compiler will convert your Reflect.apply requests as well as:
-
-```webassembly
-(func $example 
-
-    ... body
-
-    (apply $self.Math.max<i32x3.f32>i32     ;; function
-        (self)                              ;; this
-        (param                              ;; arguments array
-            (i32.const 2)
-            (i32.const 4)
-            (i32.const 5)
-            (f32.const 1122.2)
-        )
-    )
-
-    (error<i32>)
-
-    body ...
-)
-```
-
-you don't need to define (global $self.Math.max externref) your code turns into:
-```webassembly
-(func $example 
-
-    ... body
-
-    (call $self.Reflect.apply<refx3>i32     ;; inputs always ref.ref.ref / output from you
-        (global.get $self.Math.max)         ;; auto reflected import
-        (global.get $wat2wasm/self)         ;; default wat2wasm import
-        (call $self.Array.of<i32x3.f32>ref  ;; inputs from you / output always externref
-            (i32.const 2)
-            (i32.const 4)
-            (i32.const 5)
-            (f32.const 1122.2)
-        )
-    )
-
-    (call $self.console.error<i32>)
-
-    body ...
-)
-```
-
-those examples also works:
-```webassembly
-(apply $self.Math.random)           ;; no result, no mean :) (no typed, result is empty)
-(nop)
-
-(apply $self.Math.random<>ref)      ;; result is externref (typed in function name)
-(drop)
-
-(apply $self.Math.random f32)       ;; result is float 32 (typed like global definition)
-(drop)
-
-(apply $self.Math.random externref) ;; result is externref (typed like global definition)
-(drop)
-
-(apply $self.Math.random ref)       ;; result is externref (typed shorten global definition)
-(drop)
 
 ```
