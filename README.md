@@ -371,7 +371,7 @@ will be replaced with (elem definitions also will be generated):
 
 ## keyword for "self"
 
-Compiler will convert your globalThis getters:
+Compiler will convert your globalThis getter:
 
 ```webassembly
 (self)
