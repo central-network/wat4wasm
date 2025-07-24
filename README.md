@@ -204,12 +204,12 @@ multiple references will be joined:
 
 Compiler will create import definitions for your $self. prefixed calls. Maximum level of deep objects is 2 which means you can use for *Number, Boolean, console.log, Math.floor* etc.. but you can **NOT** use *navigator.permissions.query* because of path has three level of deepness.
 
-multiple references will be joined:
+use without definition import:
 ```webassembly
 (call $self.console.log<i32> (i32.const 2))
 ```
 
-compiler appends your wat code:
+compiler appends import definition to wat code:
 ```webassembly
 (import "console" "log" (func $self.console.log<i32> (param i32)))
 ```
