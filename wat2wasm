@@ -430,14 +430,20 @@ const selffuncimport    = content => {
             const array = new Array( Number(multiplier) || 1 );
             
             return array.fill(kind);
-        }).map(k => k.replace('ref', 'externref')).join(" ")).concat(")").replace("(param )", "");
+        })
+        .map(k => k.replace('ref', 'externref'))
+        .map(k => k.replace('fun', 'funcref'))
+        .join(" ")).concat(")").replace("(param )", "");
         
         const results = String("(result ").concat(match[4].trim().split(".").flatMap(d => {
             const [kind, multiplier] = d.split("x");
             const array = new Array( Number(multiplier) || 1 );
             
             return array.fill(kind);
-        }).map(k => k.replace('ref', 'externref')).join(" ")).concat(")").replace("(result )", "");
+        })
+        .map(k => k.replace('ref', 'externref'))
+        .map(k => k.replace('fun', 'funcref'))
+        .join(" ")).concat(")").replace("(result )", "");
 
         const definition = `(func ${match[1]} ${params} ${results}`.trim().concat(")");
         const importer = `\n\t(import "${root}" "${sub}" ${definition})`;
@@ -455,8 +461,25 @@ const selffuncimport    = content => {
         content.substring( content.indexOf(";;END_OF_IMPORTS")-1 )
     );
 
-
     return content.replaceAll("$SELF.", "$self.");
+}
+
+const elemrefs          = content => {
+
+    let match;
+    let refs = [];
+    while (match = content.matchFrame(/\(ref.func\s+\$(.[^\s\)]+)\)/)) {
+        content = content.replaceFrame( match, match.frame.replace("$", "###") );
+        refs.push(match.frame);
+    }   
+
+    content = content.substring( 0, content.lastIndexOf(")") ).concat(
+        `\n\t(elem $wat2wasm/refs funcref ${refs.join(" ")})`
+    ).concat("\n").concat( 
+        content.substring( content.lastIndexOf(")") )
+    );
+
+    return content.replaceAll("###", "$");
 }
 
 
@@ -471,6 +494,7 @@ const compile   = () => {
     content = start(content);
     content = textref(content);
     content = selfref(content);
+    content = elemrefs(content);
     content = globaltextref(content);
     content = selffuncimport(content);
 

@@ -3,6 +3,7 @@
 
     (global $self.screen.width f32)
     (global $self.location.origin externref)
+    (global $self.console.warn externref)
     (global $self.MessageEvent.prototype.data/get externref)
     (global $self.Worker:onmessage/set externref)
 
@@ -28,6 +29,27 @@
             )
         )
 
+        (call $self.requestAnimationFrame<fun>
+            (ref.func $onanimationframe<f32>)
+        )
 
+        (call $self.setTimeout<fun.i32>
+            (ref.func $ontimeout)
+            (i32.const 1000)
+        )
+    )
+
+    (func $onanimationframe<f32>
+        (param $performance.now f32)
+        (call $self.console.log<ref.f32>
+            (text "animation frame ready:") 
+            (local.get $performance.now)
+        )
+    )
+
+    (func $ontimeout
+        (call $self.console.warn<ref> 
+            (text "timer done, 1000ms passed..")
+        )
     )
 )

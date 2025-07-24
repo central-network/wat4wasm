@@ -180,3 +180,23 @@ Compiler modifies your global definiton to mutable externref type and sets globa
     )
 )
 ```
+
+
+## Auto "elem" definitions for "ref.func" calls
+
+Compiler will create an "elem" segment and puts all necessary function pointers. You can simply use ref.func call like before, this is for just "elem" segment definition:
+
+```webassembly
+(ref.func $any_of_your_func)
+```
+
+will generate:
+```webassembly
+(elem $wat2wasm/refs funcref (ref.func $any_of_your_func))
+```
+
+multiple references will be joined:
+```webassembly
+(elem $wat2wasm/refs funcref (ref.func $ref1) (ref.func $ref2) ... (ref.func $refN))
+```
+
