@@ -257,6 +257,13 @@ use without call requests:
 (error<i32.f32x2> (i32.const 2) (f32.const 2.2) (f32.const 0.1))
 ```
 
+will be replaced by:
+```webassembly
+(call $self.console.log<i32> (i32.const 2))
+(call $self.console.warn<ref> (ref.null extern))
+(call $self.console.error<i32.f32x2> (i32.const 2) (f32.const 2.2) (f32.const 0.1))
+```
+
 
 At this time you can use combitaions of abilities:
 ```webassembly
