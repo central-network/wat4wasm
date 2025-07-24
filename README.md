@@ -202,7 +202,7 @@ multiple references will be joined:
 
 ## Auto "imports" for "$self..." calls
 
-Compiler will create import definitions for your $self. prefixed calls:
+Compiler will create import definitions for your $self. prefixed calls. Maximum level of deep objects is 2 which means you can use Number, Boolean, console.log, Math.floow etc. but you can NOT use "navigator.permissions.query" because of path has three level of deepness.
 
 multiple references will be joined:
 ```webassembly
