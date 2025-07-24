@@ -520,7 +520,19 @@ const applycalls        = content => {
 
     let match;
     let definers = ``;
+
+    content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_]+)\s?\)/g, 
+        `(apply $self.$1<> (global.get $wat2wasm/self) (param))`
+    );    
     
+    content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_]+)\s+(i32|f32|i64|f64|ref|externref)\)/g, 
+        `(apply $self.$1<>$2 (global.get $wat2wasm/self) (param))`
+    ).replaceAll(">externref", ">ref");    
+
+    
+    content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_]+)<(.*?)>([a-z0-9]*)\s?\)/g, 
+        `(apply $self.$1<$2>$3 (global.get $wat2wasm/self) (param))`
+    );    
     
     while (match = content.matchFrame(/\(apply\s+(\$self\.([a-zA-Z0-9._:/]+)<(.*?)>([a-z0-9]*))/)) {
 

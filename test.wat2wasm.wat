@@ -19,6 +19,10 @@
 	(import "Reflect" "apply" (func $self.Reflect.apply<refx3>i32 (param externref externref externref) (result i32)))
 	(import "Array" "of" (func $self.Array.of<i32x3.f32>ref (param i32 i32 i32 f32) (result externref)))
 	(import "console" "error" (func $self.console.error<i32> (param i32)))
+	(import "Reflect" "apply" (func $self.Reflect.apply<refx3>f32 (param externref externref externref) (result f32)))
+	(import "Array" "of" (func $self.Array.of<>ref  (result externref)))
+	(import "console" "error" (func $self.console.error<f32> (param f32)))
+	(import "Reflect" "apply" (func $self.Reflect.apply<refx3> (param externref externref externref)))
 	(import "self" "requestAnimationFrame" (func $self.requestAnimationFrame<fun> (param funcref)))
 	 ;;END_OF_IMPORTS
     
@@ -47,7 +51,7 @@
                 )
             )(func $main
         
-        (memory.init 0 $wat2wasm/text (i32.const 0) (i32.const 0) (i32.const 648))    
+        (memory.init 0 $wat2wasm/text (i32.const 0) (i32.const 0) (i32.const 672))    
     
         (table.set $extern (i32.const 1) (call $wat2wasm/text (i32.const 0) (i32.const 88)))
 		(table.set $extern (i32.const 2) (call $wat2wasm/text (i32.const 88) (i32.const 144)))
@@ -66,13 +70,14 @@
 		(table.set $extern (i32.const 15) (call $wat2wasm/text (i32.const 516) (i32.const 24)))
 		(table.set $extern (i32.const 16) (call $wat2wasm/text (i32.const 540) (i32.const 36)))
 		(table.set $extern (i32.const 17) (call $wat2wasm/text (i32.const 576) (i32.const 12)))
-		(table.set $extern (i32.const 18) (call $wat2wasm/text (i32.const 588) (i32.const 60)))    
+		(table.set $extern (i32.const 18) (call $wat2wasm/text (i32.const 588) (i32.const 24)))
+		(table.set $extern (i32.const 19) (call $wat2wasm/text (i32.const 612) (i32.const 60)))    
     
         
-        (memory.fill (i32.const 0) (i32.const 0) (i32.const 648))
+        (memory.fill (i32.const 0) (i32.const 0) (i32.const 672))
         (data.drop $wat2wasm/text)    
     
-        (global.set $ANY_TEXT_GLOBAL (table.get $extern (i32.const 18)))    
+        (global.set $ANY_TEXT_GLOBAL (table.get $extern (i32.const 19)))    
     
         
         (global.set $self.screen.width
@@ -153,6 +158,16 @@
                 (table.get $extern (i32.const 17)) 
             )
         )
+        
+        (global.set $self.Math.random
+            (call $wat2wasm/Reflect.get<refx2>ref
+                (call $wat2wasm/Reflect.get<refx2>ref 
+                        (global.get $wat2wasm/self) 
+                        (table.get $extern (i32.const 5)) 
+                    )
+                (table.get $extern (i32.const 18)) 
+            )
+        )
             
      
         (call $self.console.log<ref> (table.get $extern (i32.const 2)))
@@ -174,16 +189,24 @@
             )
         )
         (call $self.console.error<i32>)
+
+        (call $self.Reflect.apply<refx3>f32 
+            (global.get $self.Math.random) (global.get $wat2wasm/self) (call $self.Array.of<>ref))
+        (call $self.console.error<f32>)
+
+        (call $self.Reflect.apply<refx3> 
+            (global.get $self.Math.random) (global.get $wat2wasm/self) (call $self.Array.of<>ref))
         
         (call $self.requestAnimationFrame<fun>
             (ref.func $inlinefunction<f32>)
         )
     )
 
+	(global $self.Math.random (mut externref) ref.null extern)
 
 	(elem $wat2wasm/refs funcref (ref.func $inlinefunction<f32>))
 
-    (table $extern 19 19 externref)
+    (table $extern 20 20 externref)
 
     (func $wat2wasm/text 
         (param $offset i32)
@@ -227,5 +250,5 @@
         )
     )
 
-    (data $wat2wasm/text "\00\00\c2\42\00\00\dc\42\00\00\d2\42\00\00\da\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\00\42\00\00\cc\42\00\00\e4\42\00\00\c2\42\00\00\da\42\00\00\ca\42\00\00\00\42\00\00\e4\42\00\00\ca\42\00\00\c2\42\00\00\c8\42\00\00\f2\42\00\00\68\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\c2\42\00\00\d8\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\ec\42\00\00\ca\42\00\00\e4\42\00\00\e8\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\e8\42\00\00\de\42\00\00\00\42\00\00\e8\42\00\00\c2\42\00\00\c4\42\00\00\d8\42\00\00\ca\42\00\00\38\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\04\42\00\00\e6\42\00\00\c6\42\00\00\e4\42\00\00\ca\42\00\00\ca\42\00\00\dc\42\00\00\ee\42\00\00\d2\42\00\00\c8\42\00\00\e8\42\00\00\d0\42\00\00\9a\42\00\00\c2\42\00\00\e8\42\00\00\d0\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\d8\42\00\00\de\42\00\00\c6\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\de\42\00\00\e4\42\00\00\d2\42\00\00\ce\42\00\00\d2\42\00\00\dc\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\e6\42\00\00\de\42\00\00\d8\42\00\00\ca\42\00\00\ee\42\00\00\c2\42\00\00\e4\42\00\00\dc\42\00\00\9a\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\e0\42\00\00\e4\42\00\00\de\42\00\00\e8\42\00\00\de\42\00\00\e8\42\00\00\f2\42\00\00\e0\42\00\00\ca\42\00\00\c8\42\00\00\c2\42\00\00\e8\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\ae\42\00\00\de\42\00\00\e4\42\00\00\d6\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\dc\42\00\00\da\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\c2\42\00\00\dc\42\00\00\f2\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\ce\42\00\00\d8\42\00\00\de\42\00\00\c4\42\00\00\c2\42\00\00\d8\42")
+    (data $wat2wasm/text "\00\00\c2\42\00\00\dc\42\00\00\d2\42\00\00\da\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\00\42\00\00\cc\42\00\00\e4\42\00\00\c2\42\00\00\da\42\00\00\ca\42\00\00\00\42\00\00\e4\42\00\00\ca\42\00\00\c2\42\00\00\c8\42\00\00\f2\42\00\00\68\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\c2\42\00\00\d8\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\ec\42\00\00\ca\42\00\00\e4\42\00\00\e8\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\e8\42\00\00\de\42\00\00\00\42\00\00\e8\42\00\00\c2\42\00\00\c4\42\00\00\d8\42\00\00\ca\42\00\00\38\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\04\42\00\00\e6\42\00\00\c6\42\00\00\e4\42\00\00\ca\42\00\00\ca\42\00\00\dc\42\00\00\ee\42\00\00\d2\42\00\00\c8\42\00\00\e8\42\00\00\d0\42\00\00\9a\42\00\00\c2\42\00\00\e8\42\00\00\d0\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\d8\42\00\00\de\42\00\00\c6\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\de\42\00\00\e4\42\00\00\d2\42\00\00\ce\42\00\00\d2\42\00\00\dc\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\e6\42\00\00\de\42\00\00\d8\42\00\00\ca\42\00\00\ee\42\00\00\c2\42\00\00\e4\42\00\00\dc\42\00\00\9a\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\e0\42\00\00\e4\42\00\00\de\42\00\00\e8\42\00\00\de\42\00\00\e8\42\00\00\f2\42\00\00\e0\42\00\00\ca\42\00\00\c8\42\00\00\c2\42\00\00\e8\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\ae\42\00\00\de\42\00\00\e4\42\00\00\d6\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\dc\42\00\00\da\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\e4\42\00\00\c2\42\00\00\dc\42\00\00\c8\42\00\00\de\42\00\00\da\42\00\00\c2\42\00\00\dc\42\00\00\f2\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\ce\42\00\00\d8\42\00\00\de\42\00\00\c4\42\00\00\c2\42\00\00\d8\42")
 )
