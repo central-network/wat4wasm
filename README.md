@@ -336,11 +336,7 @@ You can use inline functions. Compiler will be copy your function to outer scope
     (call $self.requestAnimationFrame<fun>
         (func $inlinefunction<f32>
             (param $performance.now f32)
-
-            (log<ref.f32>
-                (text "animation frame ready:") 
-                (local.get $performance.now)
-            )
+            (error<f32> (local.get $performance.now))
         )
     )
 
@@ -353,8 +349,7 @@ will be replaced with (elem definitions also will be generated):
 (func $inlinefunction<f32>
     (param $performance.now f32)
 
-    (call $self.console.log<ref.f32>
-        (text "animation frame ready:") 
+    (call $self.console.error<f32>
         (local.get $performance.now)
     )
 )
