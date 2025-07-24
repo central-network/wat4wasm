@@ -414,10 +414,10 @@ you don't need to define (global $self.Math.max externref) your code turns into:
 
     ... body
 
-    (call $self.Reflect.apply<refx3>i32 
-        (global.get $self.Math.max)
-        (self)
-        (call $self.Array.of<i32x3.f32>ref
+    (call $self.Reflect.apply<refx3>i32     ;; inputs always ref.ref.ref / output from you
+        (global.get $self.Math.max)         ;; auto reflected import
+        (global.get $wat2wasm/self)         ;; default wat2wasm import
+        (call $self.Array.of<i32x3.f32>ref  ;; inputs from you / output always externref
             (i32.const 2)
             (i32.const 4)
             (i32.const 5)
