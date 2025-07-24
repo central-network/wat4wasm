@@ -456,4 +456,7 @@ those examples also works:
 (apply $self.Math.random f32)       ;; result is float 32 (typed like global definition)
 (drop)
 
+(apply $self.Math.random externref) ;; result is externref (typed like global definition)
+(drop)
+
 ```
