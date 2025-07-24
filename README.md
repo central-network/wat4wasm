@@ -439,7 +439,7 @@ you don't need to define (global $self.Math.max externref) your code turns into:
         )
     )
 
-    (error<i32>)
+    (call $self.console.error<i32>)
 
     body ...
 )
