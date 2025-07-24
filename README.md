@@ -330,6 +330,9 @@ You can use inline functions. Compiler will be copy your function to outer scope
 
 ```webassembly
 (func $outer 
+
+    ... func body
+
     (call $self.requestAnimationFrame<fun>
         (func $inlinefunction<f32>
             (param $performance.now f32)
@@ -340,6 +343,8 @@ You can use inline functions. Compiler will be copy your function to outer scope
             )
         )
     )
+
+    func body ...
 )
 ```
 
@@ -355,9 +360,15 @@ will be replaced with (elem definitions also will be generated):
 )
 
 (func $outer 
+
+    ... func body
+
     (call $self.requestAnimationFrame<fun>
         (ref.func $inlinefunction<f32>)
     )
+
+    func body ...
+
 )
 
 ```
