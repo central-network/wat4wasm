@@ -100,7 +100,7 @@ You can see console output if you want to:
 )
 ```
 
-## Use "$self.." to assign globals from window (reflected import)
+## Use "$self..." path to assign globals (reflected import)
 
 No need to use "import" keyword anymore!
 Now, you can use "global" definitions to reach any object that starts with global path like self.screen.width. Compiler will be split your path and starts to reach last property definition. This process runs in the "start" functions' body and uses Reflect.get and/or Reflect.getOwnPropertyDescriptor calls which means you can assign "getter" and "setter" functions as an externref global too. 
