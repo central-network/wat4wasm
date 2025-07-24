@@ -463,7 +463,6 @@ const selffuncimport    = content => {
 
     let match;
     let importers = ``;
-    let replacers = [];
     
     while (match = content.matchFrame(/\(call\s+(\$self\.([a-zA-Z0-9._:/]+)<(.*?)>([a-z0-9]*))/)) {
 
@@ -517,6 +516,61 @@ const selffuncimport    = content => {
     return content.replaceAll("$SELF.", "$self.");
 }
 
+const applycalls        = content => {
+
+    let match;
+    let definers = ``;
+    
+    
+    while (match = content.matchFrame(/\(apply\s+(\$self\.([a-zA-Z0-9._:/]+)<(.*?)>([a-z0-9]*))/)) {
+
+        const prm = match[3].trim();
+        const params = String("(param ").concat(prm.split(".").flatMap(d => {
+            const [kind, multiplier] = d.split("x");
+            const array = new Array( Number(multiplier) || 1 );
+            
+            return array.fill(kind);
+        })
+        .map(k => k.replace('ref', 'externref'))
+        .map(k => k.replace('fun', 'funcref'))
+        .join(" ")).concat(")").replace("(param )", "");
+        
+        const res = match[4].trim();
+        const results = String("(result ").concat(res.split(".").flatMap(d => {
+            const [kind, multiplier] = d.split("x");
+            const array = new Array( Number(multiplier) || 1 );
+            
+            return array.fill(kind);
+        })
+        .map(k => k.replace('ref', 'externref'))
+        .map(k => k.replace('fun', 'funcref'))
+        .join(" ")).concat(")").replace("(result )", "");
+
+        let frame = match.frame.replace(
+        `(apply ${match[1]}`, `(call $self.Reflect.apply<refx3>${res} 
+            (global.get $self.${match[2]})`
+        ).replace(
+        `(param`, `(call $self.Array.of<${prm}>ref`
+        );
+
+        const definer = `\n\t(global $self.${match[2]} externref)`;
+        
+        if (content.indexOf(definer.trim()) === -1) {
+            if (definers.indexOf(definer.trim()) === -1) {
+                definers += definer;
+            }
+        }
+        
+        content = content.replaceFrame( match, frame );
+    }   
+
+    content = content.substring( 0, content.lastIndexOf(")") ).concat(
+        definers
+    ).concat("\n)");
+
+    return content;
+}
+
 const elemrefs          = content => {
 
     let match;
@@ -541,11 +595,15 @@ const compile   = () => {
     const rawFileContentString = rawFileContentBuffer.toString();
 
     let 
-    content = rawFileContentString;
+    content = rawFileContentString
+                .replaceAll("(self)", "(global.get $wat2wasm/self)")
+                .replaceAll("(null)", "(ref.null extern)")
+            ;
     content = addImports(content);
     content = include(content);
     content = consoles(content);
     content = start(content);
+    content = applycalls(content);
     content = inlinefuncs(content);
     content = textref(content);
     content = selfref(content);

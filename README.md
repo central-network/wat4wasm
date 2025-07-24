@@ -367,3 +367,66 @@ will be replaced with (elem definitions also will be generated):
 )
 
 ```
+
+
+## keyword for "self"
+
+Compiler will convert your globalThis getters:
+
+```webassembly
+(self)
+```
+
+uses:
+```webassembly
+(import "self" "self" (global $wat2wasm/self externref))
+```
+
+
+## keyword for "apply"
+
+Compiler will convert your Reflect.apply requests as well as:
+
+```webassembly
+(func $example 
+
+    ... body
+
+    (apply $self.Math.max<i32x3.f32>i32 
+        (self)
+        (param
+            (i32.const 2)
+            (i32.const 4)
+            (i32.const 5)
+            (f32.const 1122.2)
+        )
+    )
+
+    (error<i32>)
+
+    body ...
+)
+```
+
+you don't need to define (global $self.Math.max externref) your code turns into:
+```webassembly
+(func $example 
+
+    ... body
+
+    (call $self.Reflect.apply<refx3>i32 
+        (global.get $self.Math.max)
+        (self)
+        (call $self.Array.of<i32x3.f32>ref
+            (i32.const 2)
+            (i32.const 4)
+            (i32.const 5)
+            (f32.const 1122.2)
+        )
+    )
+
+    (error<i32>)
+
+    body ...
+)
+```
