@@ -139,4 +139,6 @@ ans full source to see console outputs:
 )
 ```
 
+examples/image.png
+
 compiler also knows : means .prototype. and replaces at first. 
