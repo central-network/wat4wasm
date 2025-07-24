@@ -38,7 +38,7 @@ useable:
 
 ```
 
-## Include another WAT file to your code
+## keyword: include
 
 You can use "include" keyword to replace your code with given path file:
 
