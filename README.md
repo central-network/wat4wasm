@@ -182,7 +182,7 @@ Compiler modifies your global definiton to mutable externref type and sets globa
 ```
 
 
-## Auto "elem" definitions for "ref.func" calls
+## Auto "elem" definitions for "ref.func" usage
 
 Compiler will create an "elem" segment and puts all necessary function pointers. You can simply use ref.func call like before, this is for just "elem" segment definition:
 
@@ -200,3 +200,16 @@ multiple references will be joined:
 (elem $wat2wasm/refs funcref (ref.func $ref1) (ref.func $ref2) ... (ref.func $refN))
 ```
 
+## Auto "imports" for "$self..." calls
+
+Compiler will create import definitions for your $self. prefixed calls:
+
+multiple references will be joined:
+```webassembly
+(call $self.console.log<i32> (i32.const 2))
+```
+
+will generate:
+```webassembly
+(import "console" "log" (func $self.console.log<i32> (param i32)))
+```
