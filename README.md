@@ -214,11 +214,16 @@ compiler appends import definition to wat code:
 (import "console" "log" (func $self.console.log<i32> (param i32)))
 ```
 
-The end of the name definition is important because of parameters and result types cames from it. Between the < bracets > defines input arguments which every one of it is "param" and result type comes to end. Every type sperates with a dot (.) like i32.f32.i32 and you can also use multiplier (x) symbol like i32x3.. Externref shortened with "ref" keyword and funcref is shortened with "fun" keyword..
+The end of the name definition is important because of parameters and result types cames from it. Between the &lt;bracets&gt; defines input arguments which every one of it is "param" and result type comes to end. Every type sperates with a dot (.) like i32.f32.i32 and you can also use multiplier (x) symbol like i32x3.. Externref shortened with "ref" keyword and funcref is shortened with "fun" keyword..
 
 Examine those definitions to understand:
-<table>
-<tr><td>$funcname< i32.f32>ref</td><td>(param i32 f32) (result externref)</td></tr>      
-<tr><td>$funcname< f32x2></td><td>(param f32 f32) (result)</td></tr>      
-<tr><td>$funcname<>i32</td><td>(param) (result i32)</td></tr>      
+<table border="1">
+<thead>
+<tr><td>Your WAT Code</td><td>Parsed Arguments</td><td>Converted WAT Code</td></tr>      
+</thead>
+<tbody>
+<tr><td>$name&lt;i32.f32&gt;ref</td><td>(param i32 f32) (result externref)</td><td>(func $name (param i32 f32) (result externref))</td></tr>      
+<tr><td>$name&lt;f32x2&gt;</td><td>(param f32 f32)</td><td>(func $name (param f32 f32))</td></tr>      
+<tr><td>$name&lt;&gt;i32</td><td>(result i32)</td><td>(func $name (result i32))</td></tr>      
+</tbody>
 </table>      
