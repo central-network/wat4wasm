@@ -44,7 +44,32 @@
 
         (apply $self.Math.random ref)
         (drop)
-        
+
+        (construct $self.Uint8Array<i32>ref 
+            (param
+                (i32.const 3)
+            )
+        )
+        (warn<ref>)
+
+        (new $Uint8Array<i32> i32(4))
+        (warn<ref>)
+
+        (new $Number<f32> f32(4.4))
+        (warn<ref>)
+
+        (new $Worker<ref> (text "worker.js"))
+        (warn<ref>)
+
+        (construct $self.Worker<refx2>ref 
+            (param
+                (text "worker.js")
+                (new $Object)
+            )
+        )
+        (warn<ref>)
+
+
         (call $self.requestAnimationFrame<fun>
             (func $inlinefunction<f32>
                 (param $performance.now f32)

@@ -588,6 +588,72 @@ const applycalls        = content => {
     return content;
 }
 
+const consts            = content => {
+    return content.replaceAll(/(i32|i64|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`);
+};
+
+const constructcalls    = content => {
+
+    let match;
+    let definers = ``;
+
+    content = content
+        .replaceAll(`(new $`, `(construct $self.`)
+        .replaceAll('(construct $self.self.', '(construct $self.')
+    ;    
+    
+
+    content = content.replaceAll(/\(construct\s+\$self\.([a-zA-Z0-9\.\_]+)\s?\)/g, 
+        `(construct $self.$1<>ref (param))`
+    );    
+    
+    content = content.replaceAll(/\(construct\s+\$self\.([a-zA-Z0-9\.\_]+)\s+(i32|f32|i64|f64|ref|externref)\)/g, 
+        `(construct $self.$1<>$2 (param))`
+    ).replaceAll(">externref", ">ref");    
+
+    
+    content = content.replaceAll(/\(construct\s+\$self\.([a-zA-Z0-9\.\_]+)<(.*?)>([a-z0-9]*)\s?\)/g, 
+        `(construct $self.$1<$2>$3 (param))`
+    );    
+    
+    while (match = content.matchFrame(/\(construct\s+(\$self\.([a-zA-Z0-9._:/]+)<(.*?)>([a-z0-9]*))/)) {
+
+        let frame;
+    
+    if (match.frame.includes("(param")) {
+        frame = match.frame.replace(
+        `(construct ${match[1]}`, `(call $self.Reflect.construct<refx2>ref 
+            (global.get $self.${match[2]}) `
+        ).replace(
+        `(param`, `(call $self.Array.of<${match[3].trim()}>ref`
+        );
+    } else {
+        frame = match.frame.replace(
+        `(construct ${match[1]}`, 
+        `(call $self.Reflect.construct<refx2>ref 
+            (global.get $self.${match[2]}) 
+            (call $self.Array.of<${match[3].trim()}>ref `
+        ).concat( `)` );
+    }
+
+        const definer = `\n\t(global $self.${match[2]} externref)`;
+        
+        if (content.indexOf(definer.trim()) === -1) {
+            if (definers.indexOf(definer.trim()) === -1) {
+                definers += definer;
+            }
+        }
+        
+        content = content.replaceFrame( match, frame );
+    }   
+
+    content = content.substring( 0, content.lastIndexOf(")") ).concat(
+        definers
+    ).concat("\n)");
+
+    return content;
+}
+
 const elemrefs          = content => {
 
     let match;
@@ -620,6 +686,8 @@ const compile   = () => {
     content = include(content);
     content = consoles(content);
     content = start(content);
+    content = consts(content);
+    content = constructcalls(content);
     content = applycalls(content);
     content = inlinefuncs(content);
     content = textref(content);

@@ -254,6 +254,70 @@ those examples also works:
 
 ```
 
+## keyword: new, construct
+
+Compiler will convert your Reflect.construct requests as well as:
+
+```webassembly
+(func $example 
+
+    ... body
+
+    (construct $self.Uint8Array<i32>ref     ;; constructor
+        (param                              ;; arguments array
+            (i32.const 4)
+        )
+    )
+
+    (error<ref>)
+
+    body ...
+)
+```
+
+you don't need to define (global $self.Uint8Array externref) your code turns into:
+```webassembly
+(func $example 
+
+    ... body
+
+    (call $self.Reflect.construct<refx2>ref ;; inputs always ref.ref / output always ref
+        (global.get $self.Uint8Array)       ;; auto reflected import for constructor
+        (call $self.Array.of<i32>ref        ;; inputs from you / output always externref
+            (i32.const 4)
+        )
+    )
+
+    (call $self.console.error<ref>)
+
+    body ...
+)
+```
+
+those examples also works:
+```webassembly
+(new $Array)                        
+(new $Uint8Array<i32> (i32.const 4))              
+(new $Number<f32> f32(4.4))
+(new $Worker<ref> (text "worker.js"))
+(construct $self.Worker<refx2>ref 
+    (param
+        (text "worker.js")
+        (new $Object)
+    )
+)
+```
+
+## keyword: i32, f32, i64, f64
+
+Compiler will turn your constants into formal type:
+```webassembly
+i32(4)              --> (i32.const 4)                
+f32(3.4)            --> (f32.const 3.4)
+i64(511235124)      --> (i64.const 511235124)                            
+f64(3241.55114)     --> (f64.const 3241.55114)    
+```
+
 ## keyword: log, warn, error
 
 use without call requests:
