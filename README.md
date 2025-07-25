@@ -1,8 +1,8 @@
 # Some Skills for Wat2WASM 
 
 Some helper abilities for regular wat4wasm compiler. You can compile your "wat" file with regular parameters (compiler includes libwabt.js, so you do not need anything else but wat4wasm):
-```javascript
-node wat4wasm test.wat --enable-multi-memory --debug-names --no-unlink --watch
+```shell
+./wat4wasm test.wat --enable-multi-memory --debug-names --no-unlink --watch
 ```
 
 --no-unlink : do not remove compiler generated wat file (if compiler success then removes generated wat file)
