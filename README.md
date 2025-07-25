@@ -68,7 +68,12 @@ f32(1.2)                                                ;; type(N -> (type.const
 (self|this|null)                                        ;; replaces paranthesis to spaces:
  self                                                   ;; (global.get $wat2wasm/self)                
  this                                                   ;; (local.get 0)                
- null                                                   ;; (ref.null extern)                
+ null                                                   ;; (ref.null extern)      
+
+(on $message                                            ;; bind event listener at start 
+    (param $event externref)
+    (log<refx2> this (text "hello özgür"))
+)          
 ```
 
 ## keyword: include
