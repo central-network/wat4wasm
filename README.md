@@ -506,7 +506,14 @@ You can bind event listeners for self/globalThis/window target at the begining o
 )
 ```
 
-just be aware that definitions in the module scope, NOT inside a function.
+just be aware that definitions at the module scope, NOT inside a function. Compiler adds an apply call to start function and converts your "(on" keyword into "(func" for settle to self object: 
+```webassembly
+(call $self.Reflect.set<ref.ref.fun>
+    (global.get $wat2wasm/self)
+    (table.get $extern (i32.const 8))
+    (ref.func $self.onmessage)
+)
+```
 
 ## keyword: get, set
 
