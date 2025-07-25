@@ -513,10 +513,10 @@ just be aware that definitions at the module scope, NOT inside a function. Compi
 
     (start
         ...
-        (call $self.Reflect.set<ref.ref.fun>
-            (global.get $wat2wasm/self)
+        (call $self.Reflect.set<ref.ref.fun>            
+            (global.get $wat2wasm/self)                 ;; self
             (table.get $extern (i32.const 8))           ;; (text "onmessage")
-            (ref.func $self.onmessage)
+            (ref.func $self.onmessage)                  ;; handler
         )
         ...
     )
