@@ -242,8 +242,8 @@ const insertStartFunc = content => {
     return content
         .substring(0, content.lastIndexOf(")"))
         .concat(`
-        (start $wat2wasm/start) 
-        (func $wat2wasm/start 
+        (start $wat4wasm/start) 
+        (func $wat4wasm/start 
             
         )\n`)
         .concat(
@@ -276,19 +276,19 @@ const appendTextData = content => {
     content = callOnStart( content, `
         (memory.fill (i32.const 0) (i32.const 0) (i32.const ${data_text_offset}))
         `);
-        // (data.drop $wat2wasm/text)`);
+        // (data.drop $wat4wasm/text)`);
 
     content = callOnStart(content, data_text.map(dt => 
-        `(table.set $extern (i32.const ${dt.index}) (call $wat2wasm/text (i32.const ${dt.data_text_offset}) (i32.const ${dt.data_text_length})))`).join("\n\t\t")
+        `(table.set $extern (i32.const ${dt.index}) (call $wat4wasm/text (i32.const ${dt.data_text_offset}) (i32.const ${dt.data_text_length})))`).join("\n\t\t")
     );
 
     // content = callOnStart( addPrimaryMemory(content), `
-    //     (memory.init $memory $wat2wasm/text (i32.const 0) (i32.const 0) (i32.const ${data_text_offset}))`);
+    //     (memory.init $memory $wat4wasm/text (i32.const 0) (i32.const 0) (i32.const ${data_text_offset}))`);
 
     return appendTextFunc( content )
         .substring(0, content.lastIndexOf(")"))
         .concat(`
-    (func $wat2wasm/text 
+    (func $wat4wasm/text 
         (param $offset i32)
         (param $length i32)
         (result externref)
@@ -299,7 +299,7 @@ const appendTextData = content => {
         )
 
         (local.set $array 
-            (call $wat2wasm/Array<>ref)
+            (call $wat4wasm/Array<>ref)
         )
 
         (loop $length--
@@ -307,7 +307,7 @@ const appendTextData = content => {
                 (i32.sub (local.get $length) (i32.const 4))
             )
                 
-            (call $wat2wasm/Reflect.set<ref.i32x2>
+            (call $wat4wasm/Reflect.set<ref.i32x2>
                 (local.get $array)
                 (i32.div_u (local.get $length) (i32.const 4))
                 (i32.trunc_f32_u	
@@ -323,8 +323,8 @@ const appendTextData = content => {
             (br_if $length-- (local.get $length))
         )
 
-        (call $wat2wasm/Reflect.apply<refx3>ref
-            (global.get $wat2wasm/String.fromCharCode)
+        (call $wat4wasm/Reflect.apply<refx3>ref
+            (global.get $wat4wasm/String.fromCharCode)
             (ref.null extern)
             (local.get $array)
         )
@@ -347,17 +347,17 @@ const addImports = content => {
         0, firstImportIndex
     ).concat(`
     ;;BEGIN_OF_IMPORTS
-    (import "self" "Array"              (func $wat2wasm/Array<>ref (param) (result externref)))
-    (import "Reflect" "set"             (func $wat2wasm/Reflect.set<ref.i32x2> (param externref i32 i32) (result)))
-    (import "Reflect" "getOwnPropertyDescriptor" (func $wat2wasm/Reflect.getOwnPropertyDescriptor<refx2>ref (param externref externref) (result externref)))
-    (import "Reflect" "get"             (func $wat2wasm/Reflect.get<refx2>ref (param externref externref) (result externref)))
-    (import "Reflect" "get"             (func $wat2wasm/Reflect.get<refx2>i32 (param externref externref) (result i32)))
-    (import "Reflect" "get"             (func $wat2wasm/Reflect.get<refx2>f32 (param externref externref) (result f32)))
-    (import "Reflect" "get"             (func $wat2wasm/Reflect.get<refx2>i64 (param externref externref) (result i64)))
-    (import "Reflect" "get"             (func $wat2wasm/Reflect.get<refx2>f64 (param externref externref) (result f64)))
-    (import "Reflect" "apply"           (func $wat2wasm/Reflect.apply<refx3>ref (param externref externref externref) (result externref)))
-    (import "self" "self"               (global $wat2wasm/self externref))
-    (import "String" "fromCharCode"     (global $wat2wasm/String.fromCharCode externref))
+    (import "self" "Array"              (func $wat4wasm/Array<>ref (param) (result externref)))
+    (import "Reflect" "set"             (func $wat4wasm/Reflect.set<ref.i32x2> (param externref i32 i32) (result)))
+    (import "Reflect" "getOwnPropertyDescriptor" (func $wat4wasm/Reflect.getOwnPropertyDescriptor<refx2>ref (param externref externref) (result externref)))
+    (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>ref (param externref externref) (result externref)))
+    (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>i32 (param externref externref) (result i32)))
+    (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>f32 (param externref externref) (result f32)))
+    (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>i64 (param externref externref) (result i64)))
+    (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>f64 (param externref externref) (result f64)))
+    (import "Reflect" "apply"           (func $wat4wasm/Reflect.apply<refx3>ref (param externref externref externref) (result externref)))
+    (import "self" "self"               (global $wat4wasm/self externref))
+    (import "String" "fromCharCode"     (global $wat4wasm/String.fromCharCode externref))
     ;;END_OF_IMPORTS
     `).concat(
         content.substring(firstImportIndex)
@@ -377,7 +377,7 @@ const addPrimaryMemory = content => {
     return content.substring(
         0, firstMemoryIndex
     ).concat(`
-    (memory $wat2wasm/text ${pages} ${pages})
+    (memory $wat4wasm/text ${pages} ${pages})
     `).concat(
         content.substring(firstMemoryIndex)
     )
@@ -402,13 +402,13 @@ const selfref           = content => {
         const root_object = path_parts[0];
         const last_object = path_parts[path_parts.length-1];
         let path_index = path_parts.length;
-        let path_walk = `(global.get $wat2wasm/self)`;
+        let path_walk = `(global.get $wat4wasm/self)`;
 
         let walk_step = 0;
         while (--path_index) {
             const step_part = path_parts[walk_step++];
 
-                path_walk = textref(`(call $wat2wasm/Reflect.get<refx2>ref 
+                path_walk = textref(`(call $wat4wasm/Reflect.get<refx2>ref 
                     ${path_walk} 
                     (text "${step_part}") 
                 )`).split("\n").join( "\n" + "    ".repeat(walk_step) );
@@ -418,8 +418,8 @@ const selfref           = content => {
         if (descriptor_property !== "value") {
         getter_last = textref(`
         (global.set $${global_name}
-            (call $wat2wasm/Reflect.get<refx2>${kindshort}
-                (call $wat2wasm/Reflect.getOwnPropertyDescriptor<refx2>ref
+            (call $wat4wasm/Reflect.get<refx2>${kindshort}
+                (call $wat4wasm/Reflect.getOwnPropertyDescriptor<refx2>ref
                     ${path_walk}
                     (text "${last_object}") 
                 )
@@ -430,7 +430,7 @@ const selfref           = content => {
         } else {
         getter_last = textref(`
         (global.set $${global_name}
-            (call $wat2wasm/Reflect.get<refx2>${kindshort}
+            (call $wat4wasm/Reflect.get<refx2>${kindshort}
                 ${path_walk}
                 (text "${last_object}") 
             )
@@ -531,16 +531,16 @@ const applycalls        = content => {
     let definers = ``;
 
     content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_]+)\s?\)/g, 
-        `(apply $self.$1<> (global.get $wat2wasm/self) (param))`
+        `(apply $self.$1<> (global.get $wat4wasm/self) (param))`
     );    
     
     content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_]+)\s+(i32|f32|i64|f64|ref|externref)\)/g, 
-        `(apply $self.$1<>$2 (global.get $wat2wasm/self) (param))`
+        `(apply $self.$1<>$2 (global.get $wat4wasm/self) (param))`
     ).replaceAll(">externref", ">ref");    
 
     
     content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_]+)<(.*?)>([a-z0-9]*)\s?\)/g, 
-        `(apply $self.$1<$2>$3 (global.get $wat2wasm/self) (param))`
+        `(apply $self.$1<$2>$3 (global.get $wat4wasm/self) (param))`
     );    
     
     while (match = content.matchFrame(/\(apply\s+(\$self\.([a-zA-Z0-9._:/]+)<(.*?)>([a-z0-9]*))/)) {
@@ -581,7 +581,7 @@ const applycalls        = content => {
         if (dparts.length > 1) {
             const parent = dparts.reverse().slice(1).reverse().join(".");
 
-            frame = frame.replace("(global.get $wat2wasm/self)",
+            frame = frame.replace("(global.get $wat4wasm/self)",
                 `(global.get $self.${parent})`
             );
 
@@ -647,13 +647,13 @@ const consts            = content => {
     return content
         .replaceAll(/\((log|warn|error)\s+\</g, `($1<`)  
         .replaceAll(/(i32|i64|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`)
-        .replaceAll("(self)", `(global.get $wat2wasm/self)`)
+        .replaceAll("(self)", `(global.get $wat4wasm/self)`)
         .replaceAll("(null)", `(ref.null extern)`)
         .replaceAll("(this)", `(local.get 0)`)
-        .replaceAll(/(\s|\n)self(\s|\n)/g, `$1(global.get $wat2wasm/self)$2`)
+        .replaceAll(/(\s|\n)self(\s|\n)/g, `$1(global.get $wat4wasm/self)$2`)
         .replaceAll(/(\s|\n)null(\s|\n)/g, `$1(ref.null extern)$2`)
         .replaceAll(/(\s|\n)this(\s|\n)/g, `$1(local.get 0)$2`)
-        .replaceAll(/(\s|\n)self\)/g, `$1(global.get $wat2wasm/self))`)
+        .replaceAll(/(\s|\n)self\)/g, `$1(global.get $wat4wasm/self))`)
         .replaceAll(/(\s|\n)null\)/g, `$1(ref.null extern))`)
         .replaceAll(/(\s|\n)this\)/g, `$1(local.get 0))`)
         .replaceAll(" text(", ` (text `)
@@ -819,7 +819,7 @@ const asyncs            = content => {
         lastindex = content.lastIndexOf("(async")
     }   
 
-    const elms = `(elem $wat2wasm/async funcref \n\t    ${elems.join("\n\t    ")}\n\t)`;
+    const elms = `(elem $wat4wasm/async funcref \n\t    ${elems.join("\n\t    ")}\n\t)`;
 
     content = content.substring( 0, content.lastIndexOf(")") ).concat(
         definers + inlinefuncs + elms
@@ -843,7 +843,7 @@ const ons               = content => {
 
         content = callOnStart( content, `
         (call $self.Reflect.set<ref.ref.fun>
-            (global.get $wat2wasm/self)
+            (global.get $wat4wasm/self)
             (text "on${name}")
             (ref.func $self.on${name})
         )
@@ -865,7 +865,7 @@ const elemrefs          = content => {
     }   
 
     content = content.substring( 0, content.lastIndexOf(")") ).concat(
-        `\n\t(elem $wat2wasm/refs funcref ${refs.join(" ")})`
+        `\n\t(elem $wat4wasm/refs funcref ${refs.join(" ")})`
     ).concat("\n").concat( 
         content.substring( content.lastIndexOf(")") )
     );

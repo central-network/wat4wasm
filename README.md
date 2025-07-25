@@ -1,9 +1,12 @@
 # Some Skills for Wat2WASM 
 
-Some helper abilities for regular wat2wasm compiler (at this time you need to install regular wat2wasm compiler). You can compile your "wat" file with regular parameters:
+Some helper abilities for regular wat4wasm compiler. You can compile your "wat" file with regular parameters (compiler includes libwabt.js, so you do not need anything else but wat4wasm):
 ```javascript
-node wat2wasm test.wat --enable-multi-memory --debug-names
+node wat4wasm test.wat --enable-multi-memory --debug-names --no-unlink --watch
 ```
+
+--no-unlink : do not remove compiler generated wat file (if compiler success then removes generated wat file)
+--watch     : bind fs.watch function to wat file (but it's not efficient, you can use nodemon)
 
 useable:
 ```webassembly      
@@ -66,7 +69,7 @@ i32(2)                                                  ;; type(N -> (type.const
 f32(1.2)                                                ;; type(N -> (type.const N
 ...
 (self|this|null)                                        ;; replaces paranthesis to spaces:
- self                                                   ;; (global.get $wat2wasm/self)                
+ self                                                   ;; (global.get $wat4wasm/self)                
  this                                                   ;; (local.get 0)                
  null                                                   ;; (ref.null extern)      
 ...
@@ -217,12 +220,12 @@ Compiler will create an "elem" segment and puts all necessary function pointers.
 
 will generate:
 ```webassembly
-(elem $wat2wasm/refs funcref (ref.func $any_of_your_func))
+(elem $wat4wasm/refs funcref (ref.func $any_of_your_func))
 ```
 
 multiple references will be joined:
 ```webassembly
-(elem $wat2wasm/refs funcref (ref.func $ref1) (ref.func $ref2) ... (ref.func $refN))
+(elem $wat4wasm/refs funcref (ref.func $ref1) (ref.func $ref2) ... (ref.func $refN))
 ```
 
 ## keyword: apply
@@ -258,7 +261,7 @@ you don't need to define (global $self.Math.max externref) your code turns into:
 
     (call $self.Reflect.apply<refx3>i32     ;; inputs always ref.ref.ref / output from you
         (global.get $self.Math.max)         ;; auto reflected import
-        (global.get $wat2wasm/self)         ;; default wat2wasm import
+        (global.get $wat4wasm/self)         ;; default wat4wasm import
         (call $self.Array.of<i32x3.f32>ref  ;; inputs from you / output always externref
             (i32.const 2)
             (i32.const 4)
@@ -412,7 +415,7 @@ converted into:
     (call $self.console.error<ref> (local.get $msg))
 )
 
-(elem $wat2wasm/async funcref 
+(elem $wat4wasm/async funcref 
     (ref.func $async1_onadapter)
     (ref.func $async2_onfail)
 )
@@ -429,10 +432,10 @@ also appended to module scope:
 and start function includes more global setters:
 ```webassembly
 (global.set $self.Promise.prototype.then
-    (call $wat2wasm/Reflect.get<refx2>ref
-        (call $wat2wasm/Reflect.get<refx2>ref 
-                    (call $wat2wasm/Reflect.get<refx2>ref 
-                        (global.get $wat2wasm/self) 
+    (call $wat4wasm/Reflect.get<refx2>ref
+        (call $wat4wasm/Reflect.get<refx2>ref 
+                    (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
                         (table.get $extern (i32.const 22)) 
                     ) 
                     (table.get $extern (i32.const 16)) 
@@ -442,10 +445,10 @@ and start function includes more global setters:
 )
 
 (global.set $self.Promise.prototype.catch
-    (call $wat2wasm/Reflect.get<refx2>ref
-        (call $wat2wasm/Reflect.get<refx2>ref 
-                    (call $wat2wasm/Reflect.get<refx2>ref 
-                        (global.get $wat2wasm/self) 
+    (call $wat4wasm/Reflect.get<refx2>ref
+        (call $wat4wasm/Reflect.get<refx2>ref 
+                    (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
                         (table.get $extern (i32.const 22)) 
                     ) 
                     (table.get $extern (i32.const 16)) 
@@ -455,9 +458,9 @@ and start function includes more global setters:
 )
 
 (global.set $self.navigator.gpu
-    (call $wat2wasm/Reflect.get<refx2>ref
-        (call $wat2wasm/Reflect.get<refx2>ref 
-            (global.get $wat2wasm/self) 
+    (call $wat4wasm/Reflect.get<refx2>ref
+        (call $wat4wasm/Reflect.get<refx2>ref 
+            (global.get $wat4wasm/self) 
             (table.get $extern (i32.const 27)) 
         )
         (table.get $extern (i32.const 28)) 
@@ -465,10 +468,10 @@ and start function includes more global setters:
 )
 
 (global.set $self.navigator.gpu.requestAdapter
-    (call $wat2wasm/Reflect.get<refx2>ref
-        (call $wat2wasm/Reflect.get<refx2>ref 
-            (call $wat2wasm/Reflect.get<refx2>ref 
-                (global.get $wat2wasm/self) 
+    (call $wat4wasm/Reflect.get<refx2>ref
+        (call $wat4wasm/Reflect.get<refx2>ref 
+            (call $wat4wasm/Reflect.get<refx2>ref 
+                (global.get $wat4wasm/self) 
                 (table.get $extern (i32.const 27)) 
             ) 
             (table.get $extern (i32.const 28)) 
@@ -514,7 +517,7 @@ just be aware that definitions at the module scope, NOT inside a function. Compi
     (start
         ...
         (call $self.Reflect.set<ref.ref.fun>            
-            (global.get $wat2wasm/self)                 ;; self
+            (global.get $wat4wasm/self)                 ;; self
             (table.get $extern (i32.const 8))           ;; (text "onmessage")
             (ref.func $self.onmessage)                  ;; handler
         )
@@ -560,14 +563,14 @@ you don't need to define (global $self.Uint8Array externref) your code turns int
     ... body
 
     (call $self.Reflect.get<refx2>ref       ;; input / output comes from you
-        (global.get $wat2wasm/self)         ;; self -> global.get ...
+        (global.get $wat4wasm/self)         ;; self -> global.get ...
         (table.get $extern (i32.const N))   ;; text -> table.get ...
     )
 
     (call $self.console.warn<ref>)
 
     (call $self.Reflect.set<refx2.fun>      ;; input / output comes from you
-        (global.get $wat2wasm/self)         ;; self -> global.get ...
+        (global.get $wat4wasm/self)         ;; self -> global.get ...
         (table.get $extern (i32.const N))   ;; text -> table.get ...
         (ref.func $onresize)                ;; func -> ref.func ...
     )
@@ -602,7 +605,7 @@ table($db)          --> (table.get $db)
 Compiler will turn your constants into formal type:
 ```webassembly
 this                --> (local.get 0)                
-self                --> (global.get $wat2wasm/self)                
+self                --> (global.get $wat4wasm/self)                
 null                --> (ref.null extern)                
 ```
 
@@ -789,7 +792,7 @@ Compiler will convert your globalThis getter:
 
 uses:
 ```webassembly
-(import "self" "self" (global $wat2wasm/self externref))
+(import "self" "self" (global $wat4wasm/self externref))
 ```
 
 

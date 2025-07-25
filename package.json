@@ -1,14 +1,14 @@
 {
-  "name": "wat2wasm",
+  "name": "wat4wasm",
   "version": "1.0.0",
   "description": "",
-  "homepage": "https://github.com/central-network/wat2wasm#readme",
+  "homepage": "https://github.com/central-network/wat4wasm#readme",
   "bugs": {
-    "url": "https://github.com/central-network/wat2wasm/issues"
+    "url": "https://github.com/central-network/wat4wasm/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/central-network/wat2wasm.git"
+    "url": "git+https://github.com/central-network/wat4wasm.git"
   },
   "license": "ISC",
   "author": "Özgür Fırat Özpolat",
