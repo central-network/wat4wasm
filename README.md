@@ -413,7 +413,7 @@ converted into:
 )
 ```
 
-also appended to body:
+also appended to module scope:
 ```webassembly
 (global $self.Promise.prototype.then (mut externref) ref.null extern)
 (global $self.Promise.prototype.catch (mut externref) ref.null extern)	
