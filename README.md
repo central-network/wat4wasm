@@ -20,7 +20,7 @@ Some helper abilities for regular wat4wasm compiler. You can compile your "wat" 
 </tr>
 </tr>
 <td>--debug-names</td>
-<td>expose function names etc. <br>(too see in browser's source tab)</td>
+<td>expose function, global names etc. <br>(too see in browser's source tab rather then $global001 -> $myglobal)</td>
 </tr>
 </table>
 
