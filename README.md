@@ -482,6 +482,27 @@ Notice that you can/need to define result parameter. Otherwise no result will be
 ) 
 ```
 
+## keyword: on
+
+You can bind event listeners for self/globalThis/window target at the begining of intance:
+
+```webassembly
+(module
+
+    (func ...)
+
+    (on $message
+        (param $event externref)
+        (log<ref> this)
+        (log<ref> (text "hello özgür"))
+    )
+
+    (memory ...)
+)
+```
+
+just be aware that definitions in the module scope, NOT inside a function.
+
 ## keyword: get, set
 
 Compiler will convert your Reflect.get / Reflect.set requests as well as:

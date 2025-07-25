@@ -67,6 +67,14 @@
         (log<i32> this)
     )
 
+    (global $self.navigator.hardwareConcurrency i32)
+
+    (on $message
+        (param $event externref)
+        (log<ref> this)
+        (log<ref> (text "hello özgür"))
+    )
+
     (start $main
 
         (log<ref> (text "interal text converted to table.get!"))

@@ -828,6 +828,32 @@ const asyncs            = content => {
     return content;
 }
 
+const ons               = content => {
+
+    let match, binders = "";
+
+    while (match = content.matchFrame(/\(on\s+\$(.[^\s]*)/)) {
+
+        const name = match[1].trim();
+
+        content = content.replaceFrame(
+            match, match.frame.replace(match[0], `(func $self.on${name} `)
+        )
+
+        content = callOnStart( content, `
+        (call $self.Reflect.set<ref.ref.fun>
+            (global.get $wat2wasm/self)
+            (text "on${name}")
+            (ref.func $self.on${name})
+        )
+        `);
+
+    }   
+
+
+    return content;
+}
+
 const elemrefs          = content => {
 
     let match;
@@ -859,6 +885,7 @@ const compile   = () => {
     content = debugs(content);
     content = start(content);
     content = asyncs(content);
+    content = ons(content);
     content = constructcalls(content);
     content = getsetcalls(content);
     content = applycalls(content);
