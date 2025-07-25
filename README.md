@@ -34,10 +34,12 @@ useable:
         (f32.const 1122.2)
     )
 )
-(self)                                                  ;; default imported
-(null)                                                  ;; ref.null extern
 i32(2)                                                  ;; type(N -> (type.const N
-
+f32(1.2)                                                ;; type(N -> (type.const N
+...
+this                                                    ;; (local.get 0)                
+self                                                    ;; (global.get $wat2wasm/self)                
+null                                                    ;; (ref.null extern)                
 ```
 
 ## keyword: include
