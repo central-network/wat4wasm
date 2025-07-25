@@ -9,11 +9,11 @@ Some helper abilities for regular wat4wasm compiler. You can compile your "wat" 
 <table>
 <tr>
 <td>--no-unlink</td>
-<td>do not remove compiler generated wat file (if compiler success then removes generated wat file)</td>
+<td>do not remove compiler generated wat file <br>(if compiler success then removes generated wat file)</td>
 </tr>
 <tr>
 <td>--watch</td>
-<td>bind fs.watch function to wat file (but it's not efficient, you can use nodemon)</td>
+<td>bind fs.watch function to wat file (but it's <br>not efficient, you can use nodemon)</td>
 </tr>
 </table>
 
