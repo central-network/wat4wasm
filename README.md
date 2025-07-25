@@ -15,6 +15,9 @@ Some helper abilities for regular wat4wasm compiler. You can compile your "wat" 
 <td>--watch</td>
 <td>bind fs.watch function to wat file <br>(but it's not efficient, you can use nodemon)</td>
 </tr>
+<td>--output</td>
+<td>filename for .wasm <br>(otherwise replaces .wat to .wasm)</td>
+</tr>
 </table>
 
 useable:

@@ -114,7 +114,7 @@ String.prototype.findQuotedText     = function () {
     return qtext;
 };
 
-const indexOfOutputPathCompileOptionsParameter = compileOptions.findIndex(opt => opt === "-o") + 1;
+const indexOfOutputPathCompileOptionsParameter = compileOptions.findIndex(opt => (opt === "-o") || (opt === "--output")) + 1;
 const outputFilePath = 
     indexOfOutputPathCompileOptionsParameter && 
     compileOptions[indexOfOutputPathCompileOptionsParameter] || 
