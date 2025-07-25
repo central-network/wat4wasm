@@ -62,10 +62,8 @@
         (warn<ref>)
 
         (construct $self.Worker<refx2>ref 
-            (param
-                (text "worker.js")
-                (new $Object)
-            )
+            (text "worker.js")
+            (new $Object)
         )
         (warn<ref>)
 

@@ -308,6 +308,10 @@ those examples also works:
         (new $Object)
     )
 )
+(construct $self.Worker<refx2>ref 
+    (text "worker.js") 
+    (new $Object)
+)
 ```
 
 ## keyword: i32, f32, i64, f64
