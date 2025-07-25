@@ -589,7 +589,13 @@ const applycalls        = content => {
 }
 
 const consts            = content => {
-    return content.replaceAll(/(i32|i64|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`);
+    return content
+        .replaceAll(/(i32|i64|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`)
+        .replaceAll(/(local|global|table)\(/g, `($1.get `)
+        .replaceAll(/(\s)this(\s)/g, `$1(local.get 0)$2`)
+        .replaceAll(/(\s)self(\s)/g, `$1(global.get $wat2wasm/self)$2`)
+        .replaceAll(/(\s)null(\s)/g, `$1(ref.null extern)$2`)
+    ;
 };
 
 const constructcalls    = content => {

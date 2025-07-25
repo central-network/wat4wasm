@@ -298,17 +298,17 @@ you don't need to define (global $self.Uint8Array externref) your code turns int
 
 those examples also works:
 ```webassembly
-(new $Array)                        
-(new $Uint8Array<i32> (i32.const 4))              
-(new $Number<f32> f32(4.4))
-(new $Worker<ref> (text "worker.js"))
-(construct $self.Worker<refx2>ref 
+(new $Array)                                ;; no $self keyword used          
+(new $Uint8Array<i32> (i32.const 4))        ;; no self / no param
+(new $Number<f32> f32(4.4))                 ;; Type(N -> (Type.const N)
+(new $Worker<ref> (text "worker.js"))       ;; RESULT ALWAYS EXTERNREF
+(construct $self.Worker<refx2>ref           ;; long but understanable
     (param
         (text "worker.js")
         (new $Object)
     )
 )
-(construct $self.Worker<refx2>ref 
+(construct $self.Worker<refx2>ref           ;; no param expressed
     (text "worker.js") 
     (new $Object)
 )
@@ -323,6 +323,27 @@ f32(3.4)            --> (f32.const 3.4)
 i64(511235124)      --> (i64.const 511235124)                            
 f64(3241.55114)     --> (f64.const 3241.55114)    
 ```
+
+## keyword: local, global, func, table
+
+Compiler will turn your constants into formal type:
+```webassembly
+local(0)            --> (local.get 0)                
+local($a)           --> (local.get $a)                
+global($A)          --> (global.get $A)
+func($on)           --> (ref.func $on)                            
+table($db)          --> (table.get $db)                            
+```
+
+## keyword: this, self, null
+
+Compiler will turn your constants into formal type:
+```webassembly
+this                --> (local.get 0)                
+self                --> (global.get $wat2wasm/self)                
+null                --> (ref.null extern)                
+```
+
 
 ## keyword: log, warn, error
 

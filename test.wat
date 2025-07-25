@@ -13,7 +13,26 @@
 
     (memory 10 10 shared)
 
+    (func $test
+        (local $arg0 i32)
+
+        (local.set 0 i32(24))
+
+
+        this
+        (warn<i32>)
+
+        self
+        (warn<ref>)
+
+        null
+        (warn<ref>)
+
+        
+    )
+
     (start $main
+
         (log<ref> (text "interal text converted to table.get!"))
         (log<ref> (global.get $self.location.origin))
         (log<f32> (global.get $self.screen.width))
@@ -58,14 +77,8 @@
         (new $Number<f32> f32(4.4))
         (warn<ref>)
 
-        (new $Worker<ref> (text "worker.js"))
-        (warn<ref>)
 
-        (construct $self.Worker<refx2>ref 
-            (text "worker.js")
-            (new $Object)
-        )
-        (warn<ref>)
+        (call $test)
 
 
         (call $self.requestAnimationFrame<fun>
