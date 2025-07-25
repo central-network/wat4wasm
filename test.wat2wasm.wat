@@ -1,16 +1,16 @@
 (module
     ;;BEGIN_OF_IMPORTS
-    (import "self" "Array"              (func $wat2wasm/Array<>ref (param) (result externref)))
-    (import "Reflect" "set"             (func $wat2wasm/Reflect.set<ref.i32x2> (param externref i32 i32) (result)))
-    (import "Reflect" "getOwnPropertyDescriptor" (func $wat2wasm/Reflect.getOwnPropertyDescriptor<refx2>ref (param externref externref) (result externref)))
-    (import "Reflect" "get"             (func $wat2wasm/Reflect.get<refx2>ref (param externref externref) (result externref)))
-    (import "Reflect" "get"             (func $wat2wasm/Reflect.get<refx2>i32 (param externref externref) (result i32)))
-    (import "Reflect" "get"             (func $wat2wasm/Reflect.get<refx2>f32 (param externref externref) (result f32)))
-    (import "Reflect" "get"             (func $wat2wasm/Reflect.get<refx2>i64 (param externref externref) (result i64)))
-    (import "Reflect" "get"             (func $wat2wasm/Reflect.get<refx2>f64 (param externref externref) (result f64)))
-    (import "Reflect" "apply"           (func $wat2wasm/Reflect.apply<refx3>ref (param externref externref externref) (result externref)))
-    (import "self" "self"               (global $wat2wasm/self externref))
-    (import "String" "fromCharCode"     (global $wat2wasm/String.fromCharCode externref))
+    (import "self" "Array"              (func $wat4wasm/Array<>ref (param) (result externref)))
+    (import "Reflect" "set"             (func $wat4wasm/Reflect.set<ref.i32x2> (param externref i32 i32) (result)))
+    (import "Reflect" "getOwnPropertyDescriptor" (func $wat4wasm/Reflect.getOwnPropertyDescriptor<refx2>ref (param externref externref) (result externref)))
+    (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>ref (param externref externref) (result externref)))
+    (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>i32 (param externref externref) (result i32)))
+    (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>f32 (param externref externref) (result f32)))
+    (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>i64 (param externref externref) (result i64)))
+    (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>f64 (param externref externref) (result f64)))
+    (import "Reflect" "apply"           (func $wat4wasm/Reflect.apply<refx3>ref (param externref externref externref) (result externref)))
+    (import "self" "self"               (global $wat4wasm/self externref))
+    (import "String" "fromCharCode"     (global $wat4wasm/String.fromCharCode externref))
    
 	(import "console" "warn" (func $self.console.warn<i32> (param i32)))
 	(import "console" "warn" (func $self.console.warn<ref> (param externref)))
@@ -67,7 +67,7 @@
         (local.get 0)
         (call $self.console.warn<i32>)
 
-        (global.get $wat2wasm/self)
+        (global.get $wat4wasm/self)
         (call $self.console.warn<ref>)
 
         (ref.null extern)
@@ -90,10 +90,10 @@
         ))        
         (call $self.console.warn<ref>)
 
-        (call $self.Reflect.get<refx2>ref  (global.get $wat2wasm/self) (table.get $extern (i32.const 4)))        
+        (call $self.Reflect.get<refx2>ref  (global.get $wat4wasm/self) (table.get $extern (i32.const 4)))        
         (call $self.console.warn<ref>)
 
-        (call $self.Reflect.set<refx2.fun>  (global.get $wat2wasm/self) (table.get $extern (i32.const 5)) (ref.func $onresize))
+        (call $self.Reflect.set<refx2.fun>  (global.get $wat4wasm/self) (table.get $extern (i32.const 5)) (ref.func $onresize))
 
 
         
@@ -137,39 +137,39 @@
                     (local.get $performance.now)
                 )
             )(func $main
-        (table.set $extern (i32.const 1) (call $wat2wasm/text (i32.const 0) (i32.const 36)))
-		(table.set $extern (i32.const 2) (call $wat2wasm/text (i32.const 36) (i32.const 16)))
-		(table.set $extern (i32.const 3) (call $wat2wasm/text (i32.const 52) (i32.const 20)))
-		(table.set $extern (i32.const 4) (call $wat2wasm/text (i32.const 72) (i32.const 24)))
-		(table.set $extern (i32.const 5) (call $wat2wasm/text (i32.const 96) (i32.const 32)))
-		(table.set $extern (i32.const 6) (call $wat2wasm/text (i32.const 128) (i32.const 44)))
-		(table.set $extern (i32.const 7) (call $wat2wasm/text (i32.const 172) (i32.const 88)))
-		(table.set $extern (i32.const 8) (call $wat2wasm/text (i32.const 260) (i32.const 36)))
-		(table.set $extern (i32.const 9) (call $wat2wasm/text (i32.const 296) (i32.const 144)))
-		(table.set $extern (i32.const 10) (call $wat2wasm/text (i32.const 440) (i32.const 24)))
-		(table.set $extern (i32.const 11) (call $wat2wasm/text (i32.const 464) (i32.const 20)))
-		(table.set $extern (i32.const 12) (call $wat2wasm/text (i32.const 484) (i32.const 16)))
-		(table.set $extern (i32.const 13) (call $wat2wasm/text (i32.const 500) (i32.const 12)))
-		(table.set $extern (i32.const 14) (call $wat2wasm/text (i32.const 512) (i32.const 32)))
-		(table.set $extern (i32.const 15) (call $wat2wasm/text (i32.const 544) (i32.const 28)))
-		(table.set $extern (i32.const 16) (call $wat2wasm/text (i32.const 572) (i32.const 16)))
-		(table.set $extern (i32.const 17) (call $wat2wasm/text (i32.const 588) (i32.const 48)))
-		(table.set $extern (i32.const 18) (call $wat2wasm/text (i32.const 636) (i32.const 36)))
-		(table.set $extern (i32.const 19) (call $wat2wasm/text (i32.const 672) (i32.const 16)))
-		(table.set $extern (i32.const 20) (call $wat2wasm/text (i32.const 688) (i32.const 12)))
-		(table.set $extern (i32.const 21) (call $wat2wasm/text (i32.const 700) (i32.const 24)))
-		(table.set $extern (i32.const 22) (call $wat2wasm/text (i32.const 724) (i32.const 12)))
-		(table.set $extern (i32.const 23) (call $wat2wasm/text (i32.const 736) (i32.const 36)))
-		(table.set $extern (i32.const 24) (call $wat2wasm/text (i32.const 772) (i32.const 76)))
-		(table.set $extern (i32.const 25) (call $wat2wasm/text (i32.const 848) (i32.const 28)))
-		(table.set $extern (i32.const 26) (call $wat2wasm/text (i32.const 876) (i32.const 16)))
-		(table.set $extern (i32.const 27) (call $wat2wasm/text (i32.const 892) (i32.const 20)))
-		(table.set $extern (i32.const 28) (call $wat2wasm/text (i32.const 912) (i32.const 40)))
-		(table.set $extern (i32.const 29) (call $wat2wasm/text (i32.const 952) (i32.const 24)))
-		(table.set $extern (i32.const 30) (call $wat2wasm/text (i32.const 976) (i32.const 12)))
-		(table.set $extern (i32.const 31) (call $wat2wasm/text (i32.const 988) (i32.const 56)))
-		(table.set $extern (i32.const 32) (call $wat2wasm/text (i32.const 1044) (i32.const 24)))
-		(table.set $extern (i32.const 33) (call $wat2wasm/text (i32.const 1068) (i32.const 60)))    
+        (table.set $extern (i32.const 1) (call $wat4wasm/text (i32.const 0) (i32.const 36)))
+		(table.set $extern (i32.const 2) (call $wat4wasm/text (i32.const 36) (i32.const 16)))
+		(table.set $extern (i32.const 3) (call $wat4wasm/text (i32.const 52) (i32.const 20)))
+		(table.set $extern (i32.const 4) (call $wat4wasm/text (i32.const 72) (i32.const 24)))
+		(table.set $extern (i32.const 5) (call $wat4wasm/text (i32.const 96) (i32.const 32)))
+		(table.set $extern (i32.const 6) (call $wat4wasm/text (i32.const 128) (i32.const 44)))
+		(table.set $extern (i32.const 7) (call $wat4wasm/text (i32.const 172) (i32.const 88)))
+		(table.set $extern (i32.const 8) (call $wat4wasm/text (i32.const 260) (i32.const 36)))
+		(table.set $extern (i32.const 9) (call $wat4wasm/text (i32.const 296) (i32.const 144)))
+		(table.set $extern (i32.const 10) (call $wat4wasm/text (i32.const 440) (i32.const 24)))
+		(table.set $extern (i32.const 11) (call $wat4wasm/text (i32.const 464) (i32.const 20)))
+		(table.set $extern (i32.const 12) (call $wat4wasm/text (i32.const 484) (i32.const 16)))
+		(table.set $extern (i32.const 13) (call $wat4wasm/text (i32.const 500) (i32.const 12)))
+		(table.set $extern (i32.const 14) (call $wat4wasm/text (i32.const 512) (i32.const 32)))
+		(table.set $extern (i32.const 15) (call $wat4wasm/text (i32.const 544) (i32.const 28)))
+		(table.set $extern (i32.const 16) (call $wat4wasm/text (i32.const 572) (i32.const 16)))
+		(table.set $extern (i32.const 17) (call $wat4wasm/text (i32.const 588) (i32.const 48)))
+		(table.set $extern (i32.const 18) (call $wat4wasm/text (i32.const 636) (i32.const 36)))
+		(table.set $extern (i32.const 19) (call $wat4wasm/text (i32.const 672) (i32.const 16)))
+		(table.set $extern (i32.const 20) (call $wat4wasm/text (i32.const 688) (i32.const 12)))
+		(table.set $extern (i32.const 21) (call $wat4wasm/text (i32.const 700) (i32.const 24)))
+		(table.set $extern (i32.const 22) (call $wat4wasm/text (i32.const 724) (i32.const 12)))
+		(table.set $extern (i32.const 23) (call $wat4wasm/text (i32.const 736) (i32.const 36)))
+		(table.set $extern (i32.const 24) (call $wat4wasm/text (i32.const 772) (i32.const 76)))
+		(table.set $extern (i32.const 25) (call $wat4wasm/text (i32.const 848) (i32.const 28)))
+		(table.set $extern (i32.const 26) (call $wat4wasm/text (i32.const 876) (i32.const 16)))
+		(table.set $extern (i32.const 27) (call $wat4wasm/text (i32.const 892) (i32.const 20)))
+		(table.set $extern (i32.const 28) (call $wat4wasm/text (i32.const 912) (i32.const 40)))
+		(table.set $extern (i32.const 29) (call $wat4wasm/text (i32.const 952) (i32.const 24)))
+		(table.set $extern (i32.const 30) (call $wat4wasm/text (i32.const 976) (i32.const 12)))
+		(table.set $extern (i32.const 31) (call $wat4wasm/text (i32.const 988) (i32.const 56)))
+		(table.set $extern (i32.const 32) (call $wat4wasm/text (i32.const 1044) (i32.const 24)))
+		(table.set $extern (i32.const 33) (call $wat4wasm/text (i32.const 1068) (i32.const 60)))    
     
         
         (memory.fill (i32.const 0) (i32.const 0) (i32.const 1128))
@@ -179,9 +179,9 @@
     
         
         (global.set $self.screen.width
-            (call $wat2wasm/Reflect.get<refx2>f32
-                (call $wat2wasm/Reflect.get<refx2>ref 
-                        (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>f32
+                (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
                         (table.get $extern (i32.const 10)) 
                     )
                 (table.get $extern (i32.const 11)) 
@@ -189,16 +189,16 @@
         )
         
         (global.set $self.Math
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (global.get $wat2wasm/self)
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (global.get $wat4wasm/self)
                 (table.get $extern (i32.const 12)) 
             )
         )
         
         (global.set $self.Math.max
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (call $wat2wasm/Reflect.get<refx2>ref 
-                        (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
                         (table.get $extern (i32.const 12)) 
                     )
                 (table.get $extern (i32.const 13)) 
@@ -206,9 +206,9 @@
         )
         
         (global.set $self.location.origin
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (call $wat2wasm/Reflect.get<refx2>ref 
-                        (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
                         (table.get $extern (i32.const 14)) 
                     )
                 (table.get $extern (i32.const 4)) 
@@ -216,9 +216,9 @@
         )
         
         (global.set $self.console.warn
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (call $wat2wasm/Reflect.get<refx2>ref 
-                        (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
                         (table.get $extern (i32.const 15)) 
                     )
                 (table.get $extern (i32.const 16)) 
@@ -226,11 +226,11 @@
         )
         
         (global.set $self.MessageEvent.prototype.data/get
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (call $wat2wasm/Reflect.getOwnPropertyDescriptor<refx2>ref
-                    (call $wat2wasm/Reflect.get<refx2>ref 
-                            (call $wat2wasm/Reflect.get<refx2>ref 
-                                (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.getOwnPropertyDescriptor<refx2>ref
+                    (call $wat4wasm/Reflect.get<refx2>ref 
+                            (call $wat4wasm/Reflect.get<refx2>ref 
+                                (global.get $wat4wasm/self) 
                                 (table.get $extern (i32.const 17)) 
                             ) 
                             (table.get $extern (i32.const 18)) 
@@ -242,11 +242,11 @@
         )
         
         (global.set $self.Worker:onmessage/set
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (call $wat2wasm/Reflect.getOwnPropertyDescriptor<refx2>ref
-                    (call $wat2wasm/Reflect.get<refx2>ref 
-                            (call $wat2wasm/Reflect.get<refx2>ref 
-                                (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.getOwnPropertyDescriptor<refx2>ref
+                    (call $wat4wasm/Reflect.get<refx2>ref 
+                            (call $wat4wasm/Reflect.get<refx2>ref 
+                                (global.get $wat4wasm/self) 
                                 (table.get $extern (i32.const 21)) 
                             ) 
                             (table.get $extern (i32.const 18)) 
@@ -258,9 +258,9 @@
         )
         
         (global.set $self.navigator.hardwareConcurrency
-            (call $wat2wasm/Reflect.get<refx2>i32
-                (call $wat2wasm/Reflect.get<refx2>ref 
-                        (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>i32
+                (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
                         (table.get $extern (i32.const 23)) 
                     )
                 (table.get $extern (i32.const 24)) 
@@ -268,10 +268,10 @@
         )
         
         (global.set $self.Promise.prototype.then
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (call $wat2wasm/Reflect.get<refx2>ref 
-                            (call $wat2wasm/Reflect.get<refx2>ref 
-                                (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.get<refx2>ref 
+                            (call $wat4wasm/Reflect.get<refx2>ref 
+                                (global.get $wat4wasm/self) 
                                 (table.get $extern (i32.const 25)) 
                             ) 
                             (table.get $extern (i32.const 18)) 
@@ -281,10 +281,10 @@
         )
         
         (global.set $self.Promise.prototype.catch
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (call $wat2wasm/Reflect.get<refx2>ref 
-                            (call $wat2wasm/Reflect.get<refx2>ref 
-                                (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.get<refx2>ref 
+                            (call $wat4wasm/Reflect.get<refx2>ref 
+                                (global.get $wat4wasm/self) 
                                 (table.get $extern (i32.const 25)) 
                             ) 
                             (table.get $extern (i32.const 18)) 
@@ -294,30 +294,30 @@
         )
         
         (global.set $self.Worker
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (global.get $wat2wasm/self)
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (global.get $wat4wasm/self)
                 (table.get $extern (i32.const 21)) 
             )
         )
         
         (global.set $self.Uint8Array
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (global.get $wat2wasm/self)
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (global.get $wat4wasm/self)
                 (table.get $extern (i32.const 28)) 
             )
         )
         
         (global.set $self.Number
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (global.get $wat2wasm/self)
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (global.get $wat4wasm/self)
                 (table.get $extern (i32.const 29)) 
             )
         )
         
         (global.set $self.navigator.gpu
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (call $wat2wasm/Reflect.get<refx2>ref 
-                        (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
                         (table.get $extern (i32.const 23)) 
                     )
                 (table.get $extern (i32.const 30)) 
@@ -325,10 +325,10 @@
         )
         
         (global.set $self.navigator.gpu.requestAdapter
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (call $wat2wasm/Reflect.get<refx2>ref 
-                            (call $wat2wasm/Reflect.get<refx2>ref 
-                                (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.get<refx2>ref 
+                            (call $wat4wasm/Reflect.get<refx2>ref 
+                                (global.get $wat4wasm/self) 
                                 (table.get $extern (i32.const 23)) 
                             ) 
                             (table.get $extern (i32.const 30)) 
@@ -338,9 +338,9 @@
         )
         
         (global.set $self.Math.random
-            (call $wat2wasm/Reflect.get<refx2>ref
-                (call $wat2wasm/Reflect.get<refx2>ref 
-                        (global.get $wat2wasm/self) 
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
                         (table.get $extern (i32.const 12)) 
                     )
                 (table.get $extern (i32.const 32)) 
@@ -350,7 +350,7 @@
     
         
         (call $self.Reflect.set<ref.ref.fun>
-            (global.get $wat2wasm/self)
+            (global.get $wat4wasm/self)
             (table.get $extern (i32.const 8))
             (ref.func $self.onmessage)
         )
@@ -434,7 +434,7 @@
                 (call $self.console.error<ref> (local.get $msg))
             )
 
-	(elem $wat2wasm/async funcref 
+	(elem $wat4wasm/async funcref 
 	    (ref.func $async1_onadapter)
 	    (ref.func $async2_onfail)
 	)
@@ -447,11 +447,11 @@
 	(global $self.navigator.gpu.requestAdapter (mut externref) ref.null extern)
 	(global $self.Math.random (mut externref) ref.null extern)
 
-	(elem $wat2wasm/refs funcref (ref.func $onresize) (ref.func $async1_onadapter) (ref.func $async2_onfail) (ref.func $self.onmessage) (ref.func $inlinefunction<f32>) (ref.func $async1_onadapter) (ref.func $async2_onfail))
+	(elem $wat4wasm/refs funcref (ref.func $onresize) (ref.func $async1_onadapter) (ref.func $async2_onfail) (ref.func $self.onmessage) (ref.func $inlinefunction<f32>) (ref.func $async1_onadapter) (ref.func $async2_onfail))
 
     (table $extern 34 34 externref)
 
-    (func $wat2wasm/text 
+    (func $wat4wasm/text 
         (param $offset i32)
         (param $length i32)
         (result externref)
@@ -462,7 +462,7 @@
         )
 
         (local.set $array 
-            (call $wat2wasm/Array<>ref)
+            (call $wat4wasm/Array<>ref)
         )
 
         (loop $length--
@@ -470,7 +470,7 @@
                 (i32.sub (local.get $length) (i32.const 4))
             )
                 
-            (call $wat2wasm/Reflect.set<ref.i32x2>
+            (call $wat4wasm/Reflect.set<ref.i32x2>
                 (local.get $array)
                 (i32.div_u (local.get $length) (i32.const 4))
                 (i32.trunc_f32_u	
@@ -486,8 +486,8 @@
             (br_if $length-- (local.get $length))
         )
 
-        (call $wat2wasm/Reflect.apply<refx3>ref
-            (global.get $wat2wasm/String.fromCharCode)
+        (call $wat4wasm/Reflect.apply<refx3>ref
+            (global.get $wat4wasm/String.fromCharCode)
             (ref.null extern)
             (local.get $array)
         )
