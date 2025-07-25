@@ -30,7 +30,7 @@
 
 
         ;; construct
-        (new $Worker<refx2>ref
+        (new $self.Worker<refx2>ref
             (text "worker.js")
             (call $self.Object.fromEntries<ref>ref
                 (call $self.Array<ref>ref
@@ -86,10 +86,10 @@
         )
         (warn<ref>)
 
-        (new $Uint8Array<i32> i32(4))
+        (new $self.Uint8Array<i32> i32(4))
         (warn<ref>)
 
-        (new $Number<f32> f32(4.4))
+        (new $self.Number<f32> f32(4.4))
         (warn<ref>)
 
 

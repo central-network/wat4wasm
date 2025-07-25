@@ -608,7 +608,7 @@ const constructcalls    = content => {
     let definers = ``;
 
     content = content
-        .replaceAll(`(new $`, `(construct $self.`)
+        .replaceAll(`(new $self.`, `(construct $self.`)
         .replaceAll('(construct $self.self.', '(construct $self.')
     ;    
     

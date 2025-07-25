@@ -16,7 +16,7 @@ useable:
 (call $self.Math.random f32)                            ;; direct imported call
 (apply $self.Math.random f32)                           ;; Reflect.apply applied
 (log<ref> (global.get $self.location.origin))           ;; console.log
-(new $Uint8Array<i32> (i32.const 4))                    ;; constructor
+(new $self.Uint8Array<i32> (i32.const 4))               ;; constructor
 
 (call $self.requestAnimationFrame<fun>                  ;; auto imported
     (func $inlinefunction<f32>                          ;; inline function
@@ -35,7 +35,7 @@ useable:
     )
 )
 
-(new $Worker<refx2>ref
+(new $self.Worker<refx2>ref
     (text "worker.js")
     (call $self.Object.fromEntries<ref>ref
         (call $self.Array<ref>ref
@@ -314,10 +314,10 @@ you don't need to define (global $self.Uint8Array externref) your code turns int
 
 those examples also works:
 ```webassembly
-(new $Array)                                ;; no $self keyword used          
-(new $Uint8Array<i32> (i32.const 4))        ;; no self / no param
-(new $Number<f32> f32(4.4))                 ;; Type(N -> (Type.const N)
-(new $Worker<ref> (text "worker.js"))       ;; RESULT ALWAYS EXTERNREF
+(new $self.Array)                           ;; no output/args (always externref)          
+(new $self.Uint8Array<i32> (i32.const 4))   ;; no param
+(new $self.Number<f32> f32(4.4))            ;; Type(N -> (Type.const N)
+(new $self.Worker<ref> (text "worker.js"))  ;; result always externref
 (construct $self.Worker<refx2>ref           ;; long but understanable
     (param
         (text "worker.js")
