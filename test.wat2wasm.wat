@@ -20,6 +20,10 @@
 	(import "self" "Array" (func $self.Array<ref>ref (param externref) (result externref)))
 	(import "Reflect" "get" (func $self.Reflect.get<refx2>ref (param externref externref) (result externref)))
 	(import "Reflect" "set" (func $self.Reflect.set<refx2.fun> (param externref externref funcref)))
+	(import "Reflect" "apply" (func $self.Reflect.apply<refx3> (param externref externref externref)))
+	(import "Reflect" "apply" (func $self.Reflect.apply<refx3>ref (param externref externref externref) (result externref)))
+	(import "Array" "of" (func $self.Array.of<>ref  (result externref)))
+	(import "Array" "of" (func $self.Array.of<fun>ref (param funcref) (result externref)))
 	(import "console" "log" (func $self.console.log<i32> (param i32)))
 	(import "console" "log" (func $self.console.log<ref.f32> (param externref f32)))
 	(import "console" "log" (func $self.console.log<ref> (param externref)))
@@ -28,15 +32,13 @@
 	(import "Array" "of" (func $self.Array.of<i32x3.f32>ref (param i32 i32 i32 f32) (result externref)))
 	(import "console" "error" (func $self.console.error<i32> (param i32)))
 	(import "Reflect" "apply" (func $self.Reflect.apply<refx3>f32 (param externref externref externref) (result f32)))
-	(import "Array" "of" (func $self.Array.of<>ref  (result externref)))
 	(import "console" "error" (func $self.console.error<f32> (param f32)))
 	(import "Math" "random" (func $self.Math.random<>f32  (result f32)))
 	(import "console" "warn" (func $self.console.warn<f32> (param f32)))
-	(import "Reflect" "apply" (func $self.Reflect.apply<refx3> (param externref externref externref)))
-	(import "Reflect" "apply" (func $self.Reflect.apply<refx3>ref (param externref externref externref) (result externref)))
 	(import "Array" "of" (func $self.Array.of<i32>ref (param i32) (result externref)))
 	(import "Array" "of" (func $self.Array.of<f32>ref (param f32) (result externref)))
 	(import "self" "requestAnimationFrame" (func $self.requestAnimationFrame<fun> (param funcref)))
+	(import "console" "error" (func $self.console.error<ref> (param externref)))
 	 ;;END_OF_IMPORTS
     
     (func $test-sub
@@ -90,7 +92,27 @@
         (call $self.Reflect.get<refx2>ref  (global.get $wat2wasm/self) (table.get $extern (i32.const 4)))        
         (call $self.console.warn<ref>)
 
-        (call $self.Reflect.set<refx2.fun>  (global.get $wat2wasm/self) (table.get $extern (i32.const 5)) (ref.func $onresize))        
+        (call $self.Reflect.set<refx2.fun>  (global.get $wat2wasm/self) (table.get $extern (i32.const 5)) (ref.func $onresize))
+
+
+        
+        (call $self.Reflect.apply<refx3>
+            (global.get $self.Promise.prototype.catch)
+            
+            (call $self.Reflect.apply<refx3>ref
+                (global.get $self.Promise.prototype.then)
+                (call $self.Reflect.apply<refx3>ref 
+            (global.get $self.navigator.gpu.requestAdapter) (global.get $self.navigator.gpu) (call $self.Array.of<>ref))
+                (call $self.Array.of<fun>ref
+                    (ref.func $async1_onadapter)
+                )
+            )
+                            
+            (call $self.Array.of<fun>ref
+                (ref.func $async2_onfail)
+            )
+        )
+                           
     )
 
     (func $onresize
@@ -107,7 +129,7 @@
                 )
             )(func $main
         
-        (memory.init 0 $wat2wasm/text (i32.const 0) (i32.const 0) (i32.const 840))    
+        (memory.init 0 $wat2wasm/text (i32.const 0) (i32.const 0) (i32.const 1008))    
     
         (table.set $extern (i32.const 1) (call $wat2wasm/text (i32.const 0) (i32.const 36)))
 		(table.set $extern (i32.const 2) (call $wat2wasm/text (i32.const 36) (i32.const 16)))
@@ -130,16 +152,22 @@
 		(table.set $extern (i32.const 19) (call $wat2wasm/text (i32.const 620) (i32.const 24)))
 		(table.set $extern (i32.const 20) (call $wat2wasm/text (i32.const 644) (i32.const 36)))
 		(table.set $extern (i32.const 21) (call $wat2wasm/text (i32.const 680) (i32.const 12)))
-		(table.set $extern (i32.const 22) (call $wat2wasm/text (i32.const 692) (i32.const 40)))
-		(table.set $extern (i32.const 23) (call $wat2wasm/text (i32.const 732) (i32.const 24)))
-		(table.set $extern (i32.const 24) (call $wat2wasm/text (i32.const 756) (i32.const 24)))
-		(table.set $extern (i32.const 25) (call $wat2wasm/text (i32.const 780) (i32.const 60)))    
+		(table.set $extern (i32.const 22) (call $wat2wasm/text (i32.const 692) (i32.const 28)))
+		(table.set $extern (i32.const 23) (call $wat2wasm/text (i32.const 720) (i32.const 16)))
+		(table.set $extern (i32.const 24) (call $wat2wasm/text (i32.const 736) (i32.const 20)))
+		(table.set $extern (i32.const 25) (call $wat2wasm/text (i32.const 756) (i32.const 40)))
+		(table.set $extern (i32.const 26) (call $wat2wasm/text (i32.const 796) (i32.const 24)))
+		(table.set $extern (i32.const 27) (call $wat2wasm/text (i32.const 820) (i32.const 36)))
+		(table.set $extern (i32.const 28) (call $wat2wasm/text (i32.const 856) (i32.const 12)))
+		(table.set $extern (i32.const 29) (call $wat2wasm/text (i32.const 868) (i32.const 56)))
+		(table.set $extern (i32.const 30) (call $wat2wasm/text (i32.const 924) (i32.const 24)))
+		(table.set $extern (i32.const 31) (call $wat2wasm/text (i32.const 948) (i32.const 60)))    
     
         
-        (memory.fill (i32.const 0) (i32.const 0) (i32.const 840))
+        (memory.fill (i32.const 0) (i32.const 0) (i32.const 1008))
         (data.drop $wat2wasm/text)    
     
-        (global.set $ANY_TEXT_GLOBAL (table.get $extern (i32.const 25)))    
+        (global.set $ANY_TEXT_GLOBAL (table.get $extern (i32.const 31)))    
     
         
         (global.set $self.screen.width
@@ -221,6 +249,32 @@
             )
         )
         
+        (global.set $self.Promise.prototype.then
+            (call $wat2wasm/Reflect.get<refx2>ref
+                (call $wat2wasm/Reflect.get<refx2>ref 
+                            (call $wat2wasm/Reflect.get<refx2>ref 
+                                (global.get $wat2wasm/self) 
+                                (table.get $extern (i32.const 22)) 
+                            ) 
+                            (table.get $extern (i32.const 16)) 
+                        )
+                (table.get $extern (i32.const 23)) 
+            )
+        )
+        
+        (global.set $self.Promise.prototype.catch
+            (call $wat2wasm/Reflect.get<refx2>ref
+                (call $wat2wasm/Reflect.get<refx2>ref 
+                            (call $wat2wasm/Reflect.get<refx2>ref 
+                                (global.get $wat2wasm/self) 
+                                (table.get $extern (i32.const 22)) 
+                            ) 
+                            (table.get $extern (i32.const 16)) 
+                        )
+                (table.get $extern (i32.const 24)) 
+            )
+        )
+        
         (global.set $self.Worker
             (call $wat2wasm/Reflect.get<refx2>ref
                 (global.get $wat2wasm/self)
@@ -231,14 +285,37 @@
         (global.set $self.Uint8Array
             (call $wat2wasm/Reflect.get<refx2>ref
                 (global.get $wat2wasm/self)
-                (table.get $extern (i32.const 22)) 
+                (table.get $extern (i32.const 25)) 
             )
         )
         
         (global.set $self.Number
             (call $wat2wasm/Reflect.get<refx2>ref
                 (global.get $wat2wasm/self)
-                (table.get $extern (i32.const 23)) 
+                (table.get $extern (i32.const 26)) 
+            )
+        )
+        
+        (global.set $self.navigator.gpu
+            (call $wat2wasm/Reflect.get<refx2>ref
+                (call $wat2wasm/Reflect.get<refx2>ref 
+                        (global.get $wat2wasm/self) 
+                        (table.get $extern (i32.const 27)) 
+                    )
+                (table.get $extern (i32.const 28)) 
+            )
+        )
+        
+        (global.set $self.navigator.gpu.requestAdapter
+            (call $wat2wasm/Reflect.get<refx2>ref
+                (call $wat2wasm/Reflect.get<refx2>ref 
+                            (call $wat2wasm/Reflect.get<refx2>ref 
+                                (global.get $wat2wasm/self) 
+                                (table.get $extern (i32.const 27)) 
+                            ) 
+                            (table.get $extern (i32.const 28)) 
+                        )
+                (table.get $extern (i32.const 29)) 
             )
         )
         
@@ -248,7 +325,7 @@
                         (global.get $wat2wasm/self) 
                         (table.get $extern (i32.const 10)) 
                     )
-                (table.get $extern (i32.const 24)) 
+                (table.get $extern (i32.const 30)) 
             )
         )
             
@@ -264,7 +341,7 @@
 
         (call $self.Reflect.apply<refx3>i32 
             (global.get $self.Math.max) 
-            (global.get $wat2wasm/self)
+            (global.get $self.Math)
             (call $self.Array.of<i32x3.f32>ref
                 (i32.const 2)
                 (i32.const 4)
@@ -275,18 +352,18 @@
         (call $self.console.error<i32>)
 
         (call $self.Reflect.apply<refx3>f32 
-            (global.get $self.Math.random) (global.get $wat2wasm/self) (call $self.Array.of<>ref))
+            (global.get $self.Math.random) (global.get $self.Math) (call $self.Array.of<>ref))
         (call $self.console.error<f32>)
 
         (call $self.Math.random<>f32)
         (call $self.console.warn<f32>)
 
         (call $self.Reflect.apply<refx3> 
-            (global.get $self.Math.random) (global.get $wat2wasm/self) (call $self.Array.of<>ref))
+            (global.get $self.Math.random) (global.get $self.Math) (call $self.Array.of<>ref))
         (nop)
 
         (call $self.Reflect.apply<refx3>ref 
-            (global.get $self.Math.random) (global.get $wat2wasm/self) (call $self.Array.of<>ref))
+            (global.get $self.Math.random) (global.get $self.Math) (call $self.Array.of<>ref))
         (drop)
 
         (call $self.Reflect.construct<refx2>ref 
@@ -316,15 +393,37 @@
         )
     )
 
+	(global $self.Promise.prototype.then (mut externref) ref.null extern)
+	(global $self.Promise.prototype.catch (mut externref) ref.null extern)	
+
+	(func $async1_onadapter
+                (param $adapter externref)
+                (call $self.console.warn<ref> (local.get 0))
+            )
+
+		
+
+	(func $async2_onfail
+                (param $msg externref)
+                (call $self.console.error<ref> (local.get $msg))
+            )
+
+	(elem $wat2wasm/async funcref 
+	    (ref.func $async1_onadapter)
+	    (ref.func $async2_onfail)
+	)
+
 	(global $self.Worker (mut externref) ref.null extern)
 	(global $self.Uint8Array (mut externref) ref.null extern)
 	(global $self.Number (mut externref) ref.null extern)
 
+	(global $self.navigator.gpu (mut externref) ref.null extern)
+	(global $self.navigator.gpu.requestAdapter (mut externref) ref.null extern)
 	(global $self.Math.random (mut externref) ref.null extern)
 
-	(elem $wat2wasm/refs funcref (ref.func $onresize) (ref.func $inlinefunction<f32>))
+	(elem $wat2wasm/refs funcref (ref.func $onresize) (ref.func $async1_onadapter) (ref.func $async2_onfail) (ref.func $inlinefunction<f32>) (ref.func $async1_onadapter) (ref.func $async2_onfail))
 
-    (table $extern 26 26 externref)
+    (table $extern 32 32 externref)
 
     (func $wat2wasm/text 
         (param $offset i32)
@@ -368,5 +467,5 @@
         )
     )
 
-    (data $wat2wasm/text "\00\00\ee\42\00\00\de\42\00\00\e4\42\00\00\d6\42\00\00\ca\42\00\00\e4\42\00\00\38\42\00\00\d4\42\00\00\e6\42\00\00\dc\42\00\00\c2\42\00\00\da\42\00\00\ca\42\00\00\76\43\00\00\f4\42\00\00\ce\42\00\00\7c\43\00\00\e4\42\00\00\de\42\00\00\e4\42\00\00\d2\42\00\00\ce\42\00\00\d2\42\00\00\dc\42\00\00\de\42\00\00\dc\42\00\00\e4\42\00\00\ca\42\00\00\e6\42\00\00\d2\42\00\00\f4\42\00\00\ca\42\00\00\c2\42\00\00\dc\42\00\00\d2\42\00\00\da\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\00\42\00\00\cc\42\00\00\e4\42\00\00\c2\42\00\00\da\42\00\00\ca\42\00\00\00\42\00\00\e4\42\00\00\ca\42\00\00\c2\42\00\00\c8\42\00\00\f2\42\00\00\68\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\c2\42\00\00\d8\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\ec\42\00\00\ca\42\00\00\e4\42\00\00\e8\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\e8\42\00\00\de\42\00\00\00\42\00\00\e8\42\00\00\c2\42\00\00\c4\42\00\00\d8\42\00\00\ca\42\00\00\38\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\04\42\00\00\e6\42\00\00\c6\42\00\00\e4\42\00\00\ca\42\00\00\ca\42\00\00\dc\42\00\00\ee\42\00\00\d2\42\00\00\c8\42\00\00\e8\42\00\00\d0\42\00\00\9a\42\00\00\c2\42\00\00\e8\42\00\00\d0\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\d8\42\00\00\de\42\00\00\c6\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\e6\42\00\00\de\42\00\00\d8\42\00\00\ca\42\00\00\ee\42\00\00\c2\42\00\00\e4\42\00\00\dc\42\00\00\9a\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\e0\42\00\00\e4\42\00\00\de\42\00\00\e8\42\00\00\de\42\00\00\e8\42\00\00\f2\42\00\00\e0\42\00\00\ca\42\00\00\c8\42\00\00\c2\42\00\00\e8\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\ae\42\00\00\de\42\00\00\e4\42\00\00\d6\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\dc\42\00\00\da\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\aa\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\60\42\00\00\82\42\00\00\e4\42\00\00\e4\42\00\00\c2\42\00\00\f2\42\00\00\9c\42\00\00\ea\42\00\00\da\42\00\00\c4\42\00\00\ca\42\00\00\e4\42\00\00\e4\42\00\00\c2\42\00\00\dc\42\00\00\c8\42\00\00\de\42\00\00\da\42\00\00\c2\42\00\00\dc\42\00\00\f2\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\ce\42\00\00\d8\42\00\00\de\42\00\00\c4\42\00\00\c2\42\00\00\d8\42")
+    (data $wat2wasm/text "\00\00\ee\42\00\00\de\42\00\00\e4\42\00\00\d6\42\00\00\ca\42\00\00\e4\42\00\00\38\42\00\00\d4\42\00\00\e6\42\00\00\dc\42\00\00\c2\42\00\00\da\42\00\00\ca\42\00\00\76\43\00\00\f4\42\00\00\ce\42\00\00\7c\43\00\00\e4\42\00\00\de\42\00\00\e4\42\00\00\d2\42\00\00\ce\42\00\00\d2\42\00\00\dc\42\00\00\de\42\00\00\dc\42\00\00\e4\42\00\00\ca\42\00\00\e6\42\00\00\d2\42\00\00\f4\42\00\00\ca\42\00\00\c2\42\00\00\dc\42\00\00\d2\42\00\00\da\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\00\42\00\00\cc\42\00\00\e4\42\00\00\c2\42\00\00\da\42\00\00\ca\42\00\00\00\42\00\00\e4\42\00\00\ca\42\00\00\c2\42\00\00\c8\42\00\00\f2\42\00\00\68\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\c2\42\00\00\d8\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\ec\42\00\00\ca\42\00\00\e4\42\00\00\e8\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\e8\42\00\00\de\42\00\00\00\42\00\00\e8\42\00\00\c2\42\00\00\c4\42\00\00\d8\42\00\00\ca\42\00\00\38\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\04\42\00\00\e6\42\00\00\c6\42\00\00\e4\42\00\00\ca\42\00\00\ca\42\00\00\dc\42\00\00\ee\42\00\00\d2\42\00\00\c8\42\00\00\e8\42\00\00\d0\42\00\00\9a\42\00\00\c2\42\00\00\e8\42\00\00\d0\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\d8\42\00\00\de\42\00\00\c6\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\e6\42\00\00\de\42\00\00\d8\42\00\00\ca\42\00\00\ee\42\00\00\c2\42\00\00\e4\42\00\00\dc\42\00\00\9a\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\e0\42\00\00\e4\42\00\00\de\42\00\00\e8\42\00\00\de\42\00\00\e8\42\00\00\f2\42\00\00\e0\42\00\00\ca\42\00\00\c8\42\00\00\c2\42\00\00\e8\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\ae\42\00\00\de\42\00\00\e4\42\00\00\d6\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\dc\42\00\00\da\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\a0\42\00\00\e4\42\00\00\de\42\00\00\da\42\00\00\d2\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\d0\42\00\00\ca\42\00\00\dc\42\00\00\c6\42\00\00\c2\42\00\00\e8\42\00\00\c6\42\00\00\d0\42\00\00\aa\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\60\42\00\00\82\42\00\00\e4\42\00\00\e4\42\00\00\c2\42\00\00\f2\42\00\00\9c\42\00\00\ea\42\00\00\da\42\00\00\c4\42\00\00\ca\42\00\00\e4\42\00\00\dc\42\00\00\c2\42\00\00\ec\42\00\00\d2\42\00\00\ce\42\00\00\c2\42\00\00\e8\42\00\00\de\42\00\00\e4\42\00\00\ce\42\00\00\e0\42\00\00\ea\42\00\00\e4\42\00\00\ca\42\00\00\e2\42\00\00\ea\42\00\00\ca\42\00\00\e6\42\00\00\e8\42\00\00\82\42\00\00\c8\42\00\00\c2\42\00\00\e0\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\e4\42\00\00\c2\42\00\00\dc\42\00\00\c8\42\00\00\de\42\00\00\da\42\00\00\c2\42\00\00\dc\42\00\00\f2\42\00\00\00\42\00\00\e8\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\ce\42\00\00\d8\42\00\00\de\42\00\00\c4\42\00\00\c2\42\00\00\d8\42")
 )

@@ -46,7 +46,20 @@
         (get <refx2>ref self (text "origin"))        
         (warn<ref>)
 
-        (set <refx2.fun> self text("onresize") func($onresize))        
+        (set <refx2.fun> self text("onresize") func($onresize))
+
+
+        (async
+            (call $self.navigator.gpu.requestAdapter)
+            (then $onadapter
+                (param $adapter externref)
+                (warn <ref> this)
+            )
+            (catch $onfail
+                (param $msg externref)
+                (error <ref> local($msg))
+            )
+        )   
     )
 
     (func $onresize

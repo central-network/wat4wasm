@@ -148,7 +148,7 @@ const include   = content => {
     return content;
 }
 
-const consoles   = content => {
+const debugs   = content => {
     return content.replaceAll(/\((log|warn|error)\</g, "(call $self.console.$1<");
 }
 
@@ -573,14 +573,45 @@ const applycalls        = content => {
         `(param`, `(call $self.Array.of<${prm}>ref`
         );
 
-        const definer = `\n\t(global $self.${match[2]} externref)`;
+        let definer = `\n\t(global $self.${match[2]} externref)`;
+        let subdefiner = ``;
+        let dparts  = match[2].split(".");
+
+        if (dparts.length > 1) {
+            const parent = dparts.reverse().slice(1).reverse().join(".");
+
+            frame = frame.replace("(global.get $wat2wasm/self)",
+                `(global.get $self.${parent})`
+            );
+
+            if (dparts === 3) {
+                let root = parent.split(".").reverse().slice(1).reverse().join(".");
+                subdefiner = `\n\t(global $self.${root} externref)`
+                
+                if (content.indexOf(subdefiner.trim()) === -1) {
+                    if (definers.indexOf(subdefiner.trim()) === -1) {
+                        definers += subdefiner;
+                    }
+                }
+            }
+
+            subdefiner = `\n\t(global $self.${parent} externref)`
+            
+            if (content.indexOf(subdefiner.trim()) === -1) {
+                if (definers.indexOf(subdefiner.trim()) === -1) {
+                    definers += subdefiner;
+                }
+            }
+            
+            
+        }
         
         if (content.indexOf(definer.trim()) === -1) {
             if (definers.indexOf(definer.trim()) === -1) {
                 definers += definer;
             }
         }
-        
+
         content = content.replaceFrame( match, frame );
     }   
 
@@ -613,6 +644,7 @@ const getsetcalls       = content => {
 
 const consts            = content => {
     return content
+        .replaceAll(/\((log|warn|error)\s+\</g, `($1<`)  
         .replaceAll(/(i32|i64|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`)
         .replaceAll("(self)", `(global.get $wat2wasm/self)`)
         .replaceAll("(null)", `(ref.null extern)`)
@@ -626,7 +658,6 @@ const consts            = content => {
         .replaceAll(" text(", ` (text `)
         .replaceAll(" func(", ` (ref.func `)
         .replaceAll(/(local|global|table)\(/g, `($1.get `)
-
     ;
 };
 
@@ -691,6 +722,112 @@ const constructcalls    = content => {
     return content;
 }
 
+const asyncs            = content => {
+
+    let match;
+    let globals = {
+        then : `\n\t(global $self.Promise.prototype.then externref)`,
+        catch : `\n\t(global $self.Promise.prototype.catch externref)`,
+        finally : `\n\t(global $self.Promise.prototype.finally externref)`,
+    };
+
+    let definers = ``;
+    let inlinefuncs = ``;
+    let elems = [];
+    let i = 0;
+
+    let lastindex = content.lastIndexOf("(async");
+
+    while (lastindex !== -1) {
+
+        let frame = content.frameAt( lastindex );
+        let length = frame.length;
+
+        let binds = {
+            then : [],
+            catch : [],
+            finally : [],
+        };
+
+        let call = frame.frameAt(frame.indexOf("(", 1)).replace(
+            /\(call\s+\$self\.([a-zA-Z0-9\.\_]+)\)/, `(call $self.$1<>ref)`
+        ).replace("(call ", "(apply ");
+
+        Object.keys(binds).forEach(d => {
+            while (frame.includes("(" + d)) {
+                const ti = frame.indexOf("(" + d);
+                const tf = frame.frameAt(ti);
+                const tl = tf.length;
+                
+                frame = frame.replace(tf, "");
+                let inlinefunc = "\n\n\t" + tf.replace( d, "func" ).concat("\n\n\t")
+                    .replace("func ", "func $async" + ++i + "_")
+                    .replace("func $async" + i + "_$", "func $async" + i + "_")
+                ;
+
+                const tn = inlinefunc.match(/\$(.[^\s|\n|\)]*)/).at(1);
+
+
+                binds[d].push({ti, tl, tf, tn});
+                inlinefuncs += "\t" + inlinefunc; 
+
+                elems.push(`(ref.func $${tn})`)
+            }
+        });
+
+        Object.keys(binds).forEach(d => {
+            if (binds[d].length) {
+                if (content.indexOf(globals[d]) === -1) {
+                    if (definers.indexOf(globals[d]) === -1) {
+                        definers += globals[d];
+                    }
+                }
+            }
+        });
+
+        let prms = `${call}`;
+        let j = 0;
+
+        Object.keys(binds).forEach(d => {
+            binds[d].forEach(v => {
+                prms =
+                `
+(call $self.Reflect.apply<refx3>ref
+    (global.get $self.Promise.prototype.${d})
+    ${prms}
+    (call $self.Array.of<fun>ref
+        (ref.func $${v.tn})
+    )
+)
+                `.split("\n").join( "\n" + " ".repeat(j += 4) );
+            })
+        });
+
+        if (!frame.match(/\(async\s+(ref|externref)/)) {
+            prms = prms.replace(`$self.Reflect.apply<refx3>ref`, `$self.Reflect.apply<refx3>`);
+        }
+
+        content = content.substring( 
+            0, lastindex
+        ).concat( prms ).concat(
+            content.substring(
+                lastindex + length 
+            )
+        );
+
+        lastindex = content.lastIndexOf("(async")
+    }   
+
+    const elms = `(elem $wat2wasm/async funcref \n\t    ${elems.join("\n\t    ")}\n\t)`;
+
+    content = content.substring( 0, content.lastIndexOf(")") ).concat(
+        definers + inlinefuncs + elms
+    ).concat("\n)");
+
+
+    return content;
+}
+
 const elemrefs          = content => {
 
     let match;
@@ -719,8 +856,9 @@ const compile   = () => {
     content = addImports(content);
     content = include(content);
     content = consts(content);
-    content = consoles(content);
+    content = debugs(content);
     content = start(content);
+    content = asyncs(content);
     content = constructcalls(content);
     content = getsetcalls(content);
     content = applycalls(content);

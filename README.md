@@ -50,6 +50,18 @@ useable:
     )
 )
 
+(async                                                  ;; promise working
+    (call $self.navigator.gpu.requestAdapter)           ;; converted to global
+    (then $onadapter                                    ;; moved to outer scope as func
+        (param $adapter externref)
+        (warn <ref> this)
+    )
+    (catch $onfail                                      ;; moved to outer scope as func
+        (param $msg externref)
+        (error <ref> local($msg))
+    )
+)  
+
 i32(2)                                                  ;; type(N -> (type.const N
 f32(1.2)                                                ;; type(N -> (type.const N
 ...
@@ -332,6 +344,135 @@ those examples also works:
     (new $Object)
 )
 ```
+
+## keyword: async
+
+Compiler will know you are working with promises and binds then/catch/finally functions to moved outer scope functions. Maximum 3 level deeper self object are allowed in here. Also "call" requests turns into "apply" requests because of deeper objects requires parent object for "this" parameter.
+
+```webassembly
+(func $example 
+
+    ... body
+
+    (async
+        (call $self.navigator.gpu.requestAdapter)
+        (then $onadapter
+            (param $adapter externref)
+            (warn <ref> this)
+        )
+        (catch $onfail
+            (param $msg externref)
+            (error <ref> local($msg))
+        )
+    ) 
+
+    body ...
+)
+```
+
+converted into:
+```webassembly
+(func $example 
+
+    ... body
+
+    (call $self.Reflect.apply<refx3>
+        (global.get $self.Promise.prototype.catch)
+        (call $self.Reflect.apply<refx3>ref
+            (global.get $self.Promise.prototype.then)
+            (call $self.Reflect.apply<refx3>ref 
+                (global.get $self.navigator.gpu.requestAdapter) 
+                (global.get $self.navigator.gpu) 
+                (call $self.Array.of<>ref)
+            )
+            (call $self.Array.of<fun>ref
+                (ref.func $async1_onadapter)
+            )
+        )
+        (call $self.Array.of<fun>ref
+            (ref.func $async2_onfail)
+        )
+    )
+
+    body ...
+)
+
+(func $async1_onadapter
+    (param $adapter externref)
+    (call $self.console.warn<ref> (local.get 0))
+)
+
+(func $async2_onfail
+    (param $msg externref)
+    (call $self.console.error<ref> (local.get $msg))
+)
+
+(elem $wat2wasm/async funcref 
+    (ref.func $async1_onadapter)
+    (ref.func $async2_onfail)
+)
+```
+
+also appended to body:
+```webassembly
+(global $self.Promise.prototype.then (mut externref) ref.null extern)
+(global $self.Promise.prototype.catch (mut externref) ref.null extern)	
+(global $self.navigator.gpu (mut externref) ref.null extern)
+(global $self.navigator.gpu.requestAdapter (mut externref) ref.null extern)
+```
+
+and start function includes more global setters:
+```webassembly
+(global.set $self.Promise.prototype.then
+    (call $wat2wasm/Reflect.get<refx2>ref
+        (call $wat2wasm/Reflect.get<refx2>ref 
+                    (call $wat2wasm/Reflect.get<refx2>ref 
+                        (global.get $wat2wasm/self) 
+                        (table.get $extern (i32.const 22)) 
+                    ) 
+                    (table.get $extern (i32.const 16)) 
+                )
+        (table.get $extern (i32.const 23)) 
+    )
+)
+
+(global.set $self.Promise.prototype.catch
+    (call $wat2wasm/Reflect.get<refx2>ref
+        (call $wat2wasm/Reflect.get<refx2>ref 
+                    (call $wat2wasm/Reflect.get<refx2>ref 
+                        (global.get $wat2wasm/self) 
+                        (table.get $extern (i32.const 22)) 
+                    ) 
+                    (table.get $extern (i32.const 16)) 
+                )
+        (table.get $extern (i32.const 24)) 
+    )
+)
+
+(global.set $self.navigator.gpu
+    (call $wat2wasm/Reflect.get<refx2>ref
+        (call $wat2wasm/Reflect.get<refx2>ref 
+            (global.get $wat2wasm/self) 
+            (table.get $extern (i32.const 27)) 
+        )
+        (table.get $extern (i32.const 28)) 
+    )
+)
+
+(global.set $self.navigator.gpu.requestAdapter
+    (call $wat2wasm/Reflect.get<refx2>ref
+        (call $wat2wasm/Reflect.get<refx2>ref 
+            (call $wat2wasm/Reflect.get<refx2>ref 
+                (global.get $wat2wasm/self) 
+                (table.get $extern (i32.const 27)) 
+            ) 
+            (table.get $extern (i32.const 28)) 
+        )
+        (table.get $extern (i32.const 29)) 
+    )
+)
+```
+
 
 ## keyword: get, set
 
