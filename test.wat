@@ -28,6 +28,21 @@
         null
         (warn<ref>)
 
+
+        ;; construct
+        (new $Worker<refx2>ref
+            (text "worker.js")
+            (call $self.Object.fromEntries<ref>ref
+                (call $self.Array.of<ref>ref
+                    (call $self.Array.of<refx2>ref
+                        (text "name")
+                        (text "özgür")
+                    )
+                )
+            )
+        )        
+        (warn<ref>)
+
         
     )
 

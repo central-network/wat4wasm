@@ -34,6 +34,19 @@ useable:
         (f32.const 1122.2)
     )
 )
+
+(new $Worker<refx2>ref
+    (text "worker.js")
+    (call $self.Object.fromEntries<ref>ref
+        (call $self.Array.of<ref>ref
+            (call $self.Array.of<refx2>ref
+                (text "name")
+                (text "özgür")
+            )
+        )
+    )
+)
+
 i32(2)                                                  ;; type(N -> (type.const N
 f32(1.2)                                                ;; type(N -> (type.const N
 ...

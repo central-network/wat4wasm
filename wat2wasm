@@ -37,9 +37,12 @@ String.prototype.frameAt         = function ( index ) {
 
 String.prototype.matchFrame         = function ( regExp ) {
 
-    let match       = this.match(regExp);
+    let match;
+    
+    match = this.match(regExp);
+
     if (match) {
-        
+
         let frame       = match[0];
         let lastIndex   = match.index;
         let maxIndex    = match.input.length;
@@ -609,7 +612,6 @@ const constructcalls    = content => {
         .replaceAll('(construct $self.self.', '(construct $self.')
     ;    
     
-
     content = content.replaceAll(/\(construct\s+\$self\.([a-zA-Z0-9\.\_]+)\s?\)/g, 
         `(construct $self.$1<>ref (param))`
     );    
@@ -627,7 +629,7 @@ const constructcalls    = content => {
 
         let frame;
     
-    if (match.frame.includes("(param")) {
+    if (match.frame.indexOf("(param") !== -1) {
         frame = match.frame.replace(
         `(construct ${match[1]}`, `(call $self.Reflect.construct<refx2>ref 
             (global.get $self.${match[2]}) `
