@@ -473,7 +473,14 @@ and start function includes more global setters:
 )
 ```
 
-
+Notice that you can/need to define result parameter. Otherwise no result will be return for chain: 
+```webassembly
+(warn<ref>
+    (async externref
+        ...
+    )
+) 
+```
 
 ## keyword: get, set
 
@@ -514,15 +521,6 @@ you don't need to define (global $self.Uint8Array externref) your code turns int
 
     body ...
 )
-```
-
-Notice that you can/need to define result parameter. Otherwise no result will be return for chain: 
-```webassembly
-(warn<ref>
-    (async externref
-        ...
-    )
-) 
 ```
 
 ## keyword: i32, f32, i64, f64
