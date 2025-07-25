@@ -1,6 +1,7 @@
 # Some Skills for Wat2WASM 
 
 Some helper abilities for regular wat4wasm compiler. You can compile your "wat" file with regular parameters (compiler includes libwabt.js, so you do not need anything else but wat4wasm):
+
 ```shell
 ./wat4wasm test.wat --enable-multi-memory --debug-names --no-unlink --watch
 ```
@@ -77,6 +78,15 @@ f32(1.2)                                                ;; type(N -> (type.const
     (param $event externref)
     (log<refx2> this (text "hello özgür"))
 )          
+```
+
+if you want to use without "./" prefixed then you can copy:
+```shell
+cp wat4wasm /usr/local/bin/wat4wasm
+```
+now usable without prefix:
+```shell
+wat4wasm test.wat --enable-multi-memory --debug-names --no-unlink --watch
 ```
 
 ## keyword: include
