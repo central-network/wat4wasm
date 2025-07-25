@@ -1,4 +1,4 @@
-#!/Users/airbook/.nvm/versions/node/v23.2.0/bin/node
+#!/usr/bin/env node
 
 const {readFileSync, writeFileSync, watchFile, existsSync, unlinkSync } = require("fs");
 const {execSync} = require("child_process");
