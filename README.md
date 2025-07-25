@@ -18,6 +18,10 @@ Some helper abilities for regular wat4wasm compiler. You can compile your "wat" 
 <td>--output</td>
 <td>filename for .wasm <br>(otherwise replaces .wat to .wasm)</td>
 </tr>
+</tr>
+<td>--debug-names</td>
+<td>expose function names etc. <br>(too see in browser's source tab)</td>
+</tr>
 </table>
 
 useable:

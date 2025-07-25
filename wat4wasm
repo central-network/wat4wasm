@@ -116,9 +116,10 @@ String.prototype.findQuotedText     = function () {
 
 const indexOfOutputPathCompileOptionsParameter = compileOptions.findIndex(opt => (opt === "-o") || (opt === "--output")) + 1;
 const outputFilePath = 
+    (
     indexOfOutputPathCompileOptionsParameter && 
     compileOptions[indexOfOutputPathCompileOptionsParameter] || 
-    inputFilePath.replace(".wat", ".wasm")
+    inputFilePath.replace(".wat", ".wasm")).replaceAll(/\"|\'/g, "")
 ;
 
 const modifiedContentInputFilePath  = inputFilePath + "2wasm.wat";
