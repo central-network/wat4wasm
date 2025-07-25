@@ -6,8 +6,9 @@ Some helper abilities for regular wat4wasm compiler. You can compile your "wat" 
 ./wat4wasm test.wat --enable-multi-memory --debug-names --no-unlink --watch
 ```
 
-### --no-unlink : do not remove compiler generated wat file (if compiler success then removes generated wat file)
-### --watch     : bind fs.watch function to wat file (but it's not efficient, you can use nodemon)
+--no-unlink : do not remove compiler generated wat file (if compiler success then removes generated wat file)
+
+--watch     : bind fs.watch function to wat file (but it's not efficient, you can use nodemon)
 
 useable:
 ```webassembly      
