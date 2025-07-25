@@ -591,14 +591,42 @@ const applycalls        = content => {
     return content;
 }
 
+
+
+const getsetcalls       = content => {
+
+    let match;
+
+    while (match = content.matchFrame(/\((get|set)\s+\<(.*?)>(i32|f32|i64|f64|ref|)/)) {
+
+        const gst = match[1].trim();
+        const prm = match[2].trim();
+        const res = match[3].trim();
+
+        content = content.replaceFrame(
+            match, match.frame.replace(match[0], `(call $self.Reflect.${gst}<${prm}>${res} `)
+        )
+    }   
+
+    return content;
+}
+
 const consts            = content => {
     return content
         .replaceAll(/(i32|i64|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`)
+        .replaceAll("(self)", `(global.get $wat2wasm/self)`)
+        .replaceAll("(null)", `(ref.null extern)`)
+        .replaceAll("(this)", `(local.get 0)`)
+        .replaceAll(/(\s|\n)self(\s|\n)/g, `$1(global.get $wat2wasm/self)$2`)
+        .replaceAll(/(\s|\n)null(\s|\n)/g, `$1(ref.null extern)$2`)
+        .replaceAll(/(\s|\n)this(\s|\n)/g, `$1(local.get 0)$2`)
+        .replaceAll(/(\s|\n)self\)/g, `$1(global.get $wat2wasm/self))`)
+        .replaceAll(/(\s|\n)null\)/g, `$1(ref.null extern))`)
+        .replaceAll(/(\s|\n)this\)/g, `$1(local.get 0))`)
+        .replaceAll(" text(", ` (text `)
+        .replaceAll(" func(", ` (ref.func `)
         .replaceAll(/(local|global|table)\(/g, `($1.get `)
-        .replaceAll(/\((self|null|this)\)/g, ` ($1) `)
-        .replaceAll(/(\s)this(\s)/g, `$1(local.get 0)$2`)
-        .replaceAll(/(\s)self(\s)/g, `$1(global.get $wat2wasm/self)$2`)
-        .replaceAll(/(\s)null(\s)/g, `$1(ref.null extern)$2`)
+
     ;
 };
 
@@ -687,16 +715,14 @@ const compile   = () => {
     const rawFileContentString = rawFileContentBuffer.toString();
 
     let 
-    content = rawFileContentString
-                .replaceAll("(self)", "(global.get $wat2wasm/self)")
-                .replaceAll("(null)", "(ref.null extern)")
-            ;
+    content = rawFileContentString;
     content = addImports(content);
     content = include(content);
+    content = consts(content);
     content = consoles(content);
     content = start(content);
-    content = consts(content);
     content = constructcalls(content);
+    content = getsetcalls(content);
     content = applycalls(content);
     content = inlinefuncs(content);
     content = textref(content);

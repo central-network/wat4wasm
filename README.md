@@ -18,6 +18,9 @@ useable:
 (log<ref> (global.get $self.location.origin))           ;; console.log
 (new $self.Uint8Array<i32> (i32.const 4))               ;; constructor
 
+(get <refx2>ref self (text "origin"))                   ;; getter
+(set <refx2.fun> self text("onresize") func($onresize)) ;; setter 
+
 (call $self.requestAnimationFrame<fun>                  ;; auto imported
     (func $inlinefunction<f32>                          ;; inline function
         (param $performance.now f32)
@@ -327,6 +330,47 @@ those examples also works:
 (construct $self.Worker<refx2>ref           ;; no param expressed
     (text "worker.js") 
     (new $Object)
+)
+```
+
+## keyword: get, set
+
+Compiler will convert your Reflect.get / Reflect.set requests as well as:
+
+```webassembly
+(func $example 
+
+    ... body
+
+    (get <refx2>ref self (text "origin"))        
+    (warn<ref>)
+
+    (set <refx2.fun> self text("onresize") func($onresize))        
+
+    body ...
+)
+```
+
+you don't need to define (global $self.Uint8Array externref) your code turns into:
+```webassembly
+(func $example 
+
+    ... body
+
+    (call $self.Reflect.get<refx2>ref       ;; input / output comes from you
+        (global.get $wat2wasm/self)         ;; self -> global.get ...
+        (table.get $extern (i32.const N))   ;; text -> table.get ...
+    )
+
+    (call $self.console.warn<ref>)
+
+    (call $self.Reflect.set<refx2.fun>      ;; input / output comes from you
+        (global.get $wat2wasm/self)         ;; self -> global.get ...
+        (table.get $extern (i32.const N))   ;; text -> table.get ...
+        (ref.func $onresize)                ;; func -> ref.func ...
+    )
+
+    body ...
 )
 ```
 

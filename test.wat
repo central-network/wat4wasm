@@ -43,7 +43,15 @@
         )        
         (warn<ref>)
 
-        
+        (get <refx2>ref self (text "origin"))        
+        (warn<ref>)
+
+        (set <refx2.fun> self text("onresize") func($onresize))        
+    )
+
+    (func $onresize
+        (param $a i32)
+        (log<i32> this)
     )
 
     (start $main
