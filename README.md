@@ -7,7 +7,6 @@ Some helper abilities for regular wat4wasm compiler. You can compile your "wat" 
 ```
 
 --no-unlink : do not remove compiler generated wat file (if compiler success then removes generated wat file)
-
 --watch     : bind fs.watch function to wat file (but it's not efficient, you can use nodemon)
 
 useable:
