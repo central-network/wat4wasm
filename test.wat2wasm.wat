@@ -17,7 +17,7 @@
 	(import "Reflect" "construct" (func $self.Reflect.construct<refx2>ref (param externref externref) (result externref)))
 	(import "Array" "of" (func $self.Array.of<refx2>ref (param externref externref) (result externref)))
 	(import "Object" "fromEntries" (func $self.Object.fromEntries<ref>ref (param externref) (result externref)))
-	(import "Array" "of" (func $self.Array.of<ref>ref (param externref) (result externref)))
+	(import "self" "Array" (func $self.Array<ref>ref (param externref) (result externref)))
 	(import "console" "log" (func $self.console.log<ref.f32> (param externref f32)))
 	(import "console" "log" (func $self.console.log<ref> (param externref)))
 	(import "console" "log" (func $self.console.log<f32> (param f32)))
@@ -74,7 +74,7 @@
             (call $self.Array.of<refx2>ref 
             (table.get $extern (i32.const 1))
             (call $self.Object.fromEntries<ref>ref
-                (call $self.Array.of<ref>ref
+                (call $self.Array<ref>ref
                     (call $self.Array.of<refx2>ref
                         (table.get $extern (i32.const 2))
                         (table.get $extern (i32.const 3))
