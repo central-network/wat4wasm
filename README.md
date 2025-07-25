@@ -16,6 +16,7 @@ useable:
 (call $self.Math.random f32)                            ;; direct imported call
 (apply $self.Math.random f32)                           ;; Reflect.apply applied
 (log<ref> (global.get $self.location.origin))           ;; console.log
+(new $Uint8Array<i32> (i32.const 4))                    ;; constructor
 
 (call $self.requestAnimationFrame<fun>                  ;; auto imported
     (func $inlinefunction<f32>                          ;; inline function
@@ -35,6 +36,7 @@ useable:
 )
 (self)                                                  ;; default imported
 (null)                                                  ;; ref.null extern
+i32(2)                                                  ;; type(N -> (type.const N
 
 ```
 
