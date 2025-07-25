@@ -13,7 +13,7 @@ Some helper abilities for regular wat4wasm compiler. You can compile your "wat" 
 </tr>
 <tr>
 <td>--watch</td>
-<td>bind fs.watch function to wat file (but it's <br>not efficient, you can use nodemon)</td>
+<td>bind fs.watch function to wat file <br>(but it's not efficient, you can use nodemon)</td>
 </tr>
 </table>
 
