@@ -673,6 +673,7 @@ const consts            = content => {
         .replaceAll(/(\s|\n)this\)/g, `$1(local.get 0))`)
         .replaceAll(" text(", ` (text `)
         .replaceAll(" func(", ` (ref.func `)
+        .replaceAll(" mut extern)", ` (mut externref) ref.null extern)`)
         .replaceAll(/(local|global|table)\(/g, `($1.get `)
     ;
 };
