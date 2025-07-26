@@ -661,6 +661,9 @@ const getsetcalls       = content => {
 const consts            = content => {
     return content
         .replaceAll(/\((log|warn|error)\s+\</g, `($1<`)  
+        .replaceAll("(local @", `(local.tee $`)
+        .replaceAll("(local #", `(local.set $`)
+        .replaceAll("(global #", `(global.set $`)
         .replaceAll(/(i32|i64|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`)
         .replaceAll("(self)", `(global.get $wat4wasm/self)`)
         .replaceAll("(null)", `(ref.null extern)`)
@@ -675,9 +678,6 @@ const consts            = content => {
         .replaceAll(" func(", ` (ref.func `)
         .replaceAll(" mut extern)", ` (mut externref) ref.null extern)`)
         .replaceAll(/(local|global|table)\(/g, `($1.get `)
-        .replaceAll("(local @", `(local.tee $`)
-        .replaceAll("(local #", `(local.set $`)
-        .replaceAll("(global #", `(global.set $`)
     ;
 };
 
