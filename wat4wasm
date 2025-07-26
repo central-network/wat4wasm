@@ -110,7 +110,7 @@ String.prototype.findQuotedText     = function () {
                 }
             }
         
-            qtext = this.substring(begin+1, nextIndex);
+            qtext = this.substring(begin+1, nextIndex).trim();
         }
     
     }
