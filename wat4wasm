@@ -989,7 +989,7 @@ const toBinary  = async (filepath, content) => new Promise(done => {
 
         exec = execSync(`${compilerExecutable} ${modifiedContentInputFilePath} ${multiMemoryCompileOptions} ${enableThreadsCompileOptions} ${debugNamesCompileOptions} -o ${owasm}`);
 
-        done(readFileSync(owasm).buffer);
+        done(readFileSync(owasm));
         existsSync(owasm) && unlinkSync(owasm);
     }
     else {
