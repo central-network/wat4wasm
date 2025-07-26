@@ -454,9 +454,10 @@ const globaltextref     = content => {
     let match;
     let setters = ``;
     
-    while (match = content.matchFrame(/\(global\s+\$(.*)\s+\"(.*)\"\s?\)/)) {
+    while (match = content.matchFrame(/\(global\s+\$(.*)\s+(\"|\'|\`)/)) {
 
-        const stringer = textref( ` (text "${match[2]}") ` ).trim();
+        const text = match.frame.findQuotedText() ;
+        const stringer = textref( ` (text "${text}") ` ).trim();
         const setter = textref(`(global.set $${match[1]} ${stringer})`);
 
         setters = setters.concat(setter);
