@@ -732,7 +732,7 @@ will be replaced by:
 (global $namefor_data_length/byteLength i32 (i32.const 967))
 ```
 
-### be aware that "main_file_path.wat" is completely different compilation and independent from others. it's like you are compiling any wat code at anywhere and copying it's content to a data segment.
+**Be aware that "main_file_path.wat" is completely different compilation and independent from others. it's like you are compiling any wat code at anywhere and copying it's content to a data segment.**
 
 
 ## name: $self... (import)
