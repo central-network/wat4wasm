@@ -92,6 +92,11 @@ f32(1.2)                                                ;; type(N -> (type.const
 (on $message                                            ;; bind event listener at start 
     (param $event externref)
     (log<refx2> this (text "hello özgür"))
+)
+...
+(compile "cpu.wat"                                      ;; compile wat into data
+    (data   $cpu.wasm/buffer) 
+    (global $cpu.wasm/byteLength i32)
 )          
 ```
 
@@ -711,6 +716,25 @@ At this time you can use combitaions of abilities:
 )
 ```
 
+## keyword: compile
+
+compile another wat project into a data segment:
+```webassembly
+(compile "main_file_path.wat" 
+    (data   $namefor_data_element/buffer) 
+    (global $namefor_data_length/byteLength i32)
+)
+```
+
+will be replaced by:
+```webassembly
+(data $namefor_data_element/buffer "\00\61\73\6d\01\00...\72\61\79")
+(global $namefor_data_length/byteLength i32 (i32.const 967))
+```
+
+### be aware that "main_file_path.wat" is completely different compilation and independent from others. it's like you are compiling any wat code at anywhere and copying it's content to a data segment.
+
+
 ## name: $self... (import)
 
 No need to use "import" keyword anymore!
@@ -878,5 +902,3 @@ will be replaced with (elem definitions also will be generated):
 
 ```
 
-
-### enough for me, i'm done now 🦋

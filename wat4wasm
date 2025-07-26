@@ -20,13 +20,13 @@ String.prototype.frameAt         = function ( index ) {
 
     if (frame.startsWith("(")) {
         while (frame.split("(").length !== frame.split(")").length) {
+            if (lastIndex >= maxIndex) {
+                break;
+            }
+
             lastIndex = this.indexOf(")", lastIndex )+1;
             frame = this.substring( index, lastIndex );
     
-            if (lastIndex >= maxIndex) {
-                process.exit(console.log("frame error:", frame));
-                break;
-            }
         }
     } else {
         process.exit(console.log("frame not started with (", frame));
@@ -49,13 +49,13 @@ String.prototype.matchFrame         = function ( regExp ) {
     
         if (frame.startsWith("(")) {
             while (frame.split("(").length !== frame.split(")").length) {
+                if (lastIndex >= maxIndex) {
+                    break;
+                }
+                
                 lastIndex = this.indexOf(")", lastIndex)+1;
                 frame = this.substring( match.index, lastIndex );
         
-                if (lastIndex >= maxIndex) {
-                    process.exit(console.log("frame error:", match[0]));
-                    break;
-                }
             }
         } else {
             process.exit(console.log("frame not started with (", match[0]));
@@ -70,8 +70,12 @@ String.prototype.matchFrame         = function ( regExp ) {
 
 String.prototype.replaceFrame       = function ( match, replaceWith = "" ) {
 
+    if (typeof match === "string") {
+        process.exit(console.log("replaceWith requires match as object not a string", match, replaceWith));
+    }
+
     if (match.index === match.end) {
-        process.exit(console.log("frame error", match));
+        process.exit(console.log("frame error, match.index === match.end", match, replaceWith));
     }
 
     return this
@@ -122,7 +126,6 @@ const outputFilePath =
     inputFilePath.replace(".wat", ".wasm")).replaceAll(/\"|\'/g, "")
 ;
 
-const modifiedContentInputFilePath  = inputFilePath + "2wasm.wat";
 const enableThreadsCompileOptions   = compileOptions.find(o => o.match(/enable-threads/)) || "";
 const debugNamesCompileOptions      = compileOptions.find(o => o.match(/debug-names/)) || "";
 const multiMemoryCompileOptions     = compileOptions.find(o => o.match(/multi-memory/)) || "";
@@ -360,8 +363,6 @@ const addImports = content => {
     (import "self" "self"               (global $wat4wasm/self externref))
     (import "String" "fromCharCode"     (global $wat4wasm/String.fromCharCode externref))
     ;;END_OF_IMPORTS
-
-    (global $self.MessageEvent.prototype.data/get externref)
 
     `).concat(
         content.substring(firstImportIndex)
@@ -878,15 +879,49 @@ const elemrefs          = content => {
     return content.replaceAll("###", "$");
 }
 
+const compiles  = async content => {
 
-const compile   = () => {
-    const rawFileContentBuffer = readFileSync(inputFilePath);
-    const rawFileContentString = rawFileContentBuffer.toString();
+    let match, binders = "";
+    let dtoffset = data_text_offset;
 
-    let 
-    content = rawFileContentString;
-    content = addImports(content);
+    while (match = content.matchFrame(/\(compile\s+/)) {
+        data_text_offset = 0
+
+        const path = match.frame.findQuotedText();
+        const code = readFileSync(path); 
+        const wat4 = await replaces(code);
+        const wasm = await toBinary(path, wat4);
+        const data = String("\\").concat(Array.from(wasm).map(d => d.toString(16).padStart(2,0)).join("\\"));
+
+        const data_frame = match.frame.frameAt(match.frame.indexOf("(data"));
+        const global_frame = match.frame.frameAt(match.frame.indexOf("(global"));
+        const data_frame_$name = data_frame.match(/\$(.[^\s|\)]*)/).at(0);
+        const global_frame_$name = global_frame.match(/\$(.[^\s|\)]*)/).at(0);
+        
+        content = content.replaceFrame( match, `
+    (data ${data_frame_$name} "${data}")
+    (global ${global_frame_$name} i32 (i32.const ${wasm.byteLength}))
+    ` );
+    }  
+
+    data_text_offset = dtoffset;
+
+    return content;
+}
+
+const replaces  = async content => {
+
+    content = addImports(`${content}`);
+    
+    //weird fix
+    content = content.substring( 0, content.lastIndexOf(")") ).concat(
+        `\n\t(global $self.MessageEvent.prototype.data/get externref)`
+    ).concat("\n").concat( 
+        content.substring( content.lastIndexOf(")") )
+    );
+
     content = include(content);
+    content = await compiles(content);
     content = consts(content);
     content = debugs(content);
     content = start(content);
@@ -902,7 +937,7 @@ const compile   = () => {
     content = globaltextref(content);
     content = selffuncimport(content);
 
-    if (tbl_extern.length > 1) {
+    if (content.includes("table.get $extern")) {
         content = appendExternTable(content);
     }
 
@@ -919,54 +954,54 @@ const compile   = () => {
 	)`, ``)
     ;
 
+    return content;
+}
+
+const toBinary  = async (filepath, content) => new Promise(done => {
+    
+    const modifiedContentInputFilePath  = filepath + "4wasm.wat";
     writeFileSync( modifiedContentInputFilePath, content );
 
     process.WabtModule.then(wabt => {
-
         const buf = readFileSync(modifiedContentInputFilePath);
 
         try {
-            var myModule = wabt.parseWat( modifiedContentInputFilePath, buf, {
+            const exec = wabt.parseWat( modifiedContentInputFilePath, buf, {
                 simd: true,
                 bulk_memory: true,
                 mutable_globals: true,
                 threads: true,
                 reference_types: true, 
                 multi_value: true,
-            });
-    
-            const exec = myModule.toBinary({
+            }).toBinary({
                 write_debug_names: !!debugNamesCompileOptions,
             });
-    
-            writeFileSync(outputFilePath, exec.buffer);
-    
+
+            done(exec.buffer);
+
             if (!noUnlinkCompileOptions) {
                 unlinkSync( modifiedContentInputFilePath );
             }
-
-            console.log({
-                inputFilePath, 
-                compileOptions,
-                outputFilePath,
-                time : Date.now()
-            });
 
         }
         catch (e) {
             console.log(e.message)
         }
     })
+})
 
-    // const exec = execSync(
-    //     `node libwabt.js 
-    //         ${modifiedContentInputFilePath} 
-    //         ${enableThreadsCompileOptions}  
-    //         ${multiMemoryCompileOptions} 
-    //         ${debugNamesCompileOptions} 
-    //         -o ${outputFilePath}    
-    //     `.replaceAll(/\s+/g, " ")
-    // );
+const compile   = () => {
+    replaces(readFileSync(inputFilePath)).then(wat => {
+        toBinary(inputFilePath, wat).then(wasm => 
+            console.log({
+                writeResult: writeFileSync(outputFilePath, wasm),
+                inputFilePath, 
+                compileOptions,
+                outputFilePath,
+                time : Date.now()
+            })
+        )
+    })
 };
 
 
