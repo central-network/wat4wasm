@@ -5,8 +5,8 @@ const {execSync} = require("child_process");
 
 const [ inputFilePath, ...compileOptions ] = process.argv.slice( process.argv.findIndex(d => d.endsWith(".wat")) );
 
-const tbl_extern = [ null ];
-const data_text = [];
+let tbl_extern = [ null ];
+let data_text = [];
 let data_text_offset = 0;
 // const encode = TextEncoder.prototype.encode.bind(new TextEncoder);
 const encode = str => new Uint8Array(Float32Array.from(str.split("").map(c => c.charCodeAt())).buffer);
@@ -883,9 +883,13 @@ const compiles  = async content => {
 
     let match, binders = "";
     let dtoffset = data_text_offset;
+    let textern = tbl_extern.slice();
+    let tdata   = data_text.slice();
 
     while (match = content.matchFrame(/\(compile\s+/)) {
         data_text_offset = 0
+        tbl_extern = [null];
+        data_text = [];
 
         const path = match.frame.findQuotedText();
         const code = readFileSync(path); 
@@ -905,6 +909,8 @@ const compiles  = async content => {
     }  
 
     data_text_offset = dtoffset;
+    tbl_extern= textern;
+    data_text=tdata;
 
     return content;
 }
@@ -982,7 +988,7 @@ const toBinary  = async (filepath, content) => new Promise(done => {
             if (!noUnlinkCompileOptions) {
                 setTimeout(function () {
                     unlinkSync( modifiedContentInputFilePath )
-                }, 400)
+                }, 1000)
             }
 
         }
