@@ -22,6 +22,10 @@ Some helper abilities for regular wat4wasm compiler. You can compile your "wat" 
 <td>--debug-names</td>
 <td>expose function, global names etc. <br>(too see in browser's source tab rather then $function24 -> $call.my.name)</td>
 </tr>
+</tr>
+<td>--compiler</td>
+<td>use external compiler eg. wat2wasm<br>(some features not available libwabt.js)</td>
+</tr>
 </table>
 
 useable:

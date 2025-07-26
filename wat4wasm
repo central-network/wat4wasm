@@ -118,7 +118,16 @@ String.prototype.findQuotedText     = function () {
     return qtext;
 };
 
+const indexOfCompilerOptionsParameter = compileOptions.findIndex(opt => (opt === "-c") || (opt === "--compiler")) + 1;
+
+const compilerExecutable = 
+    (
+    indexOfCompilerOptionsParameter && 
+    compileOptions[indexOfCompilerOptionsParameter] || null)
+;
+
 const indexOfOutputPathCompileOptionsParameter = compileOptions.findIndex(opt => (opt === "-o") || (opt === "--output")) + 1;
+
 const outputFilePath = 
     (
     indexOfOutputPathCompileOptionsParameter && 
@@ -886,7 +895,7 @@ const compiles  = async content => {
     let textern = tbl_extern.slice();
     let tdata   = data_text.slice();
 
-    while (match = content.matchFrame(/\(compile\s+/)) {
+    if (match = content.matchFrame(/\(compile\s+/)) {
         data_text_offset = 0
         tbl_extern = [null];
         data_text = [];
@@ -895,29 +904,33 @@ const compiles  = async content => {
         const code = readFileSync(path); 
         const wat4 = await replaces(code);
         const wasm = await toBinary(path, wat4);
-        const data = String("\\").concat(Array.from(wasm).map(d => d.toString(16).padStart(2,0)).join("\\"));
+        const hexb = Array.from( new Uint8Array(wasm) );
+        const ts16 = hexb.map(d => d.toString(16).padStart(2,0));
 
+        
         const data_frame = match.frame.frameAt(match.frame.indexOf("(data"));
         const global_frame = match.frame.frameAt(match.frame.indexOf("(global"));
         const data_frame_$name = data_frame.match(/\$(.[^\s|\)]*)/).at(0);
         const global_frame_$name = global_frame.match(/\$(.[^\s|\)]*)/).at(0);
         
         content = content.replaceFrame( match, `
-    (data ${data_frame_$name} "${data}")
     (global ${global_frame_$name} i32 (i32.const ${wasm.byteLength}))
+    (data ${data_frame_$name} "\\${ts16.join("\\")}")
     ` );
-    }  
 
-    data_text_offset = dtoffset;
-    tbl_extern= textern;
-    data_text=tdata;
+        data_text_offset = dtoffset;
+        tbl_extern= textern;
+        data_text=tdata;
+        
+        return await compiles(content);
+    }  
 
     return content;
 }
 
 const replaces  = async content => {
 
-    content = addImports(`${content}`);
+    content = addImports(`${content}`.trim());
     
     //weird fix
     content = content.substring( 0, content.lastIndexOf(")") ).concat(
@@ -968,47 +981,75 @@ const toBinary  = async (filepath, content) => new Promise(done => {
     const modifiedContentInputFilePath  = filepath + "4wasm.wat";
     writeFileSync( modifiedContentInputFilePath, content );
 
-    process.WabtModule.then(wabt => {
-        const buf = readFileSync(modifiedContentInputFilePath);
+    const buf = readFileSync(modifiedContentInputFilePath);
 
-        try {
-            const exec = wabt.parseWat( modifiedContentInputFilePath, buf, {
-                simd: true,
-                bulk_memory: true,
-                mutable_globals: true,
-                threads: true,
-                reference_types: true, 
-                multi_value: true,
-            }).toBinary({
-                write_debug_names: !!debugNamesCompileOptions,
-            });
 
-            done(exec.buffer);
+    if (compilerExecutable) {
+        const owasm = `${modifiedContentInputFilePath}.wasm`;
 
-            if (!noUnlinkCompileOptions) {
-                setTimeout(function () {
-                    unlinkSync( modifiedContentInputFilePath )
-                }, 1000)
+        exec = execSync(`${compilerExecutable} ${modifiedContentInputFilePath} ${multiMemoryCompileOptions} ${enableThreadsCompileOptions} ${debugNamesCompileOptions} -o ${owasm}`);
+
+        done(readFileSync(owasm).buffer);
+        existsSync(owasm) && unlinkSync(owasm);
+    }
+    else {
+
+        process.WabtModule.then(wabt => {
+            let exec;
+            
+            try {
+                
+                exec = wabt.parseWat( modifiedContentInputFilePath, buf, {
+                    simd: true,
+                    bulk_memory: true,
+                    mutable_globals: true,
+                    threads: true,
+                    reference_types: true, 
+                    multi_value: true,
+                    // tail_call: true, 
+                    // annotations: true, 
+                    // code_metadata: true, 
+                    // memory64: true, 
+                    // gc: true, 
+                    // extended_const: true, 
+                    // relaxed_simd: true, 
+                    // exceptions: true, 
+                    // sat_float_to_int: true, 
+                    // sign_extension: true, 
+                    // function_references: true, 
+                    // new_features: true,
+                }).toBinary({
+                    write_debug_names: !!debugNamesCompileOptions,
+                });
+    
+                done(exec.buffer);
+    
+                if (!noUnlinkCompileOptions) {
+                    setTimeout(function () {
+                        unlinkSync( modifiedContentInputFilePath )
+                    }, 1000)
+                }
+    
             }
-
-        }
-        catch (e) {
-            console.log(e.message)
-        }
-    })
+            catch (e) {
+                console.log(e.message)
+            }
+        })
+    }
+    
 })
 
-const compile   = () => {
-    replaces(readFileSync(inputFilePath)).then(wat => {
-        toBinary(inputFilePath, wat).then(wasm => 
-            console.log({
-                writeResult: writeFileSync(outputFilePath, wasm),
-                inputFilePath, 
-                compileOptions,
-                outputFilePath,
-                time : Date.now()
-            })
-        )
+const compile = async () => {
+    const read = readFileSync(inputFilePath);
+    const wat = await replaces(read);
+    const wasm = await toBinary(inputFilePath, wat);
+    
+    console.log({
+        writeResult: writeFileSync(outputFilePath, Buffer.from(wasm)),
+        inputFilePath, 
+        compileOptions,
+        outputFilePath,
+        time : Date.now()
     })
 };
 
