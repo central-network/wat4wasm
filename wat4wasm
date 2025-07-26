@@ -980,7 +980,9 @@ const toBinary  = async (filepath, content) => new Promise(done => {
             done(exec.buffer);
 
             if (!noUnlinkCompileOptions) {
-                unlinkSync( modifiedContentInputFilePath );
+                setTimeout(function () {
+                    unlinkSync( modifiedContentInputFilePath )
+                }, 400)
             }
 
         }
