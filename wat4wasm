@@ -138,6 +138,8 @@ const outputFilePath =
 const enableThreadsCompileOptions   = compileOptions.find(o => o.match(/enable-threads/)) || "";
 const debugNamesCompileOptions      = compileOptions.find(o => o.match(/debug-names/)) || "";
 const multiMemoryCompileOptions     = compileOptions.find(o => o.match(/multi-memory/)) || "";
+const funcReferencesCompileOptions  = compileOptions.find(o => o.match(/function-references/)) || "";
+
 const noUnlinkCompileOptions        = compileOptions.find(o => o.match(/no-unlink/)) || "";
 
 const include   = content => {
@@ -661,9 +663,14 @@ const getsetcalls       = content => {
 const consts            = content => {
     return content
         .replaceAll(/\((log|warn|error)\s+\</g, `($1<`)  
+        .replaceAll(/\((log|warn|error)\s+/g, `($1<ref> `)  
+        .replaceAll(/\$([a-zA-Z0-9.:<>_|/]+)\(/g, `(call $$$1 `)
         .replaceAll("(local @", `(local.tee $`)
+        .replaceAll("$self.TypedArray", `$self.Uint8Array`)
         .replaceAll("(local #", `(local.set $`)
         .replaceAll("(global #", `(global.set $`)
+        .replaceAll("prototypeof(", `(call $self.Reflect.getPrototypeOf<ref>ref `)
+        .replaceAll("(prototypeof ", `(call $self.Reflect.getPrototypeOf<ref>ref `)
         .replaceAll(/(i32|i64|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`)
         .replaceAll("(self)", `(global.get $wat4wasm/self)`)
         .replaceAll("(null)", `(ref.null extern)`)
@@ -678,6 +685,7 @@ const consts            = content => {
         .replaceAll(" func(", ` (ref.func `)
         .replaceAll(" mut extern)", ` (mut externref) ref.null extern)`)
         .replaceAll(/(local|global|table)\(/g, `($1.get `)
+
     ;
 };
 
@@ -991,7 +999,7 @@ const toBinary  = async (filepath, content) => new Promise(done => {
     if (compilerExecutable) {
         const owasm = `${modifiedContentInputFilePath}.wasm`;
 
-        exec = execSync(`${compilerExecutable} ${modifiedContentInputFilePath} ${multiMemoryCompileOptions} ${enableThreadsCompileOptions} ${debugNamesCompileOptions} -o ${owasm}`);
+        exec = execSync(`${compilerExecutable} ${modifiedContentInputFilePath} ${multiMemoryCompileOptions} ${enableThreadsCompileOptions} ${debugNamesCompileOptions} ${funcReferencesCompileOptions} -o ${owasm}`);
 
         done(readFileSync(owasm));
         existsSync(owasm) && unlinkSync(owasm);
