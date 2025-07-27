@@ -104,7 +104,7 @@ f32(1.2)                                                ;; type(N -> (type.const
 )
 ...
 (data $any_text "file://any.text")                      ;; data from file read
-(data $cpu.wasm "file://cpu.wat" compile)               ;; data from wat4wasm compile          
+(data $cpu.wasm "file://cpu.wat" compile=1)             ;; data from wat4wasm compile          
 (data $some_url "fetch://central.network/a.txt")        ;; data from url fetch         
 ```
 
