@@ -101,7 +101,11 @@ f32(1.2)                                                ;; type(N -> (type.const
 (compile "cpu.wat"                                      ;; compile wat into data
     (data   $cpu.wasm/buffer) 
     (global $cpu.wasm/byteLength i32)
-)          
+)
+...
+(data $any_text "file://any.text")                      ;; data from file read
+(data $cpu.wasm "file://cpu.wat" compile)               ;; data from wat4wasm compile          
+(data $some_url "fetch://central.network/a.txt")        ;; data from url fetch         
 ```
 
 if you want to use without "./" prefixed then you can copy:

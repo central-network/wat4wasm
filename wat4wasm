@@ -907,6 +907,40 @@ const compiles  = async content => {
     let textern = tbl_extern.slice();
     let tdata   = data_text.slice();
 
+    if (match = content.matchFrame(/\(data\s+\$(.[^\s|\)]*)\s+\"(file|fetch)\:\/\/(.[^\"|\)]*)\"\s+(compile|encrypt)(.*?)\)/)) {
+
+        let path = match[3];
+        let dcontent = ``;
+
+
+        if(match[2] === "file") {
+            dcontent += readFileSync( path );
+        }
+
+        if(match[2] === "fetch") {
+            dcontent += await (await fetch( path )).text();
+        }
+
+        if(match.frame.includes("compile")) {
+            const wat4 = await replaces(dcontent);
+            const wasm = await toBinary(path, wat4);
+
+            dcontent = wasm;            
+        }
+
+        const hbuf = Buffer.from(dcontent);
+        const hexb = Array.from( new Uint8Array( hbuf ) );
+        const ts16 = hexb.map(d => d.toString(16).padStart(2,0));
+
+        const typeHeader = [ "file", "fetch" ].indexOf(match[2]);
+        const byteOffset = 12;
+        const byteLength = hbuf.byteLength;
+        const dataHeader = Array.from( new Uint8Array( Uint32Array.of(typeHeader, byteOffset, byteLength).buffer ) ).map(d => d.toString(16).padStart(2,0));
+        
+        dcontent = `\\${dataHeader.concat(ts16).join("\\")}`;
+        content  = content.replaceFrame(match, `(data $${match[1]} "${dcontent}")`)
+    }
+
     if (match = content.matchFrame(/\(compile\s+/)) {
         data_text_offset = 0
         tbl_extern = [null];
