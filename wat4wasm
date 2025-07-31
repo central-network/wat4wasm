@@ -70,8 +70,10 @@ String.prototype.matchFrame         = function ( regExp ) {
 
 String.prototype.replaceFrame       = function ( match, replaceWith = "" ) {
 
+    if (!match) process.exit(console.log("replaceFrame got null match"));
+
     if (typeof match === "string") {
-        process.exit(console.log("replaceWith requires match as object not a string", match, replaceWith));
+        process.exit(console.log("replaceFrame's replaceWith requires match as object not a string", match, replaceWith));
     }
 
     if (match.index === match.end) {
@@ -250,7 +252,8 @@ const appendTextFunc = content => {
 }
 
 const insertStartFunc = content => {
-    if (content.match(/\(start\s+\$(.[^\s|\)]*)/)) {
+
+    if (content.indexOf("(start") !== -1) {
         return content;
     }
         
@@ -258,12 +261,12 @@ const insertStartFunc = content => {
         .substring(0, content.lastIndexOf(")"))
         .concat(`
         (start $wat4wasm/start) 
+        
         (func $wat4wasm/start 
             
-        )\n`)
-        .concat(
-            content.substring(content.lastIndexOf(")"))
         )
+        `)
+        .concat(content.substring(content.lastIndexOf(")")))
     ;
 }
 
@@ -275,13 +278,20 @@ const callOnStart = (content, call) => {
     const startFuncMatch = content.match(new RegExp(`\\\(func\\s+\\\$${startFuncName}`));
     const startFuncContentBegin = startFuncMatch.index + startFuncMatch[0].length;
 
-    return content.substring(
-        0, startFuncContentBegin
-    ).concat( `
-        ${call}    
-    ` ).concat(
-        content.substring( startFuncContentBegin )
-    )
+    if (!startFuncMatch) {
+        process.exit(console.log("no start function match", content))
+    }
+
+
+    content = content
+        .substring(0, startFuncContentBegin)
+        .concat( `\n${call}\n` )
+        .concat( content.substring( startFuncContentBegin ) )
+    ;
+
+    content.frameAt( content.indexOf("(") )
+
+    return content;
 };
 
 
@@ -397,6 +407,34 @@ const addPrimaryMemory = content => {
     `).concat(
         content.substring(firstMemoryIndex)
     )
+};
+
+const appendSymbol = (content, kSymbolFor) => {
+    let defin = `(global $${kSymbolFor} (mut externref) ref.null extern)`;
+    let index = content.indexOf(defin);
+    
+    if (index === -1) {
+
+        index = content.lastIndexOf(")");
+        content = content
+            .substring(0, index)
+            .concat(`
+    (global $${kSymbolFor} (mut externref) ref.null extern)
+            `)
+            .concat( content.substring(index) )
+        ;
+
+        content = callOnStart( content, `
+            (global.set $${kSymbolFor}
+                (apply $self.Symbol.for<ref>ref
+                    self (param (text "${kSymbolFor}"))
+                )
+            )` 
+        );
+
+    }
+
+    return content;
 };
 
 const selfref           = content => {
@@ -681,6 +719,8 @@ const consts            = content => {
         .replaceAll(/(\s|\n)self\)/g, `$1(global.get $wat4wasm/self))`)
         .replaceAll(/(\s|\n)null\)/g, `$1(ref.null extern))`)
         .replaceAll(/(\s|\n)this\)/g, `$1(local.get 0))`)
+        .replaceAll(" ext)", ` externref)`)
+        .replaceAll(" ref)", ` externref)`)
         .replaceAll(" text(", ` (text `)
         .replaceAll(" func(", ` (ref.func `)
         .replaceAll(" mut extern)", ` (mut externref) ref.null extern)`)
@@ -907,38 +947,101 @@ const compiles  = async content => {
     let textern = tbl_extern.slice();
     let tdata   = data_text.slice();
 
-    if (match = content.matchFrame(/\(data\s+\$(.[^\s|\)]*)\s+\"(file|fetch)\:\/\/(.[^\"|\)]*)\"\s+(compile|encrypt)(.*?)\)/)) {
+
+    if (match = content.matchFrame(/\(data\s+\$(.[^\s|\)]*)\s+\"(file|fetch|fileread|wat4wasm|wasm)\:\/\/(.[^\"|\)]*)\"\s*\)/)) {
 
         let path = match[3];
         let dcontent = ``;
+        let kDataType = -1;
 
-
-        if(match[2] === "file") {
+        if(match[2].match(/file|read/)) {
             dcontent += readFileSync( path );
+            kDataType = 1;            
         }
 
         if(match[2] === "fetch") {
             dcontent += await (await fetch( path )).text();
+            kDataType = 2;            
         }
 
-        if(match.frame.includes("compile")) {
+        if(match[2].match(/(wasm|compile|wat4wasm)/)) {
+            dcontent += readFileSync( path );
+    
             const wat4 = await replaces(dcontent);
             const wasm = await toBinary(path, wat4);
-
-            dcontent = wasm;            
+    
+            dcontent = wasm;
+            kDataType = 3;            
         }
 
         const hbuf = Buffer.from(dcontent);
         const hexb = Array.from( new Uint8Array( hbuf ) );
         const ts16 = hexb.map(d => d.toString(16).padStart(2,0));
 
-        const typeHeader = [ "file", "fetch" ].indexOf(match[2]);
-        const byteOffset = 12;
         const byteLength = hbuf.byteLength;
-        const dataHeader = Array.from( new Uint8Array( Uint32Array.of(typeHeader, byteOffset, byteLength).buffer ) ).map(d => d.toString(16).padStart(2,0));
+        const dataHeader = Array.from( new Uint8Array( Uint32Array.of(byteLength).buffer ) ).map(d => d.toString(16).padStart(2,0));
         
-        dcontent = `\\${dataHeader.concat(ts16).join("\\")}`;
-        content  = content.replaceFrame(match, `(data $${match[1]} "${dcontent}")`)
+        dcontent = `\\${ts16.join("\\")}`;
+        dcontent =`
+    (global $${match[1]} (mut externref) ref.null extern)
+    (global $${match[1]}/byteLength i32 (i32.const ${byteLength}))
+    
+    (func $${match[1]}
+        (local $length i32)
+        
+        (local.set $length 
+            (global.get $${match[1]}/byteLength)
+        )
+
+        (if (local.get $length) 
+            (then 
+                (memory.init 0 $${match[1]}
+                    (i32.const 0) 
+                    (i32.const 0) 
+                    (local.get $length)
+                )
+
+                (global.set $${match[1]}
+                    (new $self.Uint8Array<i32>ref 
+                        (local.get $length)
+                    )
+                )
+
+                (loop $length--
+                    (local.set $length 
+                        (i32.sub 
+                            (local.get $length) 
+                            (i32.const 1)
+                        )
+                    )
+                    
+                    (call $self.Reflect.set<ref.i32.i32> 
+                        (global.get $${match[1]}) 
+                        (local.get $length) 
+                        (i32.load8_u 
+                            (local.get $length)
+                        )
+                    )
+                    
+                    (br_if $length-- 
+                        (local.get $length)
+                    )
+                )
+            )
+        )
+    )
+
+    (data $${match[1]} "${dcontent}")
+    `;
+        
+        content = content.replaceFrame( match, dcontent);
+        content = callOnStart( content, `
+            (call $${match[1]})
+        `);
+        // content = appendSymbol( content, "kDataType" );
+
+
+        return await compiles(content);
     }
 
     if (match = content.matchFrame(/\(compile\s+/)) {
@@ -986,10 +1089,10 @@ const replaces  = async content => {
     );
 
     content = include(content);
+    content = start(content);
     content = await compiles(content);
     content = consts(content);
     content = debugs(content);
-    content = start(content);
     content = asyncs(content);
     content = ons(content);
     content = constructcalls(content);
@@ -1036,7 +1139,9 @@ const toBinary  = async (filepath, content) => new Promise(done => {
         exec = execSync(`${compilerExecutable} ${modifiedContentInputFilePath} ${multiMemoryCompileOptions} ${enableThreadsCompileOptions} ${debugNamesCompileOptions} ${funcReferencesCompileOptions} -o ${owasm}`);
 
         done(readFileSync(owasm));
-        existsSync(owasm) && unlinkSync(owasm);
+
+        unlinkSync(owasm);
+        unlinkSync(modifiedContentInputFilePath);
     }
     else {
 
