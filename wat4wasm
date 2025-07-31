@@ -1141,7 +1141,10 @@ const toBinary  = async (filepath, content) => new Promise(done => {
         done(readFileSync(owasm));
 
         unlinkSync(owasm);
-        unlinkSync(modifiedContentInputFilePath);
+        
+        if (!noUnlinkCompileOptions) {
+            unlinkSync(modifiedContentInputFilePath);
+        }
     }
     else {
 
