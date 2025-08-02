@@ -585,6 +585,18 @@ const applycalls        = content => {
     let match;
     let definers = ``;
 
+    content = content.replaceAll(/\(call\s+\$(.[^\s]*)\/get\s+\(local\.get\s+0\)\s+(i32|f32|i64|f64|ref|externref)\s*\)/g, `(apply $$$1/get<>$2 (local.get 0) (param))`);
+
+    content = content.replaceAll(/\(call\s+\$(.[^\s]*)\/get\s+\(local\.get\s+0\)\s*\)/g, `(apply $$$1/get<>ref (local.get 0) (param))`);
+
+    content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_\/\:]+)\s+\(local\.get\s+0\)\s+(i32|f32|i64|f64|ref|externref)\)/g, 
+        `(apply $self.$1<>$2 (local.get 0) (param))`
+    );    
+
+    content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_\/\:]+)\s+\(local\.get\s+0\)\)/g, 
+        `(apply $self.$1<>ref (local.get 0) (param))`
+    );    
+    
     content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_]+)\s?\)/g, 
         `(apply $self.$1<> (global.get $wat4wasm/self) (param))`
     );    
@@ -683,7 +695,7 @@ const applycalls        = content => {
 const getsetcalls       = content => {
 
     let match;
-
+    
     while (match = content.matchFrame(/\((get|set)\s+\<(.*?)>(i32|f32|i64|f64|ref|)/)) {
 
         const gst = match[1].trim();
@@ -710,6 +722,9 @@ const consts            = content => {
         .replaceAll("prototypeof(", `(call $self.Reflect.getPrototypeOf<ref>ref `)
         .replaceAll("(prototypeof ", `(call $self.Reflect.getPrototypeOf<ref>ref `)
         .replaceAll(/(i32|i64|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`)
+        .replaceAll(/\(result\s+\<(.[^\s]*)\>\)/g, `(result externref)`)
+        .replaceAll(/\(result\s+\$(.[^\s]*)\s+(.[^\)]*)\)/g, `(result $2)`)
+        .replaceAll(/\s+\<(.[^\s|\)]*)\>(\)|\s)/g, ` externref $2`)
         .replaceAll("(self)", `(global.get $wat4wasm/self)`)
         .replaceAll("(null)", `(ref.null extern)`)
         .replaceAll("(this)", `(local.get 0)`)
