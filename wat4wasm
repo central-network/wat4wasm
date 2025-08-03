@@ -1010,6 +1010,11 @@ const compiles  = async content => {
         (i32.const ${byteLength})
     )
 
+    (global $${match[1]}/module
+        (mut externref) 
+        (ref.null extern)
+    )
+
     (global $${match[1]}/imports
         (mut externref) 
         (ref.null extern)
@@ -1096,6 +1101,10 @@ const compiles  = async content => {
     (func $oncompile:${match[1]}
         (param $module:${match[1]} externref)
         (result externref)
+
+        (global.set $${match[1]}/module
+            (local.get $module:${match[1]})
+        )
         
         (call $self.Reflect.apply<refx3>ref
             (global.get $self.WebAssembly.instantiate)
