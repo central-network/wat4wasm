@@ -738,8 +738,11 @@ const consts            = content => {
         .replaceAll(" ref)", ` externref)`)
         .replaceAll(" text(", ` (text `)
         .replaceAll(" func(", ` (ref.func `)
+        .replaceAll(" elem(", ` (ref.func `)
+        .replaceAll(" ref(", ` (ref.func `)
         .replaceAll(" mut extern)", ` (mut externref) ref.null extern)`)
         .replaceAll(/(local|global|table)\(/g, `($1.get `)
+        .replaceAll(/\(call \$self\.([a-zA-Z0-9\.\/\:\_]+)\s\)/g, `(call $$self.$1<>ref)`)  
 
     ;
 };
@@ -998,10 +1001,118 @@ const compiles  = async content => {
         
         dcontent = `\\${ts16.join("\\")}`;
         dcontent =`
-    (global $${match[1]} (mut externref) ref.null extern)
-    (global $${match[1]}/byteLength i32 (i32.const ${byteLength}))
-    
+    (global $${match[1]} 
+        (mut externref) 
+        (ref.null extern)
+    )
+
+    (global $${match[1]}/byteLength i32 
+        (i32.const ${byteLength})
+    )
+
+    (global $${match[1]}/imports
+        (mut externref) 
+        (ref.null extern)
+    )
+
+    (elem $${match[1]} funcref 
+        (ref.func $oncompile:${match[1]})
+    )
+
     (func $${match[1]}
+    
+        (call $${match[1]}<ref.fun>
+            (ref.null extern)
+            (ref.null func)
+        )
+    )
+
+    (func $${match[1]}<fun>
+        (param $callback funcref)
+
+        (call $${match[1]}<ref.fun>
+            (ref.null extern)
+            (local.get $callback)
+        )
+    )
+
+    (func $${match[1]}<ref>
+        (param $imports externref)
+
+        (call $${match[1]}<ref.fun>
+            (local.get $imports)
+            (ref.null func)
+        )
+    )
+
+    (func $${match[1]}<ref.fun>
+        (param $imports externref)
+        (param $callback funcref)
+        (local $promise externref)
+
+        (if (ref.is_null (local.get $imports))
+            (then 
+                (global.set $${match[1]}/imports 
+                    (call $self.Object<>ref)
+                )
+            )
+            (else
+                (global.set $${match[1]}/imports
+                    (local.get $imports)
+                )
+            )
+        )
+
+        (local.set $promise
+            (call $self.Reflect.apply<refx3>ref 
+                (global.get $self.Promise:then)
+                (call $self.Reflect.apply<refx3>ref 
+                    (global.get $self.WebAssembly.compile)
+                    (global.get $self.WebAssembly) 
+                    (call $self.Array.of<ref>ref 
+                        (global.get $${match[1]})
+                    )
+                )
+                (call $self.Array.of<fun>ref
+                    (ref.func $oncompile:${match[1]})
+                )
+            )
+        )
+
+        (if (i32.eqz (ref.is_null (local.get $callback)))
+            (then
+                (call $self.Reflect.apply<refx3> 
+                    (global.get $self.Promise:then)
+                    (local.get $promise)
+                    (call $self.Array.of<fun>ref
+                        (local.get $callback)
+                    )
+                )
+            )
+        )
+
+    )
+
+    (func $oncompile:${match[1]}
+        (param $module:${match[1]} externref)
+        (result externref)
+        
+        (call $self.Reflect.apply<refx3>ref
+            (global.get $self.WebAssembly.instantiate)
+            (global.get $self.WebAssembly) 
+            (call $self.Array.of<refx2>ref 
+                (local.get $module:${match[1]})
+                (call $self.Object.assign<refx3>ref
+                    (global.get $wat4wasm/self)
+                    (global.get $imports)
+                    (global.get $${match[1]}/imports)
+                )
+            )
+        )
+    )
+
+    
+    (func $compile:${match[1]}
         (local $length i32)
         
         (local.set $length 
@@ -1051,7 +1162,7 @@ const compiles  = async content => {
         
         content = content.replaceFrame( match, dcontent);
         content = callOnStart( content, `
-            (call $${match[1]})
+            (call $compile:${match[1]})
         `);
         // content = appendSymbol( content, "kDataType" );
 

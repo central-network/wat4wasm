@@ -102,10 +102,17 @@ f32(1.2)                                                ;; type(N -> (type.const
     (data   $cpu.wasm/buffer) 
     (global $cpu.wasm/byteLength i32)
 )
+
 ...
 (data $any_text "file://any.text")                      ;; data from file read
 (data $wattowasm "wasm://memory.wat")                   ;; see: (log<ref> global($wattowasm))          
 (data $some_url "fetch://central.network/a.txt")        ;; data from url fetch         
+...
+(data $wasm:cpu "wasm://cpu.wat")
+$wasm:cpu()                                             ;; instantiate (data $wasm:cpu)
+$wasm:cpu<ref>( self )                                  ;; instantiate with imports
+$wasm:cpu<fun>( (ref.func $callback) )                  ;; instantiate and callback without imports
+$wasm:cpu<ref.fun>( $object (ref.func $callback)  )     ;; instantiate with imports and callback 
 ```
 
 if you want to use without "./" prefixed then you can copy:
