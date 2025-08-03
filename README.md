@@ -109,13 +109,20 @@ f32(1.2)                                                ;; type(N -> (type.const
 (data $some_url "fetch://central.network/a.txt")        ;; data from url fetch         
 ...
 (data $wasm:cpu "wasm://cpu.wat")
-$wasm:cpu()                                             ;; instantiate (data $wasm:cpu)
-$wasm:cpu<ref>( self )                                  ;; instantiate with imports
-$wasm:cpu<fun>( func($callback) )                       ;; instantiate and callback without imports
-$wasm:cpu<ref.fun>( 
-    (global.get $imports) 
-    (ref.func $callback)  
-)                                                       ;; instantiate with imports and callback 
+(func $any
+    ...
+    $wasm:cpu()                                             ;; instantiate (data $wasm:cpu)
+    ;; or
+    $wasm:cpu<ref>( self )                                  ;; instantiate with imports
+    ;; or
+    $wasm:cpu<fun>( func($callback) )                       ;; instantiate and callback without imports
+    ;; or
+    $wasm:cpu<ref.fun>( 
+        (global.get $imports) 
+        (ref.func $callback)  
+    )                                                       ;; instantiate with imports and callback 
+    ...
+)
 ```
 
 if you want to use without "./" prefixed then you can copy:
