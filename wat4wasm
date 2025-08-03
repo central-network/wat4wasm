@@ -1006,19 +1006,20 @@ const compiles  = async content => {
         (ref.null extern)
     )
 
-    (global $${match[1]}/byteLength i32 
+    (global $${match[1]}<byteLength> i32 
         (i32.const ${byteLength})
     )
 
-    (global $${match[1]}/module
+    (global $${match[1]}<Module>
         (mut externref) 
         (ref.null extern)
     )
 
-    (global $${match[1]}/imports
+    (global $${match[1]}<imports>
         (mut externref) 
         (ref.null extern)
     )
+
 
     (elem $${match[1]} funcref 
         (ref.func $oncompile:${match[1]})
@@ -1057,12 +1058,12 @@ const compiles  = async content => {
 
         (if (ref.is_null (local.get $imports))
             (then 
-                (global.set $${match[1]}/imports 
+                (global.set $${match[1]}<imports> 
                     (call $self.Object<>ref)
                 )
             )
             (else
-                (global.set $${match[1]}/imports
+                (global.set $${match[1]}<imports>
                     (local.get $imports)
                 )
             )
@@ -1095,14 +1096,13 @@ const compiles  = async content => {
                 )
             )
         )
-
     )
 
     (func $oncompile:${match[1]}
         (param $module:${match[1]} externref)
         (result externref)
 
-        (global.set $${match[1]}/module
+        (global.set $${match[1]}<Module>
             (local.get $module:${match[1]})
         )
         
@@ -1114,7 +1114,7 @@ const compiles  = async content => {
                 (call $self.Object.assign<refx3>ref
                     (global.get $wat4wasm/self)
                     (global.get $imports)
-                    (global.get $${match[1]}/imports)
+                    (global.get $${match[1]}<imports>)
                 )
             )
         )
@@ -1125,7 +1125,7 @@ const compiles  = async content => {
         (local $length i32)
         
         (local.set $length 
-            (global.get $${match[1]}/byteLength)
+            (global.get $${match[1]}<byteLength>)
         )
 
         (if (local.get $length) 
