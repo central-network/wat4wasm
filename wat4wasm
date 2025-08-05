@@ -594,10 +594,10 @@ const applycalls        = content => {
     );    
 
     content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_\/\:]+)\s+\(local\.get\s+0\)\)/g, 
-        `(apply $self.$1<>ref (local.get 0) (param))`
+        `(apply $self.$1<> (local.get 0) (param))`
     );    
     
-    content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_]+)\s?\)/g, 
+    content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_\:]+)\s?\)/g, 
         `(apply $self.$1<> (global.get $wat4wasm/self) (param))`
     );    
     
@@ -743,6 +743,9 @@ const consts            = content => {
         .replaceAll(" mut extern)", ` (mut externref) ref.null extern)`)
         .replaceAll(/(local|global|table)\(/g, `($1.get `)
         .replaceAll(/\(call \$self\.([a-zA-Z0-9\.\/\:\_]+)\s\)/g, `(call $$self.$1<>ref)`)  
+        .replaceAll(")--", `) (i32.const 1) (i32.sub)`)
+        .replaceAll(")++", `) (i32.const 1) (i32.add)`)
+
 
     ;
 };
@@ -1111,9 +1114,8 @@ const compiles  = async content => {
             (global.get $self.WebAssembly) 
             (call $self.Array.of<refx2>ref 
                 (local.get $module:${match[1]})
-                (call $self.Object.assign<refx3>ref
+                (call $self.Object.assign<refx2>ref
                     (global.get $wat4wasm/self)
-                    (global.get $imports)
                     (global.get $${match[1]}<imports>)
                 )
             )
@@ -1175,6 +1177,23 @@ const compiles  = async content => {
         `);
         // content = appendSymbol( content, "kDataType" );
 
+        if (!content.includes("(global $self.Promise")) {
+
+            content = content.substring( 0, content.lastIndexOf(")") ).concat(`
+        (global $self.Promise externref)
+        (global $self.Promise.all externref)
+        (global $self.Promise:then externref)
+        (global $self.WebAssembly externref)
+        (global $self.WebAssembly.compile externref)
+        (global $self.WebAssembly.instantiate externref)
+        (global $self.WebAssembly.Module externref)
+        (global $self.WebAssembly.Module.exports externref)                    
+        `
+            ).concat("\n").concat( 
+                content.substring( content.lastIndexOf(")") )
+            );
+        }
+        
 
         return await compiles(content);
     }
