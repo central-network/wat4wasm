@@ -691,31 +691,20 @@ const applycalls        = content => {
 }
 
 
-
-const getsetcalls       = content => {
-
-    let match;
-    
-    while (match = content.matchFrame(/\((get|set)\s+\<(.*?)>(i32|f32|i64|f64|ref|)/)) {
-
-        const gst = match[1].trim();
-        const prm = match[2].trim();
-        const res = match[3].trim();
-
-        content = content.replaceFrame(
-            match, match.frame.replace(match[0], `(call $self.Reflect.${gst}<${prm}>${res} `)
-        )
-    }   
-
-    return content;
-}
-
 const consts            = content => {
     return content
+        .replaceAll(/\$([a-zA-Z0-9\.\:\/\_]+)\[\s*([0-9]+)\s*\]\s*\)/g, `$$$1) (i32.const $2) (call $self.Reflect.get<ref.i32>ref)`)  
+        .replaceAll(/\$([a-zA-Z0-9\.\:\/\_]+)\[\s*([0-9]+)\s*\]\s+(i32|i64|f32|f64|externref|extern|ref|funcref|fun)\s*\)/g, `$$$1) (i32.const $2) (call $self.Reflect.get<ref.i32>$3)`)  
         .replaceAll(/\((log|warn|error)\s+\</g, `($1<`)  
         .replaceAll(/\((log|warn|error)\s+/g, `($1<ref> `)  
+        .replaceAll(/\(get\s+\<([a-z0-9\.]+)\>([a-z0-9\.]+)\s+/g, `(call $self.Reflect.get<$1>$2 `)
+        .replaceAll(/\(set\s+\<([a-z0-9\.]+)\>\s+/g, `(call $self.Reflect.set<$1> `)
+        .replaceAll(/\s+new\s+\$([a-z0-9A-Z\:\_\_\<\>\.]+)\(/g, `(new $$$1 `)
         .replaceAll(/\$([a-zA-Z0-9.:<>_|/]+)\(/g, `(call $$$1 `)
         .replaceAll("(local @", `(local.tee $`)
+        .replaceAll(">funcref", `>fun`)
+        .replaceAll(">externref", `>ref`)
+        .replaceAll(">extern", `>ref`)
         .replaceAll("$self.TypedArray", `$self.Uint8Array`)
         .replaceAll("(local #", `(local.set $`)
         .replaceAll("(global #", `(global.set $`)
@@ -728,6 +717,8 @@ const consts            = content => {
         .replaceAll("(self)", `(global.get $wat4wasm/self)`)
         .replaceAll("(null)", `(ref.null extern)`)
         .replaceAll("(this)", `(local.get 0)`)
+        .replaceAll(/([\s|\n]+)true([\s|\n]+)/g, `$1(i32.const 1)$2`)
+        .replaceAll(/(\s|\n)false(\s|\n)/g, `$1(i32.const 0)$2`)
         .replaceAll(/(\s|\n)self(\s|\n)/g, `$1(global.get $wat4wasm/self)$2`)
         .replaceAll(/(\s|\n)null(\s|\n)/g, `$1(ref.null extern)$2`)
         .replaceAll(/(\s|\n)this(\s|\n)/g, `$1(local.get 0)$2`)
@@ -1054,9 +1045,30 @@ const compiles  = async content => {
         )
     )
 
+    (func $${match[1]}<ref>ref
+        (param $imports externref)
+        (result externref)
+
+        (call $${match[1]}<ref.fun>ref
+            (local.get $imports)
+            (ref.null func)
+        )
+    )
+
     (func $${match[1]}<ref.fun>
+        (param externref funcref)
+        (call $${match[1]}<ref.fun>ref
+            (local.get 0)
+            (local.get 1)
+        )
+        (drop)
+    )
+
+    (func $${match[1]}<ref.fun>ref
         (param $imports externref)
         (param $callback funcref)
+        (result externref)
+
         (local $promise externref)
 
         (if (ref.is_null (local.get $imports))
@@ -1099,6 +1111,8 @@ const compiles  = async content => {
                 )
             )
         )
+
+        (local.get $promise)
     )
 
     (func $oncompile:${match[1]}
@@ -1250,7 +1264,6 @@ const replaces  = async content => {
     content = asyncs(content);
     content = ons(content);
     content = constructcalls(content);
-    content = getsetcalls(content);
     content = applycalls(content);
     content = inlinefuncs(content);
     content = textref(content);
