@@ -736,8 +736,15 @@ const consts            = content => {
         .replaceAll(/\(call \$self\.([a-zA-Z0-9\.\/\:\_]+)\s\)/g, `(call $$self.$1<>ref)`)  
         .replaceAll(")--", `) (i32.const 1) (i32.sub)`)
         .replaceAll(")++", `) (i32.const 1) (i32.add)`)
-
-
+        .split(/\)x([0-9]+)/g)
+            .flatMap((a,i,c) => { 
+                if (i%2) { 
+                    return new Array(Number(a)-1).fill( c[i-1].substring(c[i-1].lastIndexOf("(")) ); 
+                } else { 
+                    return a; 
+                } 
+            })
+        .join(")")
     ;
 };
 
@@ -1177,6 +1184,12 @@ const compiles  = async content => {
                     (br_if $length-- 
                         (local.get $length)
                     )
+                )
+
+                (memory.fill 0
+                    (i32.const 0) 
+                    (i32.const 0) 
+                    (global.get $${match[1]}<byteLength>)
                 )
             )
         )
