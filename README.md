@@ -123,7 +123,8 @@ f32(1.2)                                                ;; type(N -> (type.const
     )                                                       ;; instantiate with imports and callback 
     ...
 )
-...(alias $myLabel $myName<ref>i32)                     ;; replace all $myLabel -> $myName<ref>i32
+...
+(alias $myLabel $myName<ref>i32)                     ;; replace all $myLabel -> $myName<ref>i32
 ```
 
 if you want to use without "./" prefixed then you can copy:
