@@ -665,35 +665,6 @@ You define aliases for any variable names
 )
 ```
 
-just be aware that definitions at the module scope, NOT inside a function. Compiler adds an apply call to start function and converts your "(on" keyword into "(func" for settle to self object: 
-```webassembly
-(module
-    ...
-
-    (start
-        ...
-        (call $self.Reflect.set<ref.ref.fun>            
-            (global.get $wat4wasm/self)                 ;; self
-            (table.get $extern (i32.const 8))           ;; (text "onmessage")
-            (ref.func $self.onmessage)                  ;; handler
-        )
-        ...
-    )
-    
-    ...
-
-    (func $self.onmessage
-        (param $event externref)
-        (log<ref> this)
-        (log<ref> (text "hello özgür"))
-    )
-
-    ...
-
-    (elem funcref (ref.func $self.onmessage))
-)
-```
-
 ## keyword: i32, f32, i64, f64
 
 Compiler will turn your constants into formal type:
