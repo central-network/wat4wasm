@@ -123,6 +123,7 @@ f32(1.2)                                                ;; type(N -> (type.const
     )                                                       ;; instantiate with imports and callback 
     ...
 )
+...(alias $myLabel $myName<ref>i32)                     ;; replace all $myLabel -> $myName<ref>i32
 ```
 
 if you want to use without "./" prefixed then you can copy:
@@ -593,6 +594,8 @@ just be aware that definitions at the module scope, NOT inside a function. Compi
 )
 ```
 
+
+
 ## keyword: get, set
 
 Compiler will convert your Reflect.get / Reflect.set requests as well as:
@@ -631,6 +634,62 @@ you don't need to define (global $self.Uint8Array externref) your code turns int
     )
 
     body ...
+)
+```
+
+## keyword: alias
+
+You define aliases for any variable names
+
+```webassembly
+(module
+
+    (func ...)
+
+    (alias $deref $deref<i32>ref)
+
+    (func $deref<i32>ref 
+        (param $index                    i32)
+        (result $value              <Object>)
+
+        $WeakRef:deref<ref>ref( get($ref local($index)) )
+    )
+
+    (func $caller 
+        (result ref)
+        (call $defref i32(4))
+    )
+
+    (memory ...)
+)
+```
+
+just be aware that definitions at the module scope, NOT inside a function. Compiler adds an apply call to start function and converts your "(on" keyword into "(func" for settle to self object: 
+```webassembly
+(module
+    ...
+
+    (start
+        ...
+        (call $self.Reflect.set<ref.ref.fun>            
+            (global.get $wat4wasm/self)                 ;; self
+            (table.get $extern (i32.const 8))           ;; (text "onmessage")
+            (ref.func $self.onmessage)                  ;; handler
+        )
+        ...
+    )
+    
+    ...
+
+    (func $self.onmessage
+        (param $event externref)
+        (log<ref> this)
+        (log<ref> (text "hello özgür"))
+    )
+
+    ...
+
+    (elem funcref (ref.func $self.onmessage))
 )
 ```
 

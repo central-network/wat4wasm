@@ -375,6 +375,7 @@ const addImports = content => {
     (import "self" "Array"              (func $wat4wasm/Array<>ref (param) (result externref)))
     (import "Reflect" "set"             (func $wat4wasm/Reflect.set<ref.i32x2> (param externref i32 i32) (result)))
     (import "Reflect" "getOwnPropertyDescriptor" (func $wat4wasm/Reflect.getOwnPropertyDescriptor<refx2>ref (param externref externref) (result externref)))
+    (import "Reflect" "construct"       (func $wat4wasm/Reflect.construct<refx2>ref (param externref externref) (result externref)))
     (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>ref (param externref externref) (result externref)))
     (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>i32 (param externref externref) (result i32)))
     (import "Reflect" "get"             (func $wat4wasm/Reflect.get<refx2>f32 (param externref externref) (result f32)))
@@ -441,6 +442,41 @@ const selfref           = content => {
 
     let match;
     let setters = ``;
+    
+    while (match = content.matchFrame(/\(global\s+\$([a-zA-Z0-9._:/<>]+)\s+new\s+([a-zA-Z0-9.:]+)\s?\)/)) {
+        const frame = match[0];
+        const global_name = match[1];
+        const path = `self.${match[2]}`.replaceAll("self.self", "self");
+        const descriptor_property = "value";
+        const path_parts = path.split(".");
+        const last_object = path_parts[path_parts.length-1];
+
+        let path_index = path_parts.length;
+        let path_walk = `(global.get $wat4wasm/self)`;
+
+        let walk_step = 0;
+        while (--path_index) {
+            const step_part = path_parts[walk_step++];
+                path_walk = textref(`(call $wat4wasm/Reflect.get<refx2>ref 
+                    ${path_walk} 
+                    (text "${step_part}") 
+                )`).split("\n").join( "\n" + "    ".repeat(walk_step) );
+        }
+
+        const getter_last = textref(`
+        (global.set $${global_name}
+            (call $wat4wasm/Reflect.construct<refx2>ref
+                (call $wat4wasm/Reflect.get<refx2>ref
+                    ${path_walk} (text "${last_object}") 
+                )
+                (global.get $wat4wasm/self) 
+            )
+        )
+        `);
+
+        setters = setters.concat(getter_last);
+        content = content.replaceFrame( match, `(global $${global_name} (mut externref) (ref.null extern))` );
+    }   
     
     while (match = content.matchFrame(/\(global\s+\$(self\.[a-zA-Z0-9._:/]+)\s+(i32|f32|i64|f64|externref)\s?\)/)) {
         const kind = match[2];
@@ -691,6 +727,17 @@ const applycalls        = content => {
 }
 
 
+const aliases           = content => {
+    content.matchAll(/\(alias\s+\$(.[^\s]*)\s+\$(.[^\s]*)\)/g).forEach(match => {
+        content = content.replace( match[0], "" );
+        content = content.replaceAll( `$${match[2]}`, "___MATCHMASK___" );
+        content = content.replaceAll( `$${match[1]}`, `$${match[2]}` );
+        content = content.replaceAll( "___MATCHMASK___", `$${match[2]}` );
+    });
+
+    return content;
+}
+
 const consts            = content => {
     return content
         .replaceAll(/\$([a-zA-Z0-9\.\:\/\_]+)\[\s*([0-9]+)\s*\]\s*\)/g, `$$$1) (i32.const $2) (call $self.Reflect.get<ref.i32>ref)`)  
@@ -701,6 +748,9 @@ const consts            = content => {
         .replaceAll(/\(set\s+\<([a-z0-9\.]+)\>\s+/g, `(call $self.Reflect.set<$1> `)
         .replaceAll(/\s+new\s+\$([a-z0-9A-Z\:\_\_\<\>\.]+)\(/g, `(new $$$1 `)
         .replaceAll(/\$([a-zA-Z0-9.:<>_|/]+)\(/g, `(call $$$1 `)
+        .replaceAll("=== null", `(ref.is_null)`)
+        .replaceAll("(null ===", `(ref.is_null `)
+        .replaceAll("(null ==", `(ref.is_null `)
         .replaceAll("(local @", `(local.tee $`)
         .replaceAll(">funcref", `>fun`)
         .replaceAll(">externref", `>ref`)
@@ -725,6 +775,7 @@ const consts            = content => {
         .replaceAll(/(\s|\n)self\)/g, `$1(global.get $wat4wasm/self))`)
         .replaceAll(/(\s|\n)null\)/g, `$1(ref.null extern))`)
         .replaceAll(/(\s|\n)this\)/g, `$1(local.get 0))`)
+        .replaceAll(")^", `)(drop)`)
         .replaceAll(" ext)", ` externref)`)
         .replaceAll(" ref)", ` externref)`)
         .replaceAll(" text(", ` (text `)
@@ -732,6 +783,9 @@ const consts            = content => {
         .replaceAll(" elem(", ` (ref.func `)
         .replaceAll(" ref(", ` (ref.func `)
         .replaceAll(" mut extern)", ` (mut externref) ref.null extern)`)
+        .replaceAll("grow($", ` (table.grow $`)
+        .replaceAll("get($", ` (table.get $`)
+        .replaceAll("set($", ` (table.set $`)
         .replaceAll(/(local|global|table)\(/g, `($1.get `)
         .replaceAll(/\(call \$self\.([a-zA-Z0-9\.\/\:\_]+)\s\)/g, `(call $$self.$1<>ref)`)  
         .replaceAll(")--", `) (i32.const 1) (i32.sub)`)
@@ -1270,6 +1324,7 @@ const replaces  = async content => {
     );
 
     content = include(content);
+    content = aliases(content);
     content = start(content);
     content = await compiles(content);
     content = consts(content);
