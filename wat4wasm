@@ -740,6 +740,7 @@ const aliases           = content => {
 
 const consts            = content => {
     return content
+        .replaceAll(/(\s+)(local|global)\(\$([a-zA-Z0-9\.\:\/\_\<\>]+)\s+(\$|\()/g, `$1($2.set $$$3 $4`)  
         .replaceAll(/\$([a-zA-Z0-9\.\:\/\_]+)\[\s*([0-9]+)\s*\]\s*\)/g, `$$$1) (i32.const $2) (call $self.Reflect.get<ref.i32>ref)`)  
         .replaceAll(/\$([a-zA-Z0-9\.\:\/\_]+)\[\s*([0-9]+)\s*\]\s+(i32|i64|f32|f64|externref|extern|ref|funcref|fun)\s*\)/g, `$$$1) (i32.const $2) (call $self.Reflect.get<ref.i32>$3)`)  
         .replaceAll(/\((log|warn|error)\s+\</g, `($1<`)  
@@ -781,6 +782,7 @@ const consts            = content => {
         .replaceAll(" text(", ` (text `)
         .replaceAll(" func(", ` (ref.func `)
         .replaceAll(" elem(", ` (ref.func `)
+        .replaceAll("tee($", `(local.tee $`)
         .replaceAll(" ref(", ` (ref.func `)
         .replaceAll(" mut extern)", ` (mut externref) ref.null extern)`)
         .replaceAll("grow($", ` (table.grow $`)
