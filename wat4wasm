@@ -149,13 +149,17 @@ const include   = content => {
     
     while (match = content.matchFrame(/\(include\s+/)) {
         const includePath = match.frame.findQuotedText();
+        const stamp = `\n\t(; <${includePath}> ;)\n\t`;
 
-        if (existsSync(includePath)){
-            content = content.replaceFrame( match, 
+        if (content.indexOf(stamp) === -1 && existsSync(includePath)){
+
+            const readed = String(stamp).concat(
                 readFileSync(includePath)
                     .toString()
-                    .trim() 
+                .trim() 
             );
+
+            content = content.replaceFrame( match, readed );
         }
         else {
             content = content.removeFrame( match );
@@ -728,11 +732,16 @@ const applycalls        = content => {
 
 
 const aliases           = content => {
-    content.matchAll(/\(alias\s+\$(.[^\s]*)\s+\$(.[^\s]*)\)/g).forEach(match => {
+    let matches = Array.from(
+        content.matchAll(/\(alias\s+\$(.[^\s]*)\s+\$(.[^\s]*)\)/g)
+    ).sort((a,b) => b[1].length - a[1].length);
+
+    matches.forEach(match => {
         content = content.replace( match[0], "" );
-        content = content.replaceAll( `$${match[2]}`, "___MATCHMASK___" );
-        content = content.replaceAll( `$${match[1]}`, `$${match[2]}` );
-        content = content.replaceAll( "___MATCHMASK___", `$${match[2]}` );
+        // content = content.replaceAll( `$${match[2]}`, "___MATCHMASK___" );
+        content = content.replaceAll( `$${match[1]}(`, `$${match[2]}(` );
+        content = content.replaceAll( `$${match[1]}\s`, `$${match[2]} ` );
+        // content = content.replaceAll( "___MATCHMASK___", `$${match[2]}` );
     });
 
     return content;
@@ -776,7 +785,7 @@ const consts            = content => {
         .replaceAll(/(\s|\n)self\)/g, `$1(global.get $wat4wasm/self))`)
         .replaceAll(/(\s|\n)null\)/g, `$1(ref.null extern))`)
         .replaceAll(/(\s|\n)this\)/g, `$1(local.get 0))`)
-        .replaceAll(")^", `)(drop)`)
+        .replaceAll(");", `)(drop)`)
         .replaceAll(" ext)", ` externref)`)
         .replaceAll(" ref)", ` externref)`)
         .replaceAll(" text(", ` (text `)
@@ -786,6 +795,7 @@ const consts            = content => {
         .replaceAll(" ref(", ` (ref.func `)
         .replaceAll(" mut extern)", ` (mut externref) ref.null extern)`)
         .replaceAll("grow($", ` (table.grow $`)
+        .replaceAll("drop(", ` (drop `)
         .replaceAll("get($", ` (table.get $`)
         .replaceAll("set($", ` (table.set $`)
         .replaceAll(/(local|global|table)\(/g, `($1.get `)
@@ -1058,72 +1068,37 @@ const compiles  = async content => {
         
         dcontent = `\\${ts16.join("\\")}`;
         dcontent =`
-    (global $${match[1]} 
-        (mut externref) 
-        (ref.null extern)
-    )
-
-    (global $${match[1]}<byteLength> i32 
-        (i32.const ${byteLength})
-    )
-
-    (global $${match[1]}<Module>
-        (mut externref) 
-        (ref.null extern)
-    )
-
-    (global $${match[1]}<imports>
-        (mut externref) 
-        (ref.null extern)
-    )
+    (global $${match[1]}                (mut externref) (ref.null extern))
+    (global $${match[1]}<Module>        (mut externref) (ref.null extern))
+    (global $${match[1]}<imports>       (mut externref) (ref.null extern))
+    (global $${match[1]}<byteLength>    i32 (i32.const ${byteLength}))
 
 
-    (elem $${match[1]} funcref 
-        (ref.func $oncompile:${match[1]})
-    )
+    (elem $${match[1]} funcref (ref.func $oncompile:${match[1]}))
 
     (func $${match[1]}
-    
-        (call $${match[1]}<ref.fun>
-            (ref.null extern)
-            (ref.null func)
-        )
+        (call $${match[1]}<ref.fun> (ref.null extern) (ref.null func))
     )
 
     (func $${match[1]}<fun>
         (param $callback funcref)
-
-        (call $${match[1]}<ref.fun>
-            (ref.null extern)
-            (local.get $callback)
-        )
+        (call $${match[1]}<ref.fun> (ref.null extern) (local.get 0))
     )
 
     (func $${match[1]}<ref>
         (param $imports externref)
-
-        (call $${match[1]}<ref.fun>
-            (local.get $imports)
-            (ref.null func)
-        )
+        (call $${match[1]}<ref.fun> (local.get 0) (ref.null func))
     )
 
     (func $${match[1]}<ref>ref
-        (param $imports externref)
+        (param $imports externref) 
         (result externref)
-
-        (call $${match[1]}<ref.fun>ref
-            (local.get $imports)
-            (ref.null func)
-        )
+        (call $${match[1]}<ref.fun>ref (local.get 0) (ref.null func))
     )
 
     (func $${match[1]}<ref.fun>
         (param externref funcref)
-        (call $${match[1]}<ref.fun>ref
-            (local.get 0)
-            (local.get 1)
-        )
+        (call $${match[1]}<ref.fun>ref (local.get 0) (local.get 1))
         (drop)
     )
 
@@ -1135,16 +1110,8 @@ const compiles  = async content => {
         (local $promise externref)
 
         (if (ref.is_null (local.get $imports))
-            (then 
-                (global.set $${match[1]}<imports> 
-                    (call $self.Object<>ref)
-                )
-            )
-            (else
-                (global.set $${match[1]}<imports>
-                    (local.get $imports)
-                )
-            )
+            (then (global.set $${match[1]}<imports> (call $self.Object<>ref)))
+            (else (global.set $${match[1]}<imports> (local.get $imports)))
         )
 
         (local.set $promise
@@ -1153,13 +1120,9 @@ const compiles  = async content => {
                 (call $self.Reflect.apply<refx3>ref 
                     (global.get $self.WebAssembly.compile)
                     (global.get $self.WebAssembly) 
-                    (call $self.Array.of<ref>ref 
-                        (global.get $${match[1]})
-                    )
+                    (call $self.Array.of<ref>ref (global.get $${match[1]}))
                 )
-                (call $self.Array.of<fun>ref
-                    (ref.func $oncompile:${match[1]})
-                )
+                (call $self.Array.of<fun>ref (ref.func $oncompile:${match[1]}))
             )
         )
 
@@ -1168,9 +1131,7 @@ const compiles  = async content => {
                 (call $self.Reflect.apply<refx3> 
                     (global.get $self.Promise:then)
                     (local.get $promise)
-                    (call $self.Array.of<fun>ref
-                        (local.get $callback)
-                    )
+                    (call $self.Array.of<fun>ref (local.get $callback))
                 )
             )
         )
@@ -1182,9 +1143,7 @@ const compiles  = async content => {
         (param $module:${match[1]} externref)
         (result externref)
 
-        (global.set $${match[1]}<Module>
-            (local.get $module:${match[1]})
-        )
+        (global.set $${match[1]}<Module> (local.get $module:${match[1]}))
         
         (call $self.Reflect.apply<refx3>ref
             (global.get $self.WebAssembly.instantiate)
@@ -1203,50 +1162,26 @@ const compiles  = async content => {
     (func $compile:${match[1]}
         (local $length i32)
         
-        (local.set $length 
-            (global.get $${match[1]}<byteLength>)
-        )
+        (local.set $length (global.get $${match[1]}<byteLength>))
 
         (if (local.get $length) 
             (then 
-                (memory.init 0 $${match[1]}
-                    (i32.const 0) 
-                    (i32.const 0) 
-                    (local.get $length)
-                )
-
-                (global.set $${match[1]}
-                    (new $self.Uint8Array<i32>ref 
-                        (local.get $length)
-                    )
-                )
+                (memory.init 0 $${match[1]} (i32.const 0) (i32.const 0) (local.get $length))
+                (global.set $${match[1]} (new $self.Uint8Array<i32>ref (local.get $length)))
 
                 (loop $length--
-                    (local.set $length 
-                        (i32.sub 
-                            (local.get $length) 
-                            (i32.const 1)
-                        )
-                    )
+                    (local.set $length (i32.sub (local.get $length) (i32.const 1)))
                     
                     (call $self.Reflect.set<ref.i32.i32> 
                         (global.get $${match[1]}) 
                         (local.get $length) 
-                        (i32.load8_u 
-                            (local.get $length)
-                        )
+                        (i32.load8_u (local.get $length))
                     )
                     
-                    (br_if $length-- 
-                        (local.get $length)
-                    )
+                    (br_if $length-- (local.get $length))
                 )
 
-                (memory.fill 0
-                    (i32.const 0) 
-                    (i32.const 0) 
-                    (global.get $${match[1]}<byteLength>)
-                )
+                (memory.fill 0 (i32.const 0) (i32.const 0) (global.get $${match[1]}<byteLength>))
             )
         )
     )
