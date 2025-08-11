@@ -482,7 +482,7 @@ const selfref           = content => {
         content = content.replaceFrame( match, `(global $${global_name} (mut externref) (ref.null extern))` );
     }   
     
-    while (match = content.matchFrame(/\(global\s+\$(self\.[a-zA-Z0-9._:/]+)\s+(i32|f32|i64|f64|externref)\s?\)/)) {
+    while (match = content.matchFrame(/\(global\s+\$(self\.[a-zA-Z0-9._:/]+)\s+(i32|f32|i64|v128|f64|externref)\s?\)/)) {
         const kind = match[2];
         const kindshort = kind.replace("externref", "ref");
         const kinddefiner = `(mut ${kind})`;
@@ -563,7 +563,7 @@ const selffuncimport    = content => {
     let match;
     let importers = ``;
     
-    content = content.replaceAll(/\(call\s+\$self\.([a-zA-Z0-9\.\_]+)\s+(i32|f32|i64|f64|ref|externref)\)/g, 
+    content = content.replaceAll(/\(call\s+\$self\.([a-zA-Z0-9\.\_]+)\s+(i32|f32|i64|v128|f64|ref|externref)\)/g, 
         `(call $self.$1<>$2)`
     ).replaceAll(">externref", ">ref");    
 
@@ -625,11 +625,11 @@ const applycalls        = content => {
     let match;
     let definers = ``;
 
-    content = content.replaceAll(/\(call\s+\$(.[^\s]*)\/get\s+\(local\.get\s+0\)\s+(i32|f32|i64|f64|ref|externref)\s*\)/g, `(apply $$$1/get<>$2 (local.get 0) (param))`);
+    content = content.replaceAll(/\(call\s+\$(.[^\s]*)\/get\s+\(local\.get\s+0\)\s+(i32|f32|i64|v128|f64|ref|externref)\s*\)/g, `(apply $$$1/get<>$2 (local.get 0) (param))`);
 
     content = content.replaceAll(/\(call\s+\$(.[^\s]*)\/get\s+\(local\.get\s+0\)\s*\)/g, `(apply $$$1/get<>ref (local.get 0) (param))`);
 
-    content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_\/\:]+)\s+\(local\.get\s+0\)\s+(i32|f32|i64|f64|ref|externref)\)/g, 
+    content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_\/\:]+)\s+\(local\.get\s+0\)\s+(i32|f32|i64|v128|f64|ref|externref)\)/g, 
         `(apply $self.$1<>$2 (local.get 0) (param))`
     );    
 
@@ -641,7 +641,7 @@ const applycalls        = content => {
         `(apply $self.$1<> (global.get $wat4wasm/self) (param))`
     );    
     
-    content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_]+)\s+(i32|f32|i64|f64|ref|externref)\)/g, 
+    content = content.replaceAll(/\(apply\s+\$self\.([a-zA-Z0-9\.\_]+)\s+(i32|f32|i64|v128|f64|ref|externref)\)/g, 
         `(apply $self.$1<>$2 (global.get $wat4wasm/self) (param))`
     ).replaceAll(">externref", ">ref");    
 
@@ -751,7 +751,7 @@ const consts            = content => {
     return content
         .replaceAll(/(\s+)(local|global)\(\$([a-zA-Z0-9\.\:\/\_\<\>]+)\s+(\$|\()/g, `$1($2.set $$$3 $4`)  
         .replaceAll(/\$([a-zA-Z0-9\.\:\/\_]+)\[\s*([0-9]+)\s*\]\s*\)/g, `$$$1) (i32.const $2) (call $self.Reflect.get<ref.i32>ref)`)  
-        .replaceAll(/\$([a-zA-Z0-9\.\:\/\_]+)\[\s*([0-9]+)\s*\]\s+(i32|i64|f32|f64|externref|extern|ref|funcref|fun)\s*\)/g, `$$$1) (i32.const $2) (call $self.Reflect.get<ref.i32>$3)`)  
+        .replaceAll(/\$([a-zA-Z0-9\.\:\/\_]+)\[\s*([0-9]+)\s*\]\s+(i32|i64|v128|f32|f64|externref|extern|ref|funcref|fun)\s*\)/g, `$$$1) (i32.const $2) (call $self.Reflect.get<ref.i32>$3)`)  
         .replaceAll(/\((log|warn|error)\s+\</g, `($1<`)  
         .replaceAll(/\((log|warn|error)\s+/g, `($1<ref> `)  
         .replaceAll(/\(get\s+\<([a-z0-9\.]+)\>([a-z0-9\.]+)\s+/g, `(call $self.Reflect.get<$1>$2 `)
@@ -770,7 +770,7 @@ const consts            = content => {
         .replaceAll("(global #", `(global.set $`)
         .replaceAll("prototypeof(", `(call $self.Reflect.getPrototypeOf<ref>ref `)
         .replaceAll("(prototypeof ", `(call $self.Reflect.getPrototypeOf<ref>ref `)
-        .replaceAll(/(i32|i64|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`)
+        .replaceAll(/(i32|i64|v128|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`)
         .replaceAll(/\(result\s+\<(.[^\s]*)\>\)/g, `(result externref)`)
         .replaceAll(/\(result\s+\$(.[^\s]*)\s+(.[^\)]*)\)/g, `(result $2)`)
         .replaceAll(/\s+\<(.[^\s|\)]*)\>(\)|\s)/g, ` externref $2`)
@@ -799,7 +799,7 @@ const consts            = content => {
         .replaceAll("get($", ` (table.get $`)
         .replaceAll("set($", ` (table.set $`)
         .replaceAll(/(local|global|table)\(/g, `($1.get `)
-        .replaceAll(/\(call \$self\.([a-zA-Z0-9\.\/\:\_]+)\s\)/g, `(call $$self.$1<>ref)`)  
+        // .replaceAll(/\(call \$self\.([a-zA-Z0-9\.\/\:\_]+)\s\)/g, `(call $$self.$1<>ref)`)  
         .replaceAll(")--", `) (i32.const 1) (i32.sub)`)
         .replaceAll(")++", `) (i32.const 1) (i32.add)`)
         .split(/\)x([0-9]+)/g)
@@ -828,7 +828,7 @@ const constructcalls    = content => {
         `(construct $self.$1<>ref (param))`
     );    
     
-    content = content.replaceAll(/\(construct\s+\$self\.([a-zA-Z0-9\.\_]+)\s+(i32|f32|i64|f64|ref|externref)\)/g, 
+    content = content.replaceAll(/\(construct\s+\$self\.([a-zA-Z0-9\.\_]+)\s+(i32|f32|i64|v128|f64|ref|externref)\)/g, 
         `(construct $self.$1<>$2 (param))`
     ).replaceAll(">externref", ">ref");    
 
