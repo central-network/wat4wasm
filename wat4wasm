@@ -985,19 +985,21 @@ const ons               = content => {
 
     let match, binders = "";
 
-    while (match = content.matchFrame(/\(on\s+\$(.[^\s]*)/)) {
+    while (match = content.matchFrame(/\(on\s+\$([a-zA-Z0-9\.\:\/\_\<\>]+)\s*/)) {
 
-        const name = match[1].trim();
+        let [name, type] = match[1].trim().split("<");
+
+        if  (type) { type = `<${type}`; }
 
         content = content.replaceFrame(
-            match, match.frame.replace(match[0], `(func $self.on${name} `)
+            match, match.frame.replace(match[0], `(func $self.on${name}${type} `)
         )
 
         content = callOnStart( content, `
         (call $self.Reflect.set<ref.ref.fun>
             (global.get $wat4wasm/self)
             (text "on${name}")
-            (ref.func $self.on${name})
+            (ref.func $self.on${name}${type})
         )
         `);
 
