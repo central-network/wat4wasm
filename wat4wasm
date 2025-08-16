@@ -302,9 +302,7 @@ const callOnStart = (content, call) => {
 const appendTextData = content => {    
     const hex = data_text.flatMap(d => Array.from(d.buffer)).map(c => c.toString(16).padStart(2,0)).join("\\");
 
-    content = callOnStart( content, `
-        (memory.fill (i32.const 0) (i32.const 0) (i32.const ${data_text_offset}))
-        `);
+  
         // (data.drop $wat4wasm/text)`);
 
     content = callOnStart(content, data_text.map(dt => 
@@ -320,8 +318,11 @@ const appendTextData = content => {
     (func $wat4wasm/text 
         (param $offset i32)
         (param $length i32)
+
         (result externref)
+        
         (local $array externref)
+        (local $ovalue i32)
 
         (if (i32.eqz (local.get $length))
             (then (return (ref.null extern)))
@@ -331,26 +332,36 @@ const appendTextData = content => {
             (call $wat4wasm/Array<>ref)
         )
 
+        (local.set $ovalue (i32.load (i32.const 0)))
+
         (loop $length--
             (local.set $length
                 (i32.sub (local.get $length) (i32.const 4))
             )
                 
+            (memory.init 0 $wat4wasm/text
+                (i32.const 0)
+                (i32.add 
+                    (local.get $offset)
+                    (local.get $length)
+                )
+                (i32.const 4)
+            )        
+                            
             (call $wat4wasm/Reflect.set<ref.i32x2>
                 (local.get $array)
                 (i32.div_u (local.get $length) (i32.const 4))
                 (i32.trunc_f32_u	
                     (f32.load 
-                        (i32.add 
-                            (local.get $offset)
-                            (local.get $length)
-                        )
+                        (i32.const 0)
                     )
                 )
             )
 
             (br_if $length-- (local.get $length))
         )
+
+        (i32.store (i32.const 0) (local.get $ovalue))
 
         (call $wat4wasm/Reflect.apply<refx3>ref
             (global.get $wat4wasm/String.fromCharCode)
@@ -359,7 +370,7 @@ const appendTextData = content => {
         )
     )
 
-    (data (i32.const 0) "\\${hex}")\n`)
+    (data $wat4wasm/text "\\${hex}")\n`)
         .concat(
             content.substring(content.lastIndexOf(")"))
         )
@@ -763,6 +774,8 @@ const consts            = content => {
         .replaceAll("(null ==", `(ref.is_null `)
         .replaceAll("(local @", `(local.tee $`)
         .replaceAll(">funcref", `>fun`)
+        .replaceAll(/\(malloc\s+([0-9]+)\)/g, `(i32.atomic.rmw.add (i32.const 0) (i32.const $1))`)
+        .replaceAll("malloc(", `(i32.atomic.rmw.add (i32.const 0) `)
         .replaceAll(">externref", `>ref`)
         .replaceAll(">extern", `>ref`)
         .replaceAll("$self.TypedArray", `$self.Uint8Array`)
@@ -793,6 +806,8 @@ const consts            = content => {
         .replaceAll(" elem(", ` (ref.func `)
         .replaceAll("tee($", `(local.tee $`)
         .replaceAll(" ref(", ` (ref.func `)
+        .replaceAll(" mut i32)", ` (mut i32) (i32.const 0))`)
+        .replaceAll(" mut f32)", ` (mut f32) (f32.const 0))`)
         .replaceAll(" mut extern)", ` (mut externref) ref.null extern)`)
         .replaceAll("grow($", ` (table.grow $`)
         .replaceAll("drop(", ` (drop `)
@@ -1163,29 +1178,38 @@ const compiles  = async content => {
     
     (func $compile:${match[1]}
         (local $length i32)
+        (local $ovalue i32)
         
         (local.set $length (global.get $${match[1]}<byteLength>))
+        (local.set $ovalue (i32.load8_u (i32.const 0)))
 
         (if (local.get $length) 
             (then 
-                (memory.init 0 $${match[1]} (i32.const 0) (i32.const 0) (local.get $length))
+                
                 (global.set $${match[1]} (new $self.Uint8Array<i32>ref (local.get $length)))
 
                 (loop $length--
+                
                     (local.set $length (i32.sub (local.get $length) (i32.const 1)))
+                
+                    (memory.init 0 $${match[1]} 
+                        (i32.const 0)
+                        (local.get $length) 
+                        (i32.const 1)
+                    )        
                     
                     (call $self.Reflect.set<ref.i32.i32> 
                         (global.get $${match[1]}) 
                         (local.get $length) 
-                        (i32.load8_u (local.get $length))
+                        (i32.load8_u (i32.const 0))
                     )
                     
                     (br_if $length-- (local.get $length))
                 )
-
-                (memory.fill 0 (i32.const 0) (i32.const 0) (global.get $${match[1]}<byteLength>))
             )
         )
+
+        (i32.store8 (i32.const 0) (local.get $ovalue))
     )
 
     (data $${match[1]} "${dcontent}")
