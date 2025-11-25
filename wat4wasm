@@ -351,7 +351,7 @@ const appendTextData = content => {
                 (i32.sub (local.get $length) (i32.const 4))
             )
                 
-            (memory.init 0 
+            (memory.init 0 $wat4wasm/text
                 (i32.const 0)
                 (i32.add 
                     (local.get $offset)
@@ -790,6 +790,7 @@ const consts = content => {
         .replaceAll("malloc(", `(i32.atomic.rmw.add (i32.const 0) `)
         .replaceAll(">externref", `>ref`)
         .replaceAll(">extern", `>ref`)
+        .replaceAll("$self.TypedArray:", `$self.Uint8Array.__proto__.prototype.`)
         .replaceAll("$self.TypedArray", `$self.Uint8Array`)
         .replaceAll("(local #", `(local.set $`)
         .replaceAll("(global #", `(global.set $`)
@@ -998,7 +999,7 @@ const asyncs = content => {
         lastindex = content.lastIndexOf("(async")
     }
 
-    const elms = `(elem $wat4wasm/async funcref \n\t    ${elems.join("\n\t    ")}\n\t)`;
+    const elms = `(elem $wat4wasm/async funcref \n\t    ${elems.filter((e, i, t) => t.lastIndexOf(e) === i).join("\n\t    ")}\n\t)`;
 
     content = content.substring(0, content.lastIndexOf(")")).concat(
         definers + inlinefuncs + elms
@@ -1040,13 +1041,17 @@ const elemrefs = content => {
 
     let match;
     let refs = [];
+
     while (match = content.matchFrame(/\(ref.func\s+\$(.[^\s\)]+)\)/)) {
         content = content.replaceFrame(match, match.frame.replace("$", "###"));
+        if (refs.includes(match.frame)) {
+            continue;
+        }
         refs.push(match.frame);
     }
 
     content = content.substring(0, content.lastIndexOf(")")).concat(
-        `\n\t(elem $wat4wasm/refs funcref ${refs.join(" ")})`
+        `\n\t(elem $wat4wasm/refs funcref ${refs.filter((e, i, t) => t.lastIndexOf(e) === i).join(" ")})`
     ).concat("\n").concat(
         content.substring(content.lastIndexOf(")"))
     );
@@ -1342,11 +1347,11 @@ const toBinary = async (filepath, content) => new Promise(done => {
 
     const buf = readFileSync(modifiedContentInputFilePath);
 
-
     if (compilerExecutable) {
         const owasm = `${modifiedContentInputFilePath}.wasm`;
+        const cmd = `${compilerExecutable} ${modifiedContentInputFilePath} ${multiMemoryCompileOptions} ${enableThreadsCompileOptions} ${debugNamesCompileOptions} ${funcReferencesCompileOptions} -o ${owasm}`;
 
-        exec = execSync(`${compilerExecutable} ${modifiedContentInputFilePath} ${multiMemoryCompileOptions} ${enableThreadsCompileOptions} ${debugNamesCompileOptions} ${funcReferencesCompileOptions} -o ${owasm}`);
+        exec = execSync(cmd);
 
         done(readFileSync(owasm));
 
