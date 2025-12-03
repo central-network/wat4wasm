@@ -351,7 +351,7 @@ const appendTextData = content => {
                 (i32.sub (local.get $length) (i32.const 4))
             )
                 
-            (memory.init 0 $wat4wasm/text
+            (memory.init $wat4wasm/text
                 (i32.const 0)
                 (i32.add 
                     (local.get $offset)
@@ -719,8 +719,8 @@ const applycalls = content => {
                 let root = parent.split(".").reverse().slice(1).reverse().join(".");
                 subdefiner = `\n\t(global $self.${root} externref)`
 
-                if (content.indexOf(subdefiner.trim()) === -1) {
-                    if (definers.indexOf(subdefiner.trim()) === -1) {
+                if (content.indexOf(`(global $self.${root} `) === -1) {
+                    if (definers.indexOf(`(global $self.${root} `) === -1) {
                         definers += subdefiner;
                     }
                 }
@@ -728,8 +728,8 @@ const applycalls = content => {
 
             subdefiner = `\n\t(global $self.${parent} externref)`
 
-            if (content.indexOf(subdefiner.trim()) === -1) {
-                if (definers.indexOf(subdefiner.trim()) === -1) {
+            if (content.indexOf(`(global $self.${parent} `) === -1) {
+                if (definers.indexOf(`(global $self.${parent} `) === -1) {
                     definers += subdefiner;
                 }
             }
@@ -773,25 +773,34 @@ const aliases = content => {
 const consts = content => {
     return content
         .replaceAll(" !== null", ` (ref.is_null) (i32.eqz)`)
+        .replaceAll("(0 === ", `(i32.eqz `)
+        .replaceAll("(1 === ", `(i32.eq (i32.const 1) `)
         .replaceAll(" === false", ` (i32.eqz)`)
         .replaceAll(" true)", ` (i32.const 1))`)
         .replaceAll(" false)", ` (i32.const 0))`)
         .replaceAll("new(", `(new `)
         .replaceAll("apply(", `(apply `)
-        .replaceAll(/\sSymbol\.for\((.*)\)/g, ` (call $self.Symbol.for<ref>ref text($1)) `)
-        .replaceAll(/\sArray\.of\(/g, ` (call $self.Array.of<ref>ref `)
-        .replaceAll(/\sObject\.create\(/g, ` (call $self.Object.create<ref>ref `)
-        .replaceAll(/\sObject\.fromEntries\(/g, ` (call $self.Object.fromEntries<ref>ref `)
-        .replaceAll(/\sReflect\.create\(/g, ` (call $self.Object.create<ref> `)
-        .replaceAll(/\sReflect\.construct\(/g, ` (call $self.Reflect.construct<refx2>ref `)
-        .replaceAll(/\sReflect\.setPrototypeOf\(/g, ` (call $self.Reflect.setPrototypeOf<refx2> `)
-        .replaceAll(/\sReflect\.defineProperty\(/g, ` (call $self.Reflect.defineProperty<refx3> `)
-        .replaceAll(/\sReflect\.set\(/g, ` (call $self.Reflect.set<refx3> `)
-        .replaceAll(/\sObject\.is\(/g, ` (call $self.Object.is<refx2>i32 `)
-        .replaceAll(/\sObject\.assign\(/g, ` (call $self.Object.assign<refx2>ref `)
-        .replaceAll(/\sArrayBuffer\.isView\(/g, ` (call $self.ArrayBuffer.isView<ref>i32 `)
-        .replaceAll(/\sObject\(\)/g, ` (call $self.Object<>ref) `)
-        .replaceAll(/\sObject\(/g, ` (call $self.Object<ref>ref `)
+        .replaceAll(/(\s)forever/g, `$1(i64.const -1)`)
+        /*         .replaceAll(/\sSymbol\.for\((.*)\)/g, ` (call $self.Symbol.for<ref>ref text($1)) `)
+                .replaceAll(/\sURL\.createObjectURL\(/g, ` $self.URL.createObjectURL<ref>ref(`)
+                .replaceAll(/\sURL\.revokeObjectURL\(/g, ` $self.URL.revokeObjectURL<ref>ref(`)
+                .replaceAll(/\snew\sBlob\(/g, ` (new $self.Blob<ref>ref `)
+                .replaceAll(/\snew\sWorker\(/g, ` (new $self.Worker<refx2>ref `)
+                .replaceAll(/\sArray\.of\(/g, ` (call $self.Array.of<ref>ref `)
+                .replaceAll(/\sObject\.create\(/g, ` (call $self.Object.create<ref>ref `)
+                .replaceAll(/\sObject\.fromEntries\(/g, ` (call $self.Object.fromEntries<ref>ref `)
+                .replaceAll(/\sReflect\.create\(/g, ` (call $self.Object.create<ref> `)
+                .replaceAll(/\sReflect\.construct\(/g, ` (call $self.Reflect.construct<refx2>ref `)
+                .replaceAll(/\sReflect\.setPrototypeOf\(/g, ` (call $self.Reflect.setPrototypeOf<refx2> `)
+                .replaceAll(/\sReflect\.defineProperty\(/g, ` (call $self.Reflect.defineProperty<refx3> `)
+                .replaceAll(/\sReflect\.set\(/g, ` (call $self.Reflect.set<refx3> `)
+                .replaceAll(/\sReflect\.get\(/g, ` (call $self.Reflect.get<refx2>ref `)
+                .replaceAll(/\sObject\.is\(/g, ` (call $self.Object.is<refx2>i32 `)
+                .replaceAll(/\sObject\.assign\(/g, ` (call $self.Object.assign<refx2>ref `)
+                .replaceAll(/\sArrayBuffer\.isView\(/g, ` (call $self.ArrayBuffer.isView<ref>i32 `)
+                .replaceAll(/\sObject\(\)/g, ` (call $self.Object<>ref) `)
+                .replaceAll(/\sPromise\.withResolvers\(\)/g, ` (apply $self.Promise.withResolvers<>ref self (param)) `)
+                .replaceAll(/\sObject\(/g, ` (call $self.Object<ref>ref `) */
         .replaceAll(/\$(self\.[a-zA-Z0-9\.\:\/\_]+)<>(i32|i64|v128|f32|f64|externref|extern|ref|funcref|fun)\(\)/g, '(call $$$1<>$2)')
         .replaceAll(/\(call\s+\$(self\.[a-zA-Z0-9\.\:\/\_]+)<>(i32|i64|v128|f32|f64|externref|extern|ref|funcref|fun)\)/g, '(apply $$$1<>$2 (global.get $wat4wasm/self) (param))')
         .replaceAll(/\(apply\s+\$(self\.[a-zA-Z0-9\.\:]+)\)/g, '(apply $$$1<>ref (global.get $wat4wasm/self) (param))')
@@ -801,6 +810,7 @@ const consts = content => {
         .replaceAll(/\$([a-zA-Z0-9\.\:\/\_]+)\[\s*([0-9]+)\s*\]\s+(i32|i64|v128|f32|f64|externref|extern|ref|funcref|fun)\s*\)/g, `$$$1) (i32.const $2) (call $self.Reflect.get<ref.i32>$3)`)
         .replaceAll(/\((log|warn|error)\s+\</g, `($1<`)
         .replaceAll(/\((log|warn|error)\s+/g, `($1<ref> `)
+        .replaceAll("tee($", `(local.tee $`)
         .replaceAll("get(<", `(get <`)
         .replaceAll("set(<", `(set <`)
         .replaceAll(/\(get\s+\<([a-z0-9\.]+)\>([a-z0-9\.]+)\s+/g, `(call $self.Reflect.get<$1>$2 `)
@@ -821,8 +831,11 @@ const consts = content => {
         .replaceAll("(local #", `(local.set $`)
         .replaceAll("(global #", `(global.set $`)
         .replaceAll(/\)\.length\s?/g, `) (text 'length') (call $self.Reflect.get<refx2>i32) `)
+        .replaceAll(/\)\.BYTES_PER_ELEMENT\s?/g, `) (text 'BYTES_PER_ELEMENT') (call $self.Reflect.get<refx2>i32) `)
+        .replaceAll(/\)\.byteOffset\s?/g, `) (text 'byteOffset') (call $self.Reflect.get<refx2>i32) `)
         .replaceAll(/\)\.constructor\s?/g, `) (text 'constructor') (call $self.Reflect.get<refx2>ref) `)
         .replaceAll(/\)\.prototype\s?/g, `) (text 'prototype') (call $self.Reflect.get<refx2>ref) `)
+        .replaceAll(/\)\.buffer\s?/g, `) (text 'buffer') (call $self.Reflect.get<refx2>ref) `)
         .replaceAll(/\)\.name\s?/g, `) (text 'name') (call $self.Reflect.get<refx2>ref) `)
         .replaceAll(/\)\.__proto__\s?/g, `) (call $self.Reflect.getPrototypeOf<ref>ref) `)
         .replaceAll(/(i32|i64|v128|f32|f64)\(([0-9.]+)\)/g, `($1.const $2)`)
@@ -916,8 +929,8 @@ const constructcalls = content => {
 
         const definer = `\n\t(global $self.${match[2]} externref)`;
 
-        if (content.indexOf(definer.trim()) === -1) {
-            if (definers.indexOf(definer.trim()) === -1) {
+        if (content.indexOf(`(global $self.${match[2]} `) === -1) {
+            if (definers.indexOf(`(global $self.${match[2]} `) === -1) {
                 definers += definer;
             }
         }
@@ -1357,6 +1370,7 @@ const replaces = async content => {
         content = appendTextData(content);
     }
 
+
     content = content
         .replace(`(elem $wat4wasm/refs funcref )`, ``)
         .replace(`;;BEGIN_OF_IMPORTS`, ``)
@@ -1440,6 +1454,7 @@ const toBinary = async (filepath, content) => new Promise(done => {
 const compile = async () => {
     const read = readFileSync(inputFilePath);
     const wat = await replaces(read);
+
     const wasm = await toBinary(inputFilePath, wat);
 
     console.log({
