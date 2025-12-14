@@ -9,12 +9,18 @@
     (global $self.MessageEvent.prototype.data/get externref)
     (global $self.Worker:onmessage/set externref)
 
-    (global $ANY_TEXT_GLOBAL "any text global")
+    (global $ANY_TEXT_GLOBAL "any text 
+        \\"masked\\"
+    global")
 
     (memory 10 10 shared)
 
     (func $test
         (local $arg0 i32)
+        
+        (local.set 0 (text "Bu bir
+            çoklu satır örneğidir.
+            İçinde \"escaped\" tırnaklar var."))
 
         (local.set 0 i32(24))
 
@@ -84,46 +90,24 @@
         (log<ref> (global.get $self.Worker:onmessage/set))
         (warn<ref> (global.get $ANY_TEXT_GLOBAL))
 
-
-        (apply $self.Math.max<i32x3.f32>i32 
-            (self)
-            (param
-                (i32.const 2)
-                (i32.const 4)
-                (i32.const 5)
-                (f32.const 1122.2)
+        (apply 
+            (type $mySig)                    ;; 1. Signature (Görmezden gelinecek)
+            (ref.extern $self.console.log)   ;; 2. Target
+            (global.get $self)               ;; 3. This
+            (array (param externref)         ;; 4. Args (Array)
+                (text "Standart görünüm harika!")
             )
         )
-        (error<i32>)
 
-        (apply $self.Math.random f32)
-        (error<f32>)
-
-        (call $self.Math.random f32)
-        (warn<f32>)
-
-        (apply $self.Math.random)
-        (nop)
-
-        (apply $self.Math.random ref)
-        (drop)
-
-        (construct $self.Uint8Array<i32>ref 
-            (param
-                (i32.const 3)
+        ;; KULLANIM 2: Inline Param ile
+        (apply 
+            (param funcref externref externref) ;; 1. Signature (Görmezden gelinecek)
+            (ref.extern $self.alert)            ;; 2. Target
+            (null)                              ;; 3. This
+            (array (param i32)                  ;; 4. Args
+            (i32.const 123)
             )
         )
-        (warn<ref>)
-
-        (new $self.Uint8Array<i32> i32(4))
-        (warn<ref>)
-
-        (new $self.Number<f32> f32(4.4))
-        (warn<ref>)
-
-
-        (call $test)
-
 
         (call $self.requestAnimationFrame<fun>
             (func $inlinefunction<f32>
@@ -136,4 +120,6 @@
             )
         )
     )
+
+    (type $mySig (param externref externref externref))   
 )
