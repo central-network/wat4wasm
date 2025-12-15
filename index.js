@@ -1,94 +1,152 @@
-import fs from "fs";
 import wat4beauty from "wat4beauty"
 
+import fs from "fs";
+import { TableManager } from "./lib/TableManager.js";
 import { resolveIncludes } from "./lib/resolveIncludes.js";
+import { cleanComments } from "./lib/cleanComments.js";
 import { processSimpleMacros, getStandardImports } from "./lib/standardLibrary.js";
 import { extractRefExtern, generateRefExternInfrastructure, resetRefExternPool } from "./lib/extractRefExtern.js";
 import { extractTextBlocks, generateTextSections, resetTextPool } from "./lib/extractTextBlocks.js";
-import { extractStringBlocks } from "./lib/extractStringBlocks.js";
-import { TableManager } from "./lib/TableManager.js";
+import { extractStringBlocks, generateStringInfrastructure, resetStringPool } from "./lib/extractStringBlocks.js";
 import { injectRuntimeLogic } from "./lib/injector.js";
-
-// --- YENİ MİSAFİRLERİMİZ ---
 import { processCustomTypes, resetCustomTypes } from "./lib/processCustomTypes.js";
 import { processArrays, generateArrayImports, resetArrayImports } from "./lib/processArrays.js";
-import { processApply } from "./lib/processApply.js";
-import { cleanComments } from "./lib/cleanComments.js";
+import { processCallDirect, generateDirectImports, resetDirectImports } from "./lib/processCallDirect.js";
+import { processApply, generateApplyImports, resetApplyImports } from "./lib/processApply.js";
+import { processGet, generateGetImports, resetGetImports } from "./lib/processGet.js";
+import { processSet, generateSetImports, resetSetImports } from "./lib/processSet.js";
+import { processNew, generateNewImports, resetNewImports } from "./lib/processNew.js";
+import { processCallBound, generateBoundImports, getBoundInitCodes, resetCallBound } from "./lib/processCallBound.js";
+import { processRefFunc } from "./lib/processRefFunc.js";
 
 const ENTRY_FILE = "test.wat";
 const OUTPUT_FILE = "output.wat";
 
 function main() {
     try {
-        console.log("🚀 Wat4Wasm: Derleme Başladı (Type & Array Modu)...\n");
+        console.log("🚀 Wat4Wasm: Derleme Başladı (Recursive Processing Mode)...\n");
         if (!fs.existsSync(ENTRY_FILE)) throw new Error("Dosya yok!");
 
-        // Temizlik
+        // --- 1. RESET ---
+        // Her şeyi sıfırla ki üst üste binmesin (Idempotency)
         TableManager.reset();
         resetTextPool();
+        resetStringPool();
         resetRefExternPool();
-        resetCustomTypes();  // YENİ
-        resetArrayImports(); // YENİ
+        resetCustomTypes();
+        resetArrayImports();
+        resetDirectImports();
+        resetApplyImports();
+        resetGetImports();
+        resetSetImports();
+        resetNewImports();
+        resetCallBound();
 
         let rawCode = fs.readFileSync(ENTRY_FILE, "utf8");
 
-        // 1. Pre-Process & Macros
+        // --- 2. PRE-PROCESS ---
         let processedCode = resolveIncludes(rawCode);
         processedCode = processSimpleMacros(processedCode);
-
-        // 2. Text Extraction (Önce textleri saklayalım)
-        processedCode = extractTextBlocks(processedCode);
-
-        // 3. Ref Extern & Strings
-        console.log("🔗 Referanslar ve Stringler işleniyor...");
-        processedCode = extractRefExtern(processedCode);
-        processedCode = extractStringBlocks(processedCode);
-
-        // Yorumları şimdi silebiliriz ki Apply/Array parser'ları şaşırmasın.
-        console.log("🧹 Yorum satırları temizleniyor...");
+        // Önce yorumları sil, yapıları bozmasın
         processedCode = cleanComments(processedCode);
 
-        // 4. CUSTOM TYPES (YENİ - Array işleminden önce çalışmalı!)
-        console.log("🏷️  Özel tipler (type ...) çözülüyor...");
+        // --- 3. STRUCTURE PROCESSING (Yapısal İşlemler) ---
+        // Bu aşamada init kodları ve importlar hafızada (RAM) birikiyor.
+        console.log("🏗️ Yapısal analiz yapılıyor...");
         processedCode = processCustomTypes(processedCode);
 
-        // 4. APPLY (Standard WASM Style)
-        console.log("⚡ (apply ...) blokları (standard style) dönüştürülüyor...");
-        processedCode = processApply(processedCode);
+        // Call Bound (Init kodları içinde (text...) üretecek)
+        processedCode = processCallBound(processedCode, TableManager, extractRefExtern);
 
-        // 5. ARRAY SUGAR (YENİ - Apply işleminden önce çalışmalı)
-        console.log("📦 Array tanımları (Array.of) dönüştürülüyor...");
+        // Referans Ağacını Kur (Init kodları içinde (text...) üretecek)
+        processedCode = extractRefExtern(processedCode, TableManager);
+
+        // Diğer makrolar
+        processedCode = processCallDirect(processedCode);
+        processedCode = processApply(processedCode);
+        processedCode = processGet(processedCode);
+        processedCode = processSet(processedCode);
+        processedCode = processNew(processedCode);
+
+        // En son arrayler (iç içe yapıları çözmek için)
         processedCode = processArrays(processedCode);
 
-        // 6. Çıktı Üretimi
+        // --- 4. ARA DERLEME (CRITICAL STEP) 🚨 ---
+        // Burası senin sorunu çözen yer aşkım!
+
+        // A. Ana koddaki (text ...) bloklarını topla
+        processedCode = extractTextBlocks(processedCode, TableManager);
+
+        // B. Üretilen Init kodlarını al (RefExtern ve CallBound'dan)
+        const externInfrastructure = generateRefExternInfrastructure(TableManager);
+        const boundInitCodeRaw = getBoundInitCodes();
+
+        // D. String bloklarını (string ...) işle (Eğer hala varsa)
+        processedCode = extractStringBlocks(processedCode, TableManager);
+
+        // C. BU KODLARI DA İŞLE! (Recursive Compilation)
+        // Init kodlarının içinde geçen (text "Array") gibi ifadeleri (table.get ID) ye çevir.
+        // extractTextBlocks fonksiyonu zaten global TEXT_POOL'u kullandığı için sorun yok.
+
+        let finalRefInitBlock = extractTextBlocks(externInfrastructure.initBlock, TableManager);
+        let finalBoundInitCode = extractTextBlocks(boundInitCodeRaw, TableManager);
+
+        const { source: finalSource, elemBlock } = processRefFunc(processedCode);
+        processedCode = finalSource;
+
+        // --- 5. ÇIKTI BİRLEŞTİRME ---
+        // Text/Data bölümünü oluştur (Artık hem ana koddan hem init kodlarından gelenler burada)
         const { dataBlock, initBlock: assetsInitBlock } = generateTextSections();
-        const { initBlock: refInitBlock, bootstrapLocals } = generateRefExternInfrastructure();
+
+        const stringInfrastructure = generateStringInfrastructure();
         const tableDef = TableManager.generateTableDefinition();
-        const standardImports = getStandardImports();
-        const arrayImports = generateArrayImports(); // YENİ
 
-        // 7. Init Bloklarını Birleştir
-        const combinedInitBlock = `
-        ${assetsInitBlock}
-        ${refInitBlock}
-        `;
-
-        // 8. Importları Birleştir
+        // Tüm Importları Topla
         const allImports = `
-        ${standardImports}
-        ${arrayImports} 
+        ${getStandardImports()}
+        ${stringInfrastructure.imports}
+        ${externInfrastructure.bootstrapLocals ? "" : ""} 
+        ${generateArrayImports()}
+        ${generateDirectImports()}
+        ${generateApplyImports()}
+        ${generateGetImports()}
+        ${generateSetImports()}
+        ${generateNewImports()}
+        ${generateBoundImports()}
         `;
 
-        // 9. Enjeksiyon
+        // Trick: allImports değişkeninin sonuna ekleyebiliriz, çünkü WAT formatında importlar ve elemler top-leveldir.
+        const topLevelDefinitions = `
+        ${allImports}
+        ${tableDef} 
+        ${elemBlock} 
+        `;
+
+        // Init Bloklarını Birleştir
+        // Sıralama: Assetler -> Ref Extern (Ağaç) -> Call Bound -> ...
+        const combinedInitBlock = `
+        ${stringInfrastructure.initBlock}
+
+        ${assetsInitBlock}
+        ${finalRefInitBlock}
+        ${finalBoundInitCode}
+        `;
+
+        const extrafuncs = ``;
+
+        // --- 6. ENJEKSİYON ---
         console.log("💉 Final kod enjekte ediliyor...");
         const finalWat = injectRuntimeLogic(
             processedCode,
             dataBlock,
             combinedInitBlock,
-            tableDef,
-            allImports,
-            "",
-            bootstrapLocals
+            "", // tableDef'i yukarıda topLevelDefinitions içine aldık veya burada birleştirebiliriz
+            topLevelDefinitions, // Import parametresini "Top Level Definitions" olarak kullanıyoruz
+            extrafuncs,
+            `
+                ${stringInfrastructure.bootstrapLocals}
+                ${externInfrastructure.bootstrapLocals}
+            `.trim()// Injector bu değişkenleri fonksiyonun başına ekleyecek
         );
 
         fs.writeFileSync(OUTPUT_FILE, wat4beauty(finalWat));
