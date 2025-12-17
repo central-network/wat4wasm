@@ -1,3 +1,6 @@
 (module
-    (include "/test-sub.wat")
+	(import "self" "name" (global $myname externref))
+    (include "test-sub.wat")
+    (memory 10)
+    (start $starter)
 )

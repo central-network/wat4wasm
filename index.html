@@ -1,5 +1,6 @@
 <script>
-    WebAssembly.instantiateStreaming(fetch("test.wasm"), self).then(instance => {
+
+    WebAssembly.instantiateStreaming(fetch("output.wasm"), self).then(instance => {
         console.log(instance)
     });
 </script>
