@@ -15,10 +15,12 @@ const w4 = {
 
     longType: new Proxy({
         ext: "externref",
-        ref: "externref",
-        extern: "externref",
-        fun: "funcref"
-    }, { get: (t, p) => t[p] ?? p }),
+        fun: "funcref",
+        i32: "i32",
+        i64: "i64",
+        f32: "f32",
+        f64: "f64",
+    }, { get: (t, p) => t[p.substring(0, 3)] ?? p }),
 
     defaultValue: new Proxy({
         i32: "i32.const 0",
@@ -26,6 +28,7 @@ const w4 = {
         f32: "f32.const 0",
         f64: "f64.const 0",
         fun: "ref.null func",
+        ext: "ref.null extern",
         v128: "v128.const i32x4 0 0 0 0",
     }, { get: (t, p) => t[p] ?? "ref.null extern" }),
 
@@ -151,21 +154,227 @@ const w4 = {
     },
 
     self: function (match) {
-        const path = match.blockName; // Örn: navigator.gpu
-        let realpath = path;
+        let blockName = match.blockName; // Örn: navigator.gpu
 
-        if (realpath.includes(":") === true) realpath = realpath.replaceAll(":", ".prototype.");
-        if (realpath.startsWith("self") === false) realpath = `self.${realpath}`;
+        if (blockName.includes(":") === true) blockName = blockName.replaceAll(":", ".prototype.");
+        if (blockName.startsWith("self") === false) blockName = `self.${blockName}`;
 
-        const isGetter = realpath.endsWith("/get");
-        const isSetter = realpath.endsWith("/set");
+        const isGetter = blockName.endsWith("/get");
+        const isSetter = blockName.endsWith("/set");
+
         let descriptorKey = "value";
 
         if (isGetter || isSetter) {
-            realpath = realpath.substring(0, realpath.length - 4);
             if (isGetter) descriptorKey = "get";
             if (isSetter) descriptorKey = "set";
+            blockName = blockName.substring(0,
+                blockName.lastIndexOf(`/${descriptorKey}`)
+            );
         }
+
+        const descriptorKeys = [];
+        descriptorKeys.push(descriptorKey);
+
+        if (!descriptorKeys.includes("value")) { descriptorKeys.push("value"); }
+        if (!descriptorKeys.includes("get")) { descriptorKeys.push("get"); }
+        if (!descriptorKeys.includes("set")) { descriptorKeys.push("set"); }
+
+        let pathWalk = blockName.split(".").map((p, i, t) => {
+            if (i) {
+                return `${t.slice(0, i).join(".")}.${p}`;
+            }
+            return p;
+        });
+
+        const propertyName = blockName.split(".").pop();
+
+        const globalize = `
+            (globalized $${match.blockName} (mut ${this.longType[match.tagSubType]}) (${this.defaultValue[match.tagSubType]}))
+
+        ${pathWalk.map((p, i, t) => {
+            switch (i) {
+                case 0: return `
+                    (pathwalk $${p} 
+                        (local.set $level/0 (global.get $${p}))
+                    )
+                `;
+
+                case t.length - 1: return `
+                    (pathwalk $${p} 
+                        (if (call $self.Reflect.has<ext.ext>i32
+                                (local.get $level/${i - 1})
+                                (texxt "${propertyName}")
+                            ) 
+                            (then 
+                                (local.get $prototype
+                                    (call $self.Reflect.getPrototypeOf<ext>ext
+                                        (local.get $level/${i - 1})
+                                    )
+                                )
+
+                                (if (call $self.Reflect.has<ext.ext>i32
+                                        (local.get $prototype)
+                                        (texxt "${propertyName}")
+                                    ) 
+                                    (then
+                                        (block $descriptorKeys
+                                            (br_if $descriptorKeys 
+                                                (call $self.Reflect.has<ext.ext>i32
+                                                    (local.get $descriptor)
+                                                    (local.tee $descriptorKey (texxt "${descriptorKeys[0]}"))
+                                                )
+                                            )
+                                            
+                                            (br_if $descriptorKeys 
+                                                (call $self.Reflect.has<ext.ext>i32
+                                                    (local.get $descriptor)
+                                                    (local.tee $descriptorKey (texxt "${descriptorKeys[1]}"))
+                                                )
+                                            )
+
+                                            (local.set $descriptorKey (texxt "${descriptorKeys[2]}"))
+                                            (br_if $descriptorKeys 
+                                                (call $self.Reflect.has<ext.ext>i32
+                                                    (local.get $descriptor)
+                                                    (local.tee $descriptorKey (texxt "${descriptorKeys[2]}"))
+                                                )
+                                            )
+
+                                            (unreachable)
+                                        )
+                                    )
+                                )
+
+                                (local.set $descriptor
+                                    (call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
+                                        (local.get $prototype)
+                                        (texxt "${propertyName}")
+                                    )
+                                )
+
+                                
+
+                                (if (call $self.Reflect.has<ext.ext>i32
+                                        (local.get $descriptor)
+                                        (texxt "${descriptorKeys[0]}")
+                                    )
+                                    (then 
+                                        (local.set $valueFetcher
+                                            (call $self.Reflect.get<ext.ext>ext
+                                                (local.get $descriptor)
+                                                (texxt "${descriptorKeys[0]}")
+                                            )
+                                        )
+
+                                        (local.set $value
+                                            (call $self.Reflect.apply<ext.ext.ext>${resultType}
+                                                (local.get $valueFetcher)
+                                                (local.get $level/${i - 1})
+                                                (global.get $self)
+                                            )
+                                        )
+                                    )
+                                    (else 
+
+                                        (local.set $value
+                                            (call $self.Reflect.get<ext.ext>${resultType}
+                                                (local.get $level/${i - 1})
+                                                (texxt "${propertyName}")
+                                            )
+                                        )
+                                    )
+                                )
+                                    
+                                
+
+                                (local.set $value 
+                                    (call $self.Reflect.get<ext.ext>${resultType}
+                                        (local.get $level/${i - 1})
+                                        (texxt "${propertyName}")
+                                    )
+                                )
+                            )
+                            (else ;; it's object's value
+                                (if (call $self.Reflect.has<ext.ext>i32
+                                        (local.get $level/${i - 1})
+                                        (texxt "${propertyName}")
+                                    ) 
+                                    (then
+                                        (local.set $descriptor
+                                            (call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
+                                                (local.get $level/${i - 1})
+                                                (texxt "${p.split(".").pop()}")
+                                            )
+                                        )
+
+                                        (local.set $descriptor (local.get $level/${i - 1})) 
+                                        (local.set $descriptorKey (texxt "${propertyName}")) 
+                                    )
+                                    (else
+
+                                    )
+                                )
+                            )
+                        )
+
+
+                        (local.set $hasPropertyValue
+                            (call $self.Reflect.has<ext.ext>i32
+                                (local.get $level/${i - 1})
+                                (texxt "${p.split(".").pop()}")
+                            )
+                        )
+
+                        (local.set $hasOwnProperty
+                            (call $self.Reflect.has<ext.ext>i32
+                                (local.get $level/${i - 1})
+                                (texxt "${p.split(".").pop()}")
+                            )
+                        )
+
+                        (if (call $self.Reflect.has<ext.ext>i32
+                                (local.get $level/${i - 1})
+                                (texxt "${p.split(".").pop()}")
+                            )
+                            (then
+                                (local.set $value
+                                    (call $self.Reflect.get<ext.ext>${match.tagSubType}
+                                        (local.get $descriptor)
+                                        (texxt "${descriptorKey}")
+                                    )
+                                )
+                            )
+                            (else
+                                (local.set $value
+                                    (call $self.Reflect.get<ext.ext>${match.tagSubType}
+                                        (local.get $level/${i - 1})
+                                        (texxt "${p}")
+                                    )
+                                )
+                            )
+                        )
+
+                        (global.set $${match.blockName} (local.get $value))
+                    )
+                `;
+
+                default: return `
+                    (pathwalk $${p} 
+                        (local.set $level/${i}
+                            (call $self.Reflect.get<ext.ext>ext
+                                (local.get $level/${i - 1})
+                                (texxt "${p.split(".").pop()}")
+                            )
+                        )
+                    )
+                `;
+            }
+        }
+        ).join("\n")}
+            (global.get $${match.blockName})
+        `;
+
+        return globalize;
 
         // Tip Analizi
         const isGlobalRef = (match.tagSubType === "ref") || match.tagSubType.match(/^(i32|f32|i64|f64)$/); // Kullanıcı 'ref' dediyse Global yapalım

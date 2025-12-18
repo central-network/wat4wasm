@@ -136,3 +136,4 @@ dist
 .pnp.*
 test.wasm
 test.wat2wasm.wat
+.DS_Store
