@@ -1,178 +1,136 @@
 (module
-	(import "self" "name" (global $myname externref))
-	(func $starter
+	(import "String" "fromCharCode" (global $self.String.fromCharCode         externref))
+	(import "Array" "of"            (func $self.Array.of<ext>ext              (param externref) (result externref)))
+	(import "Reflect" "apply"       (func $self.Reflect.apply<ext.ext.ext>ext (param externref externref externref) (result externref)))
+	(import "Reflect" "get"         (func $self.Reflect.get<ext.ext>ext       (param externref externref) (result externref)))
+	(import "Reflect" "set"         (func $self.Reflect.set<ext.i32.ext>      (param externref i32 externref) (result)))
+	(import "Reflect" "set"         (func $self.Reflect.set<ext.i32.i32>      (param externref i32 i32) (result)))
+	(import "Reflect" "construct"   (func $self.Reflect.construct<ext.ext>ext (param externref externref) (result externref)))
+	(func $main
 
-		(pathwalk $self
-			(local.set $level/0 (global.get $self))
-		)
-
-		(pathwalk $self.performance
-			(local.set $level/1
-				(call $self.Reflect.get<ext.ext>ext
-					(local.get $level/0)
-					(texxt "performance")
-				)
-			)
-		)
-
-		(pathwalk $self.performance.timeOrigin
-			(local.set $prototype
-				(call $self.Reflect.getPrototypeOf<ext>ext
-					(local.get $level/1)
-				)
-			)
-
-			(local.set $descriptor
-				(call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
-					(local.get $prototype)
-					(texxt "timeOrigin")
-				)
-			)
-
-			(if (call $self.Reflect.has<ext.ext>i32
-					(local.get $descriptor)
-					(texxt "value")
-				)
-				(then
-					(local.set $value
-						(call $self.Reflect.get<ext.ext>f32
-							(local.get $descriptor)
-							(texxt "value")
-						)
-					)
-				)
-				(else
-					(local.set $value
-						(call $self.Reflect.get<ext.ext>f32
-							(local.get $level/1)
-							(texxt "self.performance.timeOrigin")
-						)
-					)
-				)
-			)
-
-			(global.set $performance.timeOrigin (local.get $value))
-		)
-
-		(global.get $performance.timeOrigin)
+		;; {ref_extern $self.x} :
+		(table.get $wat4wasm (i32.const 6)) ;; self.x
 		(drop)
 
-		(pathwalk $self
-			(local.set $level/0 (global.get $self))
-		)
-
-		(pathwalk $self.location
-			(local.set $level/1
-				(call $self.Reflect.get<ext.ext>ext
-					(local.get $level/0)
-					(texxt "location")
-				)
-			)
-		)
-
-		(pathwalk $self.location.href
-			(local.set $prototype
-				(call $self.Reflect.getPrototypeOf<ext>ext
-					(local.get $level/1)
-				)
-			)
-
-			(local.set $descriptor
-				(call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
-					(local.get $prototype)
-					(texxt "href")
-				)
-			)
-
-			(if (call $self.Reflect.has<ext.ext>i32
-					(local.get $descriptor)
-					(texxt "value")
-				)
-				(then
-					(local.set $value
-						(call $self.Reflect.get<ext.ext>ext
-							(local.get $descriptor)
-							(texxt "value")
-						)
-					)
-				)
-				(else
-					(local.set $value
-						(call $self.Reflect.get<ext.ext>ext
-							(local.get $level/1)
-							(texxt "self.location.href")
-						)
-					)
-				)
-			)
-
-			(global.set $location.href (local.get $value))
-		)
-
-		(global.get $location.href)
+		;; {i32_extern $self.x} :
+		(i32.const 6)
 		(drop)
 
-		(pathwalk $self
-			(local.set $level/0 (global.get $self))
-		)
-
-		(pathwalk $self.navigator
-			(local.set $level/1
-				(call $self.Reflect.get<ext.ext>ext
-					(local.get $level/0)
-					(texxt "navigator")
-				)
-			)
-		)
-
-		(pathwalk $self.navigator.gpu
-			(local.set $prototype
-				(call $self.Reflect.getPrototypeOf<ext>ext
-					(local.get $level/1)
-				)
-			)
-
-			(local.set $descriptor
-				(call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
-					(local.get $prototype)
-					(texxt "gpu")
-				)
-			)
-
-			(if (call $self.Reflect.has<ext.ext>i32
-					(local.get $descriptor)
-					(texxt "get")
-				)
-				(then
-					(local.set $value
-						(call $self.Reflect.get<ext.ext>ext
-							(local.get $descriptor)
-							(texxt "get")
-						)
-					)
-				)
-				(else
-					(local.set $value
-						(call $self.Reflect.get<ext.ext>ext
-							(local.get $level/1)
-							(texxt "self.navigator.gpu")
-						)
-					)
-				)
-			)
-
-			(global.set $navigator.gpu/get (local.get $value))
-		)
-
-		(global.get $navigator.gpu/get)
+		;; {global_get $self.x} :
+		(global.get $wat4wasm/self.x)
 		(drop)
+
+		;; {global_get $self.x f32} :
+		(global.get $wat4wasm/self.x)
+		(drop)
+
+		;; {global_get $self.y} :
+		(global.get $wat4wasm/self.y)
+		(drop)
+
+		;; [self_get $Uint8Array.__proto__.prototype.slice]
+		(call $self.Reflect.get<ext.ext>
+			(table.get $wat4wasm (i32.const 7)) ;; self.Uint8Array.__proto__.prototype
+			(table.get $wat4wasm (i32.const 4)) ;; "slice"
+		)
+		(drop)
+
+		;; [self_get $navigation.activation.entry.index i32]
+		(call $self.Reflect.get<ext.ext>i32
+			(table.get $wat4wasm (i32.const 8)) ;; self.navigation.activation.entry
+			(table.get $wat4wasm (i32.const 2)) ;; "index"
+		)
+		(drop)
+
+		;; [self_set $navigation.activation.entry.index [text "2"]]
+		(call $self.Reflect.set<ext.ext.ext>
+			(table.get $wat4wasm (i32.const 8)) ;; self.navigation.activation.entry
+			(table.get $wat4wasm (i32.const 2)) ;; "index"
+			(table.get $wat4wasm (i32.const 1))
+		)
+
+		;; [self_set $navigation.activation.entry.index [text "2"] i32]
+		(call $self.Reflect.set<ext.ext.ext>i32
+			(table.get $wat4wasm (i32.const 8)) ;; self.navigation.activation.entry
+			(table.get $wat4wasm (i32.const 2)) ;; "index"
+			(table.get $wat4wasm (i32.const 1))
+		)
+
+		;; [self_set $navigation.activation.entry.index i32 [i32.const 2] i32]
+		(call $self.Reflect.set<ext.ext.i32>
+			(table.get $wat4wasm (i32.const 8)) ;; self.navigation.activation.entry
+			(table.get $wat4wasm (i32.const 2)) ;; "index"
+			(i32.const 2)
+		)
+
+		;; [self_set $navigation.activation.entry.index fun [...nested block..]]
+		(call $self.Reflect.set<ext.ext.fun>
+			(table.get $wat4wasm (i32.const 8)) ;; self.navigation.activation.entry
+			(table.get $wat4wasm (i32.const 2)) ;; "index"
+			(call $any_inner_nested_block
+				(result funcref)
+				(ref.func $main)
+			)
+		)
+
+		;; [self_has $navigation.activation.entry [text "index"]]
+		(call $self.Reflect.has<ext.ext>i32
+			(call $self.Reflect.get<ext.ext>ext
+				(table.get $wat4wasm (i32.const 9)) ;; self.navigation.activation
+				(table.get $wat4wasm (i32.const 5)) ;; "entry"
+			)
+
+			(table.get $wat4wasm (i32.const 2))
+		)
+
+		;; [self_has $navigation.activation.entry [text "index"] f32]
+		(call $self.Reflect.has<ext.ext>f32
+			(call $self.Reflect.get<ext.ext>ext
+				(table.get $wat4wasm (i32.const 9)) ;; self.navigation.activation
+				(table.get $wat4wasm (i32.const 5)) ;; "entry"
+			)
+			(table.get $wat4wasm (i32.const 2))
+		)
+
+		;; [self_new $WebSocket [text "http://url"] ext]
+		(call $self.Reflect.construct<ext.ext>ext
+			(table.get $wat4wasm (i32.const 10)) ;; WebSocket
+			(call $self.Array.of<>ext
+
+				(table.get $wat4wasm (i32.const 3)) ;; "http://url"
+			)
+		)
+
+		;; [self_new $WebSocket [text "http://url"]]
+		(call $self.Reflect.construct<ext.ext>ext
+			(table.get $wat4wasm (i32.const 10)) ;; WebSocket
+			(call $self.Array.of<>ext
+				(table.get $wat4wasm (i32.const 3)) ;; "http://url"
+			)
+		)
+
+		;; [self_new $WebSocket ext [text "http://url"] ext]
+		(call $self.Reflect.construct<ext.ext>ext
+			(table.get $wat4wasm (i32.const 10)) ;; WebSocket
+			(call $self.Array.of<>ext
+				(table.get $wat4wasm (i32.const 3)) ;; "http://url"
+			)
+		)
+
+		;; [self_new $WebSocket ext [text "http://url"]]
+		(call $self.Reflect.construct<ext.ext>ext
+			(table.get $wat4wasm (i32.const 10)) ;; WebSocket
+			(call $self.Array.of<ext.i32.fun>ext
+				(table.get $wat4wasm (i32.const 3)) ;; "http://url"
+				(i32.const 2)
+				(ref.func $main)
+			)
+		)
 	)
 
-	(memory 10)
+	(global $wat4wasm/self.x (mut f32) (f32.const 0))
+	(global $wat4wasm/self.y (mut externref) (ref.null extern))
 
-	(global $performance.timeOrigin (mut f32) (f32.const 0))
-	(global $location.href          (mut externref) (ref.null extern))
-	(global $navigator.gpu/get      (mut externref) (ref.null extern))
 	(elem  $wat4wasm declare func $wat4wasm)
 	(func  $wat4wasm
 		(local $TextDecoder  externref)
@@ -187,7 +145,7 @@
 		(local $level/0      externref)
 
 		(block $init
-			(local.set $byteLength (i32.const 0))
+			(local.set $byteLength (i32.const 30))
 			(local.set $level/0 (global.get $self))
 
 			(block $TextDecoder
@@ -329,17 +287,104 @@
 
 		(block $text
 			(local.set $arguments (call $self.Array.of<ext>ext (local.get $buffer)))
+			(block $text<20:5> ;; "slice"
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 20))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 5))
+				(local.set $decodedText
+					(call $self.Reflect.apply<ext.ext.ext>ext
+						(local.get $decode)
+						(local.get $TextDecoder)
+						(call $self.Array.of<ext>ext
+							(call $self.Reflect.construct<ext.ext>ext
+								(local.get $Uint8Array)
+								(local.get $arguments)
+							)
+						)
+					)
+				)
 
+				(table.set $wat4wasm (i32.const  4) (local.get $decodedText))
+			)
+			(block $text<4:1> ;; "2"
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 4))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 1))
+				(local.set $decodedText
+					(call $self.Reflect.apply<ext.ext.ext>ext
+						(local.get $decode)
+						(local.get $TextDecoder)
+						(call $self.Array.of<ext>ext
+							(call $self.Reflect.construct<ext.ext>ext
+								(local.get $Uint8Array)
+								(local.get $arguments)
+							)
+						)
+					)
+				)
+
+				(table.set $wat4wasm (i32.const  1) (local.get $decodedText))
+			)
+			(block $text<25:5> ;; "entry"
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 25))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 5))
+				(local.set $decodedText
+					(call $self.Reflect.apply<ext.ext.ext>ext
+						(local.get $decode)
+						(local.get $TextDecoder)
+						(call $self.Array.of<ext>ext
+							(call $self.Reflect.construct<ext.ext>ext
+								(local.get $Uint8Array)
+								(local.get $arguments)
+							)
+						)
+					)
+				)
+
+				(table.set $wat4wasm (i32.const  5) (local.get $decodedText))
+			)
+			(block $text<5:5> ;; "index"
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 5))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 5))
+				(local.set $decodedText
+					(call $self.Reflect.apply<ext.ext.ext>ext
+						(local.get $decode)
+						(local.get $TextDecoder)
+						(call $self.Array.of<ext>ext
+							(call $self.Reflect.construct<ext.ext>ext
+								(local.get $Uint8Array)
+								(local.get $arguments)
+							)
+						)
+					)
+				)
+
+				(table.set $wat4wasm (i32.const  2) (local.get $decodedText))
+			)
+			(block $text<10:10> ;; "http://url"
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 10))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 10))
+				(local.set $decodedText
+					(call $self.Reflect.apply<ext.ext.ext>ext
+						(local.get $decode)
+						(local.get $TextDecoder)
+						(call $self.Array.of<ext>ext
+							(call $self.Reflect.construct<ext.ext>ext
+								(local.get $Uint8Array)
+								(local.get $arguments)
+							)
+						)
+					)
+				)
+
+				(table.set $wat4wasm (i32.const  3) (local.get $decodedText))
+			)
 		)
 
 		(block $self
 
 		)
 
-		(nop)
-		(call $starter)
 	)
-	(data  $wat4wasm "\")
-	(table $wat4wasm 1 externref)
+	(data  $wat4wasm "\00\00\00\00\32\69\6e\64\65\78\68\74\74\70\3a\2f\2f\75\72\6c\73\6c\69\63\65\65\6e\74\72\79")
+	(table $wat4wasm 11 externref)
 	(start $wat4wasm)
 )

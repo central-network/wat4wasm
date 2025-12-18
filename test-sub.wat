@@ -1,5 +1,5 @@
 
-    (func $starter
+    (func 
 
         (ref.extern $Navigator:gpu)
         (ref.extern $Navigator:gpu[getter])
@@ -378,43 +378,96 @@
             )
         )
 
-        (proposal: apply
-            
-            (module
-            
-                (bind $pnow
-                    (param) (result f32)
+    )
+    
+    (proposal for (apply ...)
+        
+        (module
+            ;; definitions made at module scope
 
-                    (ref.extern $self.Performance:now)  ;; func from extern
-                    (ref.extern $self.performance)      ;; this from extern
-                )
+            (bind $pnow
+                (param) (result f32)                ;; signature will be used 
+                                                    ;; for arguments (array.of) and 
+                                                    ;; type of reflect.apply's return 
 
-                (bind $mmax
-                    (param f32 f32) (result f32)
+                (ref.extern $self.Performance:now)  ;; function argument of reflect.apply
+                (ref.extern $self.performance)      ;; this argument of reflect.apply
+                (array)
+            )
 
-                    (ref.extern $self.Math.floor)       ;; func from extern
-                    (global.get $self)                  ;; this from global
-                )
+            (bind $mmax
+                (param f32 f32) (result f32)
 
-                ...
-                ...
+                (ref.extern $self.Math.floor)       ;; function argument of reflect.apply
+                (global.get $self)                  ;; this argument of reflect.apply
+                (array.of 
+                    (param f32 f32) 
+                    (result ext)
 
-                (func $call_and_return_float
-                    (result f32)
-                    
-                    (apply $pnow)
-                )
-
-                ...
-                ...
-
-                (func $call_and_find_maximum
-                    (result f32)
-                    
-                    (apply $mmax (f32.const 2.2) (f32.const 2.1))
+                    (local.get 0)
+                    (local.get 1)
                 )
             )
 
+            (bind $post
+                (param $this ext) 
+                (param $message ext) 
+                (result)
 
+                (ref.extern $self.Worker:postMesage)    ;; function argument of reflect.apply
+                (local.get 0)                           ;; this argument of reflect.apply
+                (array.of 
+                    (param ext) 
+                    (result ext)
+
+                    (local.get $message)
+                )
+            )
+
+            ;; example usage without any parameter
+            (func $call_and_return_float
+                (result f32)
+                (apply $pnow)
+            )
+
+            ;; example usage with a local parameter and constant
+            (func $call_and_find_maximum
+                (param f32)
+                (result f32)
+                (apply $mmax (f32.const 2.2) (local.get 0))
+            )
+
+            ;; a regular global which contains a worker thread object 
+            (global $worker (mut extern) (ref.null externref))
+
+            ;; detailed example usage with conversion description
+            (func $send_message_from_worker
+                (param $data ext)
+                (result)
+                
+                (apply $post 
+                    (global.get $worker) 
+                    (local.get $data)
+                )
+
+                (; conversion:
+                    
+                    1. get a copy of template (bind $post) for (apply $post)
+                    2. find parameter values from (apply $post (param N-1) (param N))
+                    3. replace template contents by order as (local N) to (param N)
+                    4. replace (bind ...) to (reflect.apply ...)
+                    5. replace (apply $post) with modified template 
+                    6. wat4wasm will handle rest of job
+
+                    - At the last of wat4wasm request will be replaced with:
+                    (call $self.Reflect.apply<ext.ext.ext>
+                        (table.get $wat4wasm (i32.const [index]))
+                        (global.get $worker) 
+                        (call $self.Array.of<ext>ext
+                            (local.get $data)
+                        )
+                    )                   
+                ;)
+            )
         )
     )

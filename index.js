@@ -20,7 +20,8 @@ const w4 = {
         i64: "i64",
         f32: "f32",
         f64: "f64",
-    }, { get: (t, p) => t[p.substring(0, 3)] ?? p }),
+        v128: "v128",
+    }, { get: (t, p) => t[p.substring(0, 3)] ?? (p && "externref" || "") }),
 
     defaultValue: new Proxy({
         i32: "i32.const 0",
@@ -30,19 +31,33 @@ const w4 = {
         fun: "ref.null func",
         ext: "ref.null extern",
         v128: "v128.const i32x4 0 0 0 0",
-    }, { get: (t, p) => t[p] ?? "ref.null extern" }),
+    }, { get: (t, p) => t[p] ?? (p && "ref.null extern" || "") }),
 
     shortType: new Proxy({
         externref: "ext",
-        funcref: "fun"
-    }, { get: (t, p) => t[p] ?? p }),
+        funcref: "fun",
+        i32: "i32",
+        i64: "i64",
+        f32: "f32",
+        f64: "f64",
+        v128: "v128",
+    }, { get: (t, p) => t[p] ?? (p && "ext" || "") }),
+
+    is_type: p => ["ext", "i32", "f32", "i64", "f64", "fun"].includes(p),
+    type_of: (p, defaultType = "") => {
+        p = `${p}`.trim().substring(0, 3);
+        if (w4.is_type(p)) return p;
+        return defaultType;
+    },
 
     encodeText: TextEncoder.prototype.encode.bind(new TextEncoder),
-    dataOffset: 0,
+    dataOffset: 4,
     externref: new Map,
+    globalize: new Map,
     textExtern: new Array,
 
     NAME_REGEXP: /[a-zA-Z0-9\@\:\*\!\=\?\#\^\&\`<>\|\%\$\.\+-_\/\\]/,
+    TYPE_REGEXP: /i32|f32|i64|f64|v128|ext|fun/g,
 
     text: function (match) {
         let text = match.blockContent;
@@ -187,9 +202,10 @@ const w4 = {
         });
 
         const propertyName = blockName.split(".").pop();
+        const resultType = match.tagSubType;
 
         const globalize = `
-            (globalized $${match.blockName} (mut ${this.longType[match.tagSubType]}) (${this.defaultValue[match.tagSubType]}))
+            (globalized $${match.blockName} (mut ${this.longType[resultType]}) (${this.defaultValue[resultType]}))
 
         ${pathWalk.map((p, i, t) => {
             switch (i) {
@@ -201,6 +217,8 @@ const w4 = {
 
                 case t.length - 1: return `
                     (pathwalk $${p} 
+
+
                         (if (call $self.Reflect.has<ext.ext>i32
                                 (local.get $level/${i - 1})
                                 (texxt "${propertyName}")
@@ -217,54 +235,66 @@ const w4 = {
                                         (texxt "${propertyName}")
                                     ) 
                                     (then
-                                        (block $descriptorKeys
-                                            (br_if $descriptorKeys 
-                                                (call $self.Reflect.has<ext.ext>i32
-                                                    (local.get $descriptor)
-                                                    (local.tee $descriptorKey (texxt "${descriptorKeys[0]}"))
-                                                )
-                                            )
-                                            
-                                            (br_if $descriptorKeys 
-                                                (call $self.Reflect.has<ext.ext>i32
-                                                    (local.get $descriptor)
-                                                    (local.tee $descriptorKey (texxt "${descriptorKeys[1]}"))
-                                                )
-                                            )
-
-                                            (local.set $descriptorKey (texxt "${descriptorKeys[2]}"))
-                                            (br_if $descriptorKeys 
-                                                (call $self.Reflect.has<ext.ext>i32
-                                                    (local.get $descriptor)
-                                                    (local.tee $descriptorKey (texxt "${descriptorKeys[2]}"))
-                                                )
-                                            )
-
-                                            (unreachable)
+                                        (local.get $descriptorContainer
+                                            (local.get $prototype)
+                                        )
+                                    )
+                                    (else
+                                        ;; object has property key but prototype hasn't
+                                        ;; which means key its objects own and
+                                        ;; descriptor defined on object
+                                        (local.set $descriptorContainer
+                                            (local.get $level/${i - 1})
                                         )
                                     )
                                 )
 
                                 (local.set $descriptor
                                     (call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
-                                        (local.get $prototype)
+                                        (local.get $descriptorContainer)
                                         (texxt "${propertyName}")
                                     )
                                 )
 
-                                
+                                (block $descriptorKeys
+                                    (br_if $descriptorKeys 
+                                        (call $self.Reflect.has<ext.ext>i32
+                                            (local.get $descriptor)
+                                            (local.tee $descriptorKey (texxt "${descriptorKeys[0]}"))
+                                        )
+                                    )
+                                    
+                                    (br_if $descriptorKeys 
+                                        (call $self.Reflect.has<ext.ext>i32
+                                            (local.get $descriptor)
+                                            (local.tee $descriptorKey (texxt "${descriptorKeys[1]}"))
+                                        )
+                                    )
+
+                                    (local.set $descriptorKey (texxt "${descriptorKeys[2]}"))
+                                    (br_if $descriptorKeys 
+                                        (call $self.Reflect.has<ext.ext>i32
+                                            (local.get $descriptor)
+                                            (local.tee $descriptorKey (texxt "${descriptorKeys[2]}"))
+                                        )
+                                    )
+
+                                    (unreachable)
+                                )
+
+                                (local.set $valueFetcher
+                                    (call $self.Reflect.get<ext.ext>ext
+                                        (local.get $descriptor)
+                                        (local.get $descriptorKey)
+                                    )
+                                )
 
                                 (if (call $self.Reflect.has<ext.ext>i32
                                         (local.get $descriptor)
                                         (texxt "${descriptorKeys[0]}")
                                     )
                                     (then 
-                                        (local.set $valueFetcher
-                                            (call $self.Reflect.get<ext.ext>ext
-                                                (local.get $descriptor)
-                                                (texxt "${descriptorKeys[0]}")
-                                            )
-                                        )
+                                        
 
                                         (local.set $value
                                             (call $self.Reflect.apply<ext.ext.ext>${resultType}
@@ -275,7 +305,6 @@ const w4 = {
                                         )
                                     )
                                     (else 
-
                                         (local.set $value
                                             (call $self.Reflect.get<ext.ext>${resultType}
                                                 (local.get $level/${i - 1})
@@ -284,8 +313,6 @@ const w4 = {
                                         )
                                     )
                                 )
-                                    
-                                
 
                                 (local.set $value 
                                     (call $self.Reflect.get<ext.ext>${resultType}
@@ -303,7 +330,7 @@ const w4 = {
                                         (local.set $descriptor
                                             (call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
                                                 (local.get $level/${i - 1})
-                                                (texxt "${p.split(".").pop()}")
+                                                (texxt "${propertyName}")
                                             )
                                         )
 
@@ -321,20 +348,20 @@ const w4 = {
                         (local.set $hasPropertyValue
                             (call $self.Reflect.has<ext.ext>i32
                                 (local.get $level/${i - 1})
-                                (texxt "${p.split(".").pop()}")
+                                (texxt "${propertyName}")
                             )
                         )
 
                         (local.set $hasOwnProperty
                             (call $self.Reflect.has<ext.ext>i32
                                 (local.get $level/${i - 1})
-                                (texxt "${p.split(".").pop()}")
+                                (texxt "${propertyName}")
                             )
                         )
 
                         (if (call $self.Reflect.has<ext.ext>i32
                                 (local.get $level/${i - 1})
-                                (texxt "${p.split(".").pop()}")
+                                (texxt "${propertyName}")
                             )
                             (then
                                 (local.set $value
@@ -363,7 +390,7 @@ const w4 = {
                         (local.set $level/${i}
                             (call $self.Reflect.get<ext.ext>ext
                                 (local.get $level/${i - 1})
-                                (texxt "${p.split(".").pop()}")
+                                (texxt "${propertyName}")
                             )
                         )
                     )
@@ -375,147 +402,10 @@ const w4 = {
         `;
 
         return globalize;
-
-        // Tip Analizi
-        const isGlobalRef = (match.tagSubType === "ref") || match.tagSubType.match(/^(i32|f32|i64|f64)$/); // Kullanıcı 'ref' dediyse Global yapalım
-        const parts = realpath.split(".");
-
-        // Eğer basit primitive (i32 vb.) ve sığ derinlikse (self.length) IMPORT kullanmaya devam edebiliriz.
-        // Ancak 'ref' (externref) ise ve derinlik ne olursa olsun, artık Global Fetch yapacağız.
-
-        if (match.tagSubType.match(/^(i32|f32|i64|f64)$/) && parts.length < 1) {
-            // Primitif ve sığ importlar (Import Object ile gelenler)
-            const [name, root = "self"] = parts.slice().reverse();
-            return String(`
-            (needed "${root}" "${name}" (global $${path} ${w4.longType[match.tagSubType]}))
-            (global.get $${path})
-        `);
-        }
-
-        // --- GLOBAL FETCH veya TABLE FETCH ---
-
-        if (false === this.externref.has(path)) {
-            let index = -1; // Global ise index yok
-
-            // Eğer Table kullanacaksak (ext) indeks ayırt
-            if (!isGlobalRef) {
-                index = TableManager.reserveIndex();
-            }
-
-            const pathKeys = realpath.split(".");
-            const realpaths = pathKeys.map((p, i, t) => t.slice(0, i).join(".")).slice(1);
-            const resultType = String(this.longType[match.tagSubType]).substring(0, 3);
-
-            let valueGetter, descriptorSetter = "";
-            const needed = [`(needed "self" "self" (global $self externref))`];
-
-            // Getter/Setter Descriptor Mantığı (Reflect.getOwnPropertyDescriptor...)
-            if (isGetter || isSetter) {
-                valueGetter = `(local.get $${realpath}/${descriptorKey})`;
-                descriptorSetter = `
-            (oninit
-                (local $${realpath} externref)
-                (local $${realpath}/${descriptorKey} externref)
-
-                (block $${realpath}
-                    (local.set $${realpath}
-                        (call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
-                            (local.get $${realpaths.at(-1)})
-                            (text "${pathKeys.at(-1)}")
-                        )
-                    )
-                )
-                
-                (block $${realpath}/${descriptorKey}
-                    (local.set $${realpath}/${descriptorKey}
-                        (call $self.Reflect.get<ext.ext>${resultType}
-                            (local.get $${realpath})
-                            (text "${descriptorKey}")
-                        )
-                    )
-                )
-            )`;
-
-                // Reflect importlarını ekle
-                needed.push(`(needed "Reflect" "get" (func $self.Reflect.get<ext.ext>${resultType} (param externref externref) (result externref)))`);
-                needed.push(`(needed "Reflect" "getOwnPropertyDescriptor" (func $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext (param externref externref) (result externref)))`);
-            }
-            else {
-                // Standart Zincirleme
-                realpaths.push(realpath);
-                valueGetter = `(local.get $${realpath})`;
-                needed.push(`(needed "Reflect" "get" (func $self.Reflect.get<ext.ext>ext (param externref externref) (result externref)))`);
-            }
-
-            // Init Kodunu İnşa Et
-            let finalSetter = "";
-
-            if (isGlobalRef) {
-                // --- GLOBAL STRATEJİSİ ---
-                // 1. init kodu çalışır, değeri bulur.
-                // 2. global.set ile global değişkene yazar.
-                finalSetter = `(global.set $${path} ${valueGetter})`;
-            } else {
-                // --- TABLE STRATEJİSİ ---
-                finalSetter = TableManager.generateSetter(index, valueGetter);
-            }
-
-            const initCode = String()
-                .concat(
-                    `(oninit 
-                (local $self externref) 
-                ${needed.join("\n")}
-            )`)
-                .concat(
-                    realpaths.map((p, i, t) => `
-            (oninit
-                (local $${p} externref)
-                (block $${p}
-                    (local.set $${p}
-                        (call $self.Reflect.get<ext.ext>ext 
-                            (local.get $${t.at(i - 1)}) 
-                            (text "${pathKeys[i]}")
-                        )
-                    )
-                )
-            )`).join("\n"))
-                .concat(descriptorSetter)
-                .concat(`(oninit 
-                    ${finalSetter}
-                )`);
-
-            // Kayıt
-            this.externref.set(path, {
-                index,
-                realpath,
-                initCode,
-                isGlobalRef // Bunu kaydediyoruz ki sonradan definition üretelim
-            });
-        }
-
-        const refData = this.externref.get(path);
-
-        if (isGlobalRef) {
-            // Global Definition (Bunu main/boot sırasında header'a eklemelisin)
-            // (needed_global ...) gibi bir tag ile dışarı fırlatabiliriz veya initCode içine yorum ekleriz.
-            // Ama en temizi: 'needed' mekanizmanı kullanarak global tanımı enjekte etmek.
-
-            return String(`
-            ${refData.initCode}
-            (globalized $${path} (mut ${this.longType[match.tagSubType]}) (${this.defaultValue[match.tagSubType]}))
-            (global.get $${path}) ;; ${path}
-        `);
-        } else {
-            // Table Getter
-            return String(`
-            ${refData.initCode}
-            ${TableManager.generateGetter(refData.index)} ;; ${path}
-        `);
-        }
     },
 
     block: function (raw = "(module)", tag = "include") {
-        const regex = new RegExp(`\\(${tag.replaceAll(/\./g, "\\\.")}`);
+        const regex = new RegExp(`\\(${tag.replaceAll(/([\.|\s|\$])/g, "\\\$1")}`);
         const match = String(raw).match(regex);
 
         if (match) {
@@ -545,6 +435,7 @@ const w4 = {
             if (charMatch && blockContent.charAt(blockContent.length - 1) === charMatch.at(0)) {
                 blockContent = blockContent.substring(1, blockContent.length - 1);
             }
+
             const [
                 tagType, tagSubType = ""
             ] = substring.substring(
@@ -552,7 +443,7 @@ const w4 = {
             ).trim().split(".");
 
             let blockName = "";
-            if (blockContent.startsWith("$")) {
+            if (blockContent.trim().startsWith("$")) {
                 let nameEnd = 0;
                 let nameLen = blockContent.length;
 
@@ -560,7 +451,7 @@ const w4 = {
                     if (nameEnd === nameLen) break;
                 }
 
-                blockName = blockContent.substring(1, nameEnd);
+                blockName = blockContent.substring(1, nameEnd).trim();
             }
 
             if (blockName) {
@@ -569,7 +460,46 @@ const w4 = {
                 ).trim() || blockContent;
             }
 
+            let type = "";
+            if (blockContent.trim().startsWith("(type ")) {
+                const typeStart = blockContent.indexOf("(type ");
+                const typeEnd = blockContent.indexOf(")", typeStart) + 1;
+
+                type = blockContent.substring(typeStart, typeEnd);
+                blockContent = blockContent.substring(
+                    blockContent.indexOf(type) + type.length
+                );
+            }
+
+            let param = "";
+            if (blockContent.trim().startsWith("(param ")) {
+                const paramStart = blockContent.indexOf("(param ");
+                const paramEnd = blockContent.indexOf(")", paramStart) + 1;
+
+                param = blockContent.substring(paramStart, paramEnd);
+                blockContent = blockContent.substring(
+                    blockContent.indexOf(param) + param.length
+                );
+            }
+
+            let result = "";
+            if (blockContent.trim().startsWith("(result ")) {
+                const resultStart = blockContent.indexOf("(result ");
+                const resultEnd = blockContent.indexOf(")", resultStart) + 1;
+
+                result = blockContent.substring(resultStart, resultEnd);
+                blockContent = blockContent.substring(
+                    blockContent.indexOf(result) + result.length
+                );
+            }
+
+            const signature = [type, param, result].filter(Boolean).join(" ").trim();
+
             Reflect.defineProperty(match, "tagType", { value: tagType, enumerable: true });
+            Reflect.defineProperty(match, "param", { value: param, enumerable: true });
+            Reflect.defineProperty(match, "result", { value: result, enumerable: true });
+            Reflect.defineProperty(match, "type", { value: type, enumerable: true });
+            Reflect.defineProperty(match, "signature", { value: signature, enumerable: true });
             Reflect.defineProperty(match, "tagSubType", { value: tagSubType, enumerable: true });
             Reflect.defineProperty(match, "blockName", { value: blockName, enumerable: true });
             Reflect.defineProperty(match, "blockContent", { value: blockContent, enumerable: true });
@@ -731,6 +661,8 @@ const w4 = {
         let funcrefs = "$wat4wasm";
 
         return raw.substring(0, raw.lastIndexOf(")")).concat(String(`
+            ${Array.from(this.globalize.values()).map(g => g.def).join("\n")}
+            
             (elem  $wat4wasm declare func ${funcrefs})
             (func  $wat4wasm ;; stack limit exceed ;;
                 ${Array.from(initFuncBodyParts.head).sort(sorter).reverse().join("\n")}\n
@@ -761,6 +693,172 @@ const w4 = {
 
     remove: function (raw, match) {
         return w4.replace(raw, match, "");
+    },
+
+    ref_extern: function (match) {
+
+        let index = 0,
+            label = match.blockName;
+
+        if (this.externref.has(label) === false) {
+
+            index = TableManager.reserveIndex();
+
+            this.externref.set(label, {
+                index: index,
+                raw: match.raw
+            });
+        }
+
+        return TableManager.generateGetter(
+            this.externref.get(label).index
+        ).concat(` ;; ${match.blockName}`);
+    },
+
+    global_get: function (match) {
+        const label = match.blockName;
+
+        if ((this.globalize.has(label) === false) ||
+            (this.globalize.get(label).type === null)
+        ) {
+            let type = Array.from(match.raw.matchAll(this.TYPE_REGEXP)).map(t => t.pop()).filter(Boolean).pop();
+            if (this.is_type(type) === false) { type = null; }
+
+            const mut = `(mut ${this.longType[type]})`;
+            const val = `(${this.defaultValue[type]})`;
+
+            this.globalize.set(label, {
+                raw: match.raw,
+                type: type,
+                def: `(global $wat4wasm/${label} ${mut} ${val})`
+            });
+        }
+
+        return `(global.get $wat4wasm/${label})`;
+    },
+
+    self_get: function (match) {
+
+        const label = `self.${match.blockName}`.replace("self.self", "self");
+        const chain = label.split(".");
+
+        const blockContent = match.blockContent.split("\n").filter(l => l.trim() || !l.trim().startsWith(";;")).join("\n").trim();
+        const propertyKey = chain.pop();
+        const rootPathWalk = chain.join(".");
+
+        const resultTypeStart = blockContent.lastIndexOf(")") + 1;
+        const resultType = w4.type_of(blockContent.substring(
+            resultTypeStart
+        ).trim().split(" ").pop());
+
+        return `(call $self.Reflect.get<ext.ext>${resultType} 
+            (ref.extern $${rootPathWalk}) 
+            (text "${propertyKey}")
+        )`;
+    },
+
+    self_set: function (match) {
+
+        const label = `self.${match.blockName}`.replace("self.self", "self");
+        const chain = label.split(".");
+
+        const blockContent = match.blockContent.split("\n").filter(l => l.trim() || !l.trim().startsWith(";;")).join("\n").trim();
+        const propertyKey = chain.pop();
+        const rootPathWalk = chain.join(".");
+
+        const valueTypeEnd = blockContent.indexOf("(");
+        const resultTypeStart = blockContent.lastIndexOf(")") + 1;
+        const valueBlockRaw = blockContent.substring(
+            valueTypeEnd, resultTypeStart,
+        ).trim();
+
+        const valueType = w4.type_of(blockContent.substring(
+            0, valueTypeEnd
+        ).trim().split(" ").pop(), "ext");
+
+        const resultType = w4.type_of(blockContent.substring(
+            resultTypeStart
+        ).trim().split(" ").pop());
+
+        return `(call $self.Reflect.set<ext.ext.${valueType}>${resultType} 
+            (ref.extern $${rootPathWalk}) 
+            (text "${propertyKey}")
+            ${valueBlockRaw}
+        )`;
+    },
+
+    self_has: function (match) {
+
+        const label = `self.${match.blockName}`.replace("self.self", "self");
+        const chain = label.split(".");
+
+        const blockContent = match.blockContent.split("\n").filter(l => l.trim() || !l.trim().startsWith(";;")).join("\n").trim();
+        const propertyKey = chain.pop();
+        const rootPathWalk = chain.join(".");
+
+        const valueTypeEnd = blockContent.indexOf("(");
+        const resultTypeStart = blockContent.lastIndexOf(")") + 1;
+        const valueBlockRaw = blockContent.substring(
+            valueTypeEnd, resultTypeStart,
+        ).trim();
+
+        const valueType = w4.type_of(blockContent.substring(
+            0, valueTypeEnd
+        ).trim().split(" ").pop(), "ext");
+
+        const resultType = w4.type_of(blockContent.substring(
+            resultTypeStart
+        ).trim().split(" ").pop(), "i32");
+
+        return `(call $self.Reflect.has<ext.${valueType}>${resultType} 
+            (self.get $${match.blockName} ext)
+            ${valueBlockRaw}
+        )`;
+    },
+
+    self_new: function (match) {
+
+        const label = `self.${match.blockName}`.replace("self.self", "self");
+
+        let blockContent = match.blockContent.split("\n").filter(l => l.trim() || !l.trim().startsWith(";;")).join("\n").trim();
+        if (blockContent.endsWith("ext")) {
+            blockContent = blockContent.substring(0, blockContent.length - 3);
+        }
+
+        if (blockContent.indexOf("(") !== -1) {
+            blockContent = blockContent.substring(blockContent.indexOf("("));
+        }
+
+        return `(call $self.Reflect.construct<ext.ext>ext
+            (ref.extern $${match.blockName}) 
+            (array 
+                ${match.signature}
+                ${blockContent.trim()}
+            )
+        )`;
+    },
+
+    array_of: function (match) {
+
+        const blockContent = match.blockContent.split("\n").filter(l => l.trim() || !l.trim().startsWith(";;")).join("\n").trim();
+        let argsTypeJoin = match.param.split(/\s+|\)|\(/).filter(w4.is_type).join(".");
+
+        console.log(match)
+
+        return `(call $self.Array.of<${argsTypeJoin}>ext 
+            ${blockContent}
+        )`;
+    },
+
+    i32_extern: function (match) {
+        let index = 0,
+            label = match.blockName;
+
+        if (this.externref.has(label)) {
+            index = this.externref.get(label).index
+        }
+
+        return `(i32.const ${index})`;
     },
 
     generateFinalArgs: function () {
@@ -892,13 +990,16 @@ const w4 = {
         `.trim();
 
         return { textLocals, prepareBlock };
-    }
+    },
 }
 
 
 let iteration = 0;
 function wat4wasm(wat) {
     let match = { tagType: "boot" };
+    wat = wat.replaceAll(/\[(.)et(ter|)\]/g, `/$1et`);
+    wat = wat.replaceAll(/TypedArray(\:|\.)/g, `Uint8Array.__proto__$1`);
+    wat = wat.replaceAll(/\$(.[^\s]*)\:(.)/g, `$$$1.prototype.$2`);
 
     while (match) {
         console.log(`☘️ cursing! for \x1b[36m${(++iteration).toString().padStart(3, " ")}\x1b[0m times.. \x1b[33m${match.tagType}\x1b[0m`.trim());
@@ -918,8 +1019,38 @@ function wat4wasm(wat) {
             continue;
         }
 
-        if (match = w4.block(wat, "self.")) {
-            wat = w4.replace(wat, match, w4.self(match));
+        if (match = w4.block(wat, "array ")) {
+            wat = w4.replace(wat, match, w4.array_of(match));
+            continue;
+        }
+
+        if (match = w4.block(wat, "self.has")) {
+            wat = w4.replace(wat, match, w4.self_has(match));
+            continue;
+        }
+
+        if (match = w4.block(wat, "self.new")) {
+            wat = w4.replace(wat, match, w4.self_new(match));
+            continue;
+        }
+
+        if (match = w4.block(wat, "self.get")) {
+            wat = w4.replace(wat, match, w4.self_get(match));
+            continue;
+        }
+
+        if (match = w4.block(wat, "self.set")) {
+            wat = w4.replace(wat, match, w4.self_set(match));
+            continue;
+        }
+
+        if (match = w4.block(wat, "ref.extern")) {
+            wat = w4.replace(wat, match, w4.ref_extern(match));
+            continue;
+        }
+
+        if (match = w4.block(wat, "global.get $self.")) {
+            wat = w4.replace(wat, match, w4.global_get(match));
             continue;
         }
 
@@ -937,6 +1068,10 @@ function wat4wasm(wat) {
             wat = w4.oninit(wat, match);
             continue;
         }
+    }
+
+    while (match = w4.block(wat, "i32.extern")) {
+        wat = w4.replace(wat, match, w4.i32_extern(match));
     }
 
     const { textLocals, prepareBlock } = w4.generateFinalArgs();
