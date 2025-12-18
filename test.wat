@@ -68,7 +68,15 @@
             (param ext i32 fun)
             (result ext)
 
-            (text "http://url")
+            (array 
+                (param ext ext fun i32)
+                (result ext)
+
+                (text "http://url")
+                (ref.extern $self.location.pathName)
+                (ref.func $main)
+                (i32.const 2)
+            )
             (i32.const 2)
             (ref.func $main)
         )

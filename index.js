@@ -54,6 +54,7 @@ const w4 = {
     dataOffset: 4,
     externref: new Map,
     globalize: new Map,
+    needimport: new Set,
     textExtern: new Array,
 
     NAME_REGEXP: /[a-zA-Z0-9\@\:\*\!\=\?\#\^\&\`<>\|\%\$\.\+-_\/\\]/,
@@ -81,15 +82,19 @@ const w4 = {
                 text = text.substring(0, 20) + ".."
             }
 
-            firstTimeSetterInitTickets = `
-            (needed "Reflect" "construct" (func $self.Reflect.construct<ext.ext>ext (param externref externref) (result externref)))
-            (needed "Reflect" "set" (func $self.Reflect.set<ext.i32.i32> (param externref i32 i32) (result)))
-            (needed "Reflect" "set" (func $self.Reflect.set<ext.i32.ext> (param externref i32 externref) (result)))
-            (needed "Reflect" "get" (func $self.Reflect.get<ext.ext>ext (param externref externref) (result externref)))
-            (needed "Reflect" "apply" (func $self.Reflect.apply<ext.ext.ext>ext (param externref externref externref) (result externref)))
-            (needed "Array" "of" (func $self.Array.of<ext>ext (param externref) (result externref)))
-            (needed "String" "fromCharCode" (global $self.String.fromCharCode externref))
+            let importBlocks = `
+            (import "Array" "of" (func $self.Array.of<ext>ext (param externref) (result externref)))
+            (import "Reflect" "construct" (func $self.Reflect.construct<ext.ext>ext (param externref externref) (result externref)))
+            (import "Reflect" "set" (func $self.Reflect.set<ext.i32.i32> (param externref i32 i32) (result)))
+            (import "Reflect" "set" (func $self.Reflect.set<ext.i32.ext> (param externref i32 externref) (result)))
+            (import "Reflect" "get" (func $self.Reflect.get<ext.ext>ext (param externref externref) (result externref)))
+            (import "Reflect" "apply" (func $self.Reflect.apply<ext.ext.ext>ext (param externref externref externref) (result externref)))
+            (import "String" "fromCharCode" (global $self.String.fromCharCode externref))
+            `.split(/\n/g).map(b => b.trim()).filter(Boolean).filter(b => !this.needimport.has(b)).forEach(importCodeBlock => {
+                this.needimport.add(importCodeBlock)
+            });
 
+            firstTimeSetterInitTickets = `            
             (oninit
                 (block $text<${offset}:${length}> ;; "${text}"
                     (call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const ${offset}))
@@ -494,7 +499,9 @@ const w4 = {
             }
 
             const signature = [type, param, result].filter(Boolean).join(" ").trim();
+            const pathName = blockName.split(/[^\w|\.]/gi).at(0);
 
+            Reflect.defineProperty(match, "pathName", { value: pathName, enumerable: true });
             Reflect.defineProperty(match, "tagType", { value: tagType, enumerable: true });
             Reflect.defineProperty(match, "param", { value: param, enumerable: true });
             Reflect.defineProperty(match, "result", { value: result, enumerable: true });
@@ -658,25 +665,33 @@ const w4 = {
             textDataHex
         ).map(c => c.toString(16).padStart(2, 0)).join("\\");
 
-        let funcrefs = "$wat4wasm";
-
-        return raw.substring(0, raw.lastIndexOf(")")).concat(String(`
-            ${Array.from(this.globalize.values()).map(g => g.def).join("\n")}
-            
-            (elem  $wat4wasm declare func ${funcrefs})
-            (func  $wat4wasm ;; stack limit exceed ;;
+        raw = raw.replace("(module", `(module\n`.concat(Array.from(this.needimport).join("\n")));
+        raw = raw.substring(0, raw.lastIndexOf(")"));
+        raw = raw.concat(Array.from(this.globalize.values()).map(g => g.def).join("\n"));
+        raw = raw.concat(`
+            (elem  $wat4wasm declare func $wat4wasm)
+            (func  $wat4wasm
                 ${Array.from(initFuncBodyParts.head).sort(sorter).reverse().join("\n")}\n
                 ${Array.from(initFuncBodyParts.blocks).join("\n\n")}\n
                 ${Array.from(initFuncBodyParts.table_set).sort(sorter).reverse().join("\n\n")}
                 
-                (nop)${starter}) 
+                (nop)${starter}
+            ) 
             (data  $wat4wasm "\\${textDataHex}")
             ${TableManager.generateTableDefinition()}
             (start $wat4wasm)
-        `)).concat(")").replace(/\n\s*\n\s*\n/g, '\n\n').split("\n").filter((l, i, p) => {
-            if (l.trim()) return true
+        `);
+
+        raw = raw.concat(")");
+        raw = raw.replaceAll(" )", ")");
+        raw = raw.replace(/\n\s*\n\s*\n/g, '\n\n');
+        raw = raw.split("\n").filter((l, i, p) => {
+            if (l.trim()) { return true }
+            if (i === 0) { return true }
             return !p[i - 1].trim().match(/\(((global|table|local)\.)|(import)/);
         }).join("\n");
+
+        return raw;
     },
 
     replace: function (raw, match, replaceWith = "") {
@@ -818,7 +833,6 @@ const w4 = {
 
     self_new: function (match) {
 
-        const label = `self.${match.blockName}`.replace("self.self", "self");
 
         let blockContent = match.blockContent.split("\n").filter(l => l.trim() || !l.trim().startsWith(";;")).join("\n").trim();
         if (blockContent.endsWith("ext")) {
@@ -839,13 +853,17 @@ const w4 = {
     },
 
     array_of: function (match) {
-
         const blockContent = match.blockContent.split("\n").filter(l => l.trim() || !l.trim().startsWith(";;")).join("\n").trim();
-        let argsTypeJoin = match.param.split(/\s+|\)|\(/).filter(w4.is_type).join(".");
+        const argsTypeDotJoin = match.param.split(/\s+|\)|\(/).filter(w4.is_type).join(".");
+        const argsTypeLongJoin = match.param.split(/\s+|\)|\(/).filter(w4.is_type).map(t => this.longType[t]).join(" ");
+        const selfCallFuncName = `$self.Array.of<${argsTypeDotJoin}>ext`;
+        const importCodeBlock = `(import "Array" "of" (func ${selfCallFuncName} (param ${argsTypeLongJoin}) (result externref)))`;
 
-        console.log(match)
+        if (this.needimport.has(importCodeBlock) === false) {
+            this.needimport.add(importCodeBlock);
+        }
 
-        return `(call $self.Array.of<${argsTypeJoin}>ext 
+        return `(call ${selfCallFuncName} 
             ${blockContent}
         )`;
     },

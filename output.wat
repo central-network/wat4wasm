@@ -1,11 +1,14 @@
 (module
-	(import "String" "fromCharCode" (global $self.String.fromCharCode         externref))
 	(import "Array" "of"            (func $self.Array.of<ext>ext              (param externref) (result externref)))
-	(import "Reflect" "apply"       (func $self.Reflect.apply<ext.ext.ext>ext (param externref externref externref) (result externref)))
-	(import "Reflect" "get"         (func $self.Reflect.get<ext.ext>ext       (param externref externref) (result externref)))
-	(import "Reflect" "set"         (func $self.Reflect.set<ext.i32.ext>      (param externref i32 externref) (result)))
-	(import "Reflect" "set"         (func $self.Reflect.set<ext.i32.i32>      (param externref i32 i32) (result)))
 	(import "Reflect" "construct"   (func $self.Reflect.construct<ext.ext>ext (param externref externref) (result externref)))
+	(import "Reflect" "set"         (func $self.Reflect.set<ext.i32.i32>      (param externref i32 i32) (result)))
+	(import "Reflect" "set"         (func $self.Reflect.set<ext.i32.ext>      (param externref i32 externref) (result)))
+	(import "Reflect" "get"         (func $self.Reflect.get<ext.ext>ext       (param externref externref) (result externref)))
+	(import "Reflect" "apply"       (func $self.Reflect.apply<ext.ext.ext>ext (param externref externref externref) (result externref)))
+	(import "String" "fromCharCode" (global $self.String.fromCharCode         externref))
+	(import "Array" "of"            (func $self.Array.of<ext.ext.fun.i32>ext  (param externref externref funcref i32) (result externref)))
+	(import "Array" "of"            (func $self.Array.of<>ext                 (param) (result externref)))
+	(import "Array" "of"            (func $self.Array.of<ext.i32.fun>ext      (param externref i32 funcref) (result externref)))
 	(func $main
 
 		;; {ref_extern $self.x} :
@@ -121,7 +124,12 @@
 		(call $self.Reflect.construct<ext.ext>ext
 			(table.get $wat4wasm (i32.const 10)) ;; WebSocket
 			(call $self.Array.of<ext.i32.fun>ext
-				(table.get $wat4wasm (i32.const 3)) ;; "http://url"
+				(call $self.Array.of<ext.ext.fun.i32>ext
+					(table.get $wat4wasm (i32.const 3)) ;; "http://url"
+					(table.get $wat4wasm (i32.const 11)) ;; self.location.pathName
+					(ref.func $main)
+					(i32.const 2)
+				)
 				(i32.const 2)
 				(ref.func $main)
 			)
@@ -130,7 +138,6 @@
 
 	(global $wat4wasm/self.x (mut f32) (f32.const 0))
 	(global $wat4wasm/self.y (mut externref) (ref.null extern))
-
 	(elem  $wat4wasm declare func $wat4wasm)
 	(func  $wat4wasm
 		(local $TextDecoder  externref)
@@ -385,6 +392,6 @@
 
 	)
 	(data  $wat4wasm "\00\00\00\00\32\69\6e\64\65\78\68\74\74\70\3a\2f\2f\75\72\6c\73\6c\69\63\65\65\6e\74\72\79")
-	(table $wat4wasm 11 externref)
+	(table $wat4wasm 12 externref)
 	(start $wat4wasm)
 )
