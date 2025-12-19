@@ -133,8 +133,8 @@ const w4 = {
             blockName = `self.${blockName}`
         }
 
-        const params = signature.param.blockContent.split(" ").map(p => w4.shortType[p]).join(".");;
-        const result = signature.result.blockContent.split(" ").map(p => w4.shortType[p]).join(".");;
+        const params = signature.param.blockContent.split(" ").map(p => w4.type_of(p)).join(".");
+        const result = signature.result.blockContent.split(" ").map(p => w4.type_of(p)).join(".");
 
         const signedFuncName = `$${blockName}<${params}>${result}`;
         const callerArguments = match.blockContent
@@ -187,6 +187,8 @@ const w4 = {
             (globalized $${match.blockName} (mut ${this.longType[resultType]}) (${this.defaultValue[resultType]}))
 
         ${pathWalk.map((p, i, t) => {
+            return;
+
             switch (i) {
                 case 0: return `
                     (pathwalk $${p} 
@@ -448,15 +450,24 @@ const w4 = {
 
             let blockName = "";
             if (blockContent.trim().startsWith("$")) {
-                let nameEnd = 0;
+                let nameStart = 0;
                 let nameLen = blockContent.length;
 
-                while (blockContent.charAt(++nameEnd).match(w4.NAME_REGEXP)) {
+                while (blockContent.charAt(nameStart++) === "$") {
+                    break;
+                }
+
+                let nameEnd = nameStart;
+                let char = ";"
+                while (char = blockContent.charAt(nameEnd++)) {
+                    if (!char.trim()) break;
+                    if (char === ")") break;
                     if (nameEnd === nameLen) break;
                 }
 
-                blockName = blockContent.substring(1, nameEnd).trim();
+                blockName = blockContent.substring(nameStart, nameEnd).trim();
             }
+
 
             if (blockName) {
                 blockContent = blockContent.substring(
@@ -500,6 +511,7 @@ const w4 = {
             const signature = [type, param, result].filter(Boolean).join(" ").trim();
             const pathName = blockName.split(/[^\w|\.]/gi).at(0);
             const hasSelfPath = pathName.startsWith("self");
+            const $name = `$${blockName}`;
 
             Reflect.defineProperty(match, "pathName", { value: pathName, enumerable: true });
             Reflect.defineProperty(match, "tagType", { value: tagType, enumerable: true });
@@ -509,6 +521,7 @@ const w4 = {
             Reflect.defineProperty(match, "signature", { value: signature, enumerable: true });
             Reflect.defineProperty(match, "tagSubType", { value: tagSubType, enumerable: true });
             Reflect.defineProperty(match, "blockName", { value: blockName, enumerable: true });
+            Reflect.defineProperty(match, "$name", { value: $name, enumerable: true });
             Reflect.defineProperty(match, "blockContent", { value: blockContent, enumerable: true });
             Reflect.defineProperty(match, "raw", { value: substring, enumerable: false });
             Reflect.defineProperty(match, "input", { value: match.input, enumerable: false });
@@ -693,12 +706,7 @@ const w4 = {
             return bLen > aLen;
         };
 
-        let starter = w4.block(raw, "start") || "";
-        if (starter) {
-            raw = w4.remove(raw, starter);
-            starter = `
-            (call $${starter.blockName})`;
-        }
+
 
         let textDataHex = new Uint8Array(this.dataOffset);
 
@@ -723,13 +731,12 @@ const w4 = {
             (func   $wat4wasm
                 ${Array.from(initFuncBodyParts.head).sort(sorter).reverse().join("\n")}\n
                 ${Array.from(initFuncBodyParts.blocks).join("\n\n")}\n
-                ${Array.from(initFuncBodyParts.table_set).sort(sorter).reverse().join("\n\n")}
-                
-                ${starter}) 
+                ${Array.from(initFuncBodyParts.table_set).sort(sorter).reverse().join("\n\n")}    
+            ) 
             (data   $wat4wasm "\\${textDataHex}")
             ${TableManager.generateTableDefinition()}
             (start  $wat4wasm)
-            (global $wat4wasm (mut extern) (ref.null externef))
+            (global $wat4wasm (mut externref) (ref.null extern))
             ${wat4Memory}
         )`;
     },
@@ -897,9 +904,11 @@ const w4 = {
         const argsTypeDotJoin = match.param.split(/\s+|\)|\(/).filter(w4.is_type).join(".");
         const selfCallFuncName = `$self.Array.of<${argsTypeDotJoin}>ext`;
 
-        return `(call ${selfCallFuncName} 
+        return `
+        (call ${selfCallFuncName} 
             ${blockContent}
-        )`;
+        )
+        `;
     },
 
     i32_extern: function (match) {
@@ -936,7 +945,7 @@ const w4 = {
                 (local.set $arguments (call $self.Array.of<ext>ext (ref.null extern)))
                 
                 ${"TextDecoder".split("").map(c => c.charCodeAt()).map((c, i) => `
-                (call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const ${i}) (i32.const ${c.toString().padStart(3, " ")}))`).join("")}
+                (call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const ${i.toString().padStart(2, " ")}) (i32.const ${c.toString().padStart(3, " ")})) ;; ${String.fromCharCode(c)}`).join("")}
 
                 (local.set $TextDecoder
                     (call $self.Reflect.construct<ext.ext>ext
@@ -957,7 +966,7 @@ const w4 = {
                 (local.set $arguments (call $self.Array.of<ext>ext (ref.null extern)))
 
                 ${"decode".split("").map(c => c.charCodeAt()).map((c, i) => `
-                (call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const ${i}) (i32.const ${c.toString().padStart(3, " ")}))`).join("")}
+                (call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const ${i.toString().padStart(2, " ")}) (i32.const ${c.toString().padStart(3, " ")})) ;; ${String.fromCharCode(c)}`).join("")}
 
                 (local.set $decode
                     (call $self.Reflect.get<ext.ext>ext
@@ -975,7 +984,7 @@ const w4 = {
                 (local.set $arguments (call $self.Array.of<ext>ext (ref.null extern)))
 
                 ${"Uint8Array".split("").map(c => c.charCodeAt()).map((c, i) => `
-                (call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const ${i}) (i32.const ${c.toString().padStart(3, " ")}))`).join("")}
+                (call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const ${i.toString().padStart(2, " ")}) (i32.const ${c.toString().padStart(3, " ")})) ;; ${String.fromCharCode(c)}`).join("")}
 
                 (local.set $Uint8Array
                     (call $self.Reflect.get<ext.ext>ext
@@ -1089,6 +1098,14 @@ function redefineImports(source) {
         else { selfImports.set(blockName, match.generatedImportCode); }
     }
 
+    if (selfImports.has("$self") === false) {
+        selfImports.set("$self", `(import "self" "self" (global $self externref))`)
+    }
+
+    if (selfImports.has("$self.String.fromCharCode") === false) {
+        selfImports.set("$self.String.fromCharCode", `(import "String" "fromCharCode" (global $self.String.fromCharCode externref))`)
+    }
+
     const sorter = (a, b) => {
         const aLen = a.split(/\s+\(/g).at(0).length;
         const bLen = b.split(/\s+\(/g).at(0).length;
@@ -1134,54 +1151,243 @@ function wat4wasm(wat) {
             continue;
         }
 
-        if (match = w4.block(wat, "array ")) {
-            wat = w4.replace(wat, match, w4.array_of(match));
-            continue;
+    }
+
+    let index;
+    let pathWalks = [];
+    let replaceRaws = new Map;
+
+    index = -1;
+    while (match = w4.block(wat, "table.get $self.", ++index)) {
+
+        let extern_index;
+        let pathWalker = "";
+
+        if (false === w4.externref.has(match.$name)) {
+            extern_index = TableManager.reserveIndex();
+
+            w4.externref.set(match.$name, {
+                index: extern_index
+            });
+
+            const pathWalk = {
+                iBlocks: [],
+                walkingKeys: match.pathName.split("."),
+                walkingPaths: match.pathName.split(".").map((w, i, a) => a.slice(0, i).concat(w).join("."))
+            };
+
+            const propertyKey = pathWalk.walkingKeys.pop();
+            const propertyPath = pathWalk.walkingPaths.pop();
+            const descriptorKey = match.$name.split("/").at(1) || "value";
+
+            let step = 0;
+            let prevPath = pathWalk.walkingKeys.at(step);
+
+            while (++step < pathWalk.walkingPaths.length) {
+                const stepKey = pathWalk.walkingKeys.at(step);
+                const stepPath = pathWalk.walkingPaths.at(step);
+
+                pathWalk.iBlocks.push(`\
+                (oninit
+                    (block $${stepPath}
+                        (local.set $${stepPath}
+                            (call $self.Reflect.get<ext.ext>ext
+                                (local.get $${prevPath})
+                                (text "${stepKey}")
+                            )
+                        )
+                    )
+                )`);
+
+                prevPath = stepPath;
+            }
+
+            switch (descriptorKey) {
+                case "value":
+                    pathWalk.iBlocks.push(`\
+                    (oninit
+                        (block $${propertyPath}
+                            (local.set $${propertyPath}
+                                (call $self.Reflect.get<ext.ext>ext
+                                    (local.get $${prevPath})
+                                    (text "${propertyKey}")
+                                )
+                            )
+                        )
+                        ${TableManager.generateSetter(extern_index, `(local.get $${propertyPath})`)}
+                    )
+                    `);
+                    break;
+
+                case "get":
+                case "set": pathWalk.iBlocks.push(`
+                (oninit
+                    (block $${propertyPath}
+                        (local.set $${propertyPath}
+                            (call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
+                                (local.get $${prevPath})
+                                (text "${propertyKey}")
+                            )
+                        )
+                    )
+                )
+                    
+                (oninit
+                    (block $${propertyPath}/${descriptorKey}
+                        (local.set $${propertyPath}/${descriptorKey}
+                            (call $self.Reflect.get<ext.ext>ext
+                                (local.get $${propertyPath})
+                                (text "${descriptorKey}")
+                            )
+                        )
+                        ${TableManager.generateSetter(extern_index, `(local.get $${propertyPath}/${descriptorKey})`)}
+                    )
+                )`);
+                    break;
+            }
+
+            pathWalker = String("\n").concat(pathWalk.iBlocks.join("\n"))
         }
 
-        if (match = w4.block(wat, "self.has")) {
-            wat = w4.replace(wat, match, w4.self_has(match));
-            continue;
-        }
+        if (replaceRaws.has(match.raw) === false) {
+            extern_index = w4.externref.get(
+                match.$name
+            ).index;
 
-        if (match = w4.block(wat, "self.new")) {
-            wat = w4.replace(wat, match, w4.self_new(match));
-            continue;
-        }
-
-        if (match = w4.block(wat, "self.get")) {
-            wat = w4.replace(wat, match, w4.self_get(match));
-            continue;
-        }
-
-        if (match = w4.block(wat, "self.set")) {
-            wat = w4.replace(wat, match, w4.self_set(match));
-            continue;
-        }
-
-        if (match = w4.block(wat, "ref.extern")) {
-            wat = w4.replace(wat, match, w4.ref_extern(match));
-            continue;
-        }
-
-        if (match = w4.block(wat, "global.get $self.")) {
-            wat = w4.replace(wat, match, w4.global_get(match));
-            continue;
-        }
-
-        if (match = w4.block(wat, "globalized")) {
-            wat = w4.globalized(wat, match);
-            continue;
-        }
-
-        if (match = w4.block(wat, "oninit")) {
-            wat = w4.oninit(wat, match);
-            continue;
+            replaceRaws.set(match.raw,
+                TableManager
+                    .generateGetter(extern_index)
+                    .concat(` ;; ${match.$name}\n`)
+                    .concat(pathWalker)
+            );
         }
     }
 
-    while (match = w4.block(wat, "i32.extern")) {
+    index = -1;
+    while (match = w4.block(wat, "global.get $self.", ++index)) {
+
+        const label = match.$name;
+        let pathWalker = "";
+
+        if (w4.globalize.has(label) === false) {
+
+            let type = Array.from(match.raw.matchAll(w4.TYPE_REGEXP)).map(t => t.pop()).filter(Boolean).pop();
+            if (w4.is_type(type) === false) { type = "ext"; }
+
+            const mut = `(mut ${w4.longType[type]})`;
+            const val = `(${w4.defaultValue[type]})`;
+
+            w4.globalize.set(label, {
+                raw: match.raw,
+                type: type,
+                def: `(global ${label} ${mut} ${val})`,
+                getter: `(global.get ${label})`,
+            });
+
+            const pathWalk = {
+                iBlocks: [],
+                walkingKeys: match.pathName.split("."),
+                walkingPaths: match.pathName.split(".").map((w, i, a) => a.slice(0, i).concat(w).join("."))
+            };
+
+            const propertyKey = pathWalk.walkingKeys.pop();
+            const propertyPath = pathWalk.walkingPaths.pop();
+            const descriptorKey = match.$name.split("/").at(1) || "value";
+
+            let step = 0;
+            let prevPath = pathWalk.walkingKeys.at(step);
+
+            while (++step < pathWalk.walkingPaths.length) {
+                const stepKey = pathWalk.walkingKeys.at(step);
+                const stepPath = pathWalk.walkingPaths.at(step);
+
+                pathWalk.iBlocks.push(`\
+                (oninit
+                    (block $${stepPath}
+                        (local.set $${stepPath}
+                            (call $self.Reflect.get<ext.ext>ext
+                                (local.get $${prevPath})
+                                (text "${stepKey}")
+                            )
+                        )
+                    )
+                )`);
+
+                prevPath = stepPath;
+            }
+
+            switch (descriptorKey) {
+                case "value":
+                    pathWalk.iBlocks.push(`\
+                    (oninit
+                        (block $${propertyPath}
+                            (local.set $${propertyPath}
+                                (call $self.Reflect.get<ext.ext>ext
+                                    (local.get $${prevPath})
+                                    (text "${propertyKey}")
+                                )
+                            )
+
+                            (global.set $${label} (local.get $${propertyPath}))
+                        )
+                    )`);
+                    break;
+
+                case "get":
+                case "set": pathWalk.iBlocks.push(`
+                (oninit
+                    (block $${propertyPath}
+                        (local.set $${propertyPath}
+                            (call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
+                                (local.get $${prevPath})
+                                (text "${propertyKey}")
+                            )
+                        )
+                    )
+                )`, `
+                (oninit
+                    (block $${propertyPath}/${descriptorKey}
+                        (local.set $${propertyPath}/${descriptorKey}
+                            (call $self.Reflect.get<ext.ext>ext
+                                (local.get $${propertyPath})
+                                (text "${descriptorKey}")
+                            )
+                        )
+
+                        (global.set $${label} (local.get $${propertyPath}/${descriptorKey}))
+                    )
+                )`);
+                    break;
+            }
+
+            pathWalker = String("\n").concat(pathWalk.iBlocks.join("\n"))
+        }
+
+        if (replaceRaws.has(match.raw) === false) {
+            replaceRaws.set(match.raw, `(global.get $${label}) ${pathWalker}`)
+        }
+    }
+
+    replaceRaws.forEach((replaceWith, search) => {
+        wat = wat.replaceAll(search, replaceWith);
+    });
+
+
+    while (match = w4.block(wat, "text")) {
+        wat = w4.replace(wat, match, w4.text(match));
+    }
+
+    index = -1;
+    while (match = w4.block(wat, "i32.extern", ++index)) {
         wat = w4.replace(wat, match, w4.i32_extern(match));
+    }
+
+    while (match = w4.block(wat, "array")) {
+        wat = w4.replace(wat, match, w4.array_of(match));
+    }
+
+    while (match = w4.block(wat, "oninit")) {
+        wat = w4.oninit(wat, match);
     }
 
     const { textLocals, prepareBlock } = w4.generateFinalArgs();

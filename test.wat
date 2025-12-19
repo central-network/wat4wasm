@@ -1,16 +1,28 @@
 (module
 
+    (import "console" "warn" (func $warn (param externref)))
+
     (func $main
 
-        ;; {ref_extern $self.x} :
-        (self.extern $location.href) 
-        (drop)
+        (text "GPUAdapter")
+        (call $warn)
 
-        (self.i32 $location.href) 
-        (drop)
+        (table.get $self.GPUAdapter)
+        (call $warn)
 
-        (self.get $location.href ext) 
-        (drop)
+        (table.get $self.GPUAdapter:requestDevice)
+        (call $warn)
+
+        (table.get $self.MessageEvent:data[getter])
+        (call $warn)
+
+        (global.get $self.location.origin)
+        (call $warn)
+
+        (table.get $self.location.href)
+        (call $warn)
 
     )
+
+    (start $main)
 )
