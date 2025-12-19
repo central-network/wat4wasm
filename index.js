@@ -64,19 +64,35 @@ const w4 = {
         let text = match.blockContent;
         let firstTimeSetterInitTickets = ``, index;
 
+
+
         if (false === this.externref.has(text)) {
+
             index = TableManager.reserveIndex();
 
-            const view = this.encodeText(text);
-            const offset = this.dataOffset;
-            const length = view.length;
+            let view = this.encodeText(text);
+            let offset = 0;
+            let length = view.length;
+
+            this.externref.forEach(item => {
+                if (item.text?.includes(text)) {
+                    const begin = item.text.indexOf(text);
+                    if (begin !== -1) {
+                        offset = item.offset + begin;
+                    }
+                }
+            });
+
+            if (offset === 0) {
+                offset = this.dataOffset;
+                this.dataOffset += length;
+            }
 
             this.externref.set(text, {
-                view, offset, index
+                view, offset, index, text
             });
 
             this.textExtern.push({ view, offset, length })
-            this.dataOffset += length;
 
             if (text.length > 20) {
                 text = text.substring(0, 20) + ".."
