@@ -1,160 +1,960 @@
-# wat4wasm
+# Some Skills for Wat2WASM 
 
-<p align="center">
-  <br />
-  <strong><code>wat4wasm</code></strong>
-  <br />
-  A zero-dependency, runtime WebAssembly compiler and preprocessor for JavaScript.
-  <br />
-  Write <strong>enhanced</strong> .wat code with imports, file inclusions, and asset embedding—compile it directly in the browser or Node.js.
-</p>
+Some helper abilities for regular wat4wasm compiler. You can compile your "wat" file with regular parameters (compiler includes libwabt.js, so you do not need anything else but wat4wasm file, just ignore other files like libwabt.js, image.png etc..):
 
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/node-14.0.0-green.svg" alt="Node.js Version">
-  <img src="https://img.shields.io/badge/size-tiny-orange.svg" alt="Size">
-</p>
+```shell
+./wat4wasm test.wat --enable-multi-memory --debug-names --no-unlink --watch
+```
 
----
+<table>
+<tr>
+<td>--no-unlink</td>
+<td>do not remove compiler generated wat file <br>(if compiler success then removes generated wat file)</td>
+</tr>
+<tr>
+<td>--watch</td>
+<td>bind fs.watch function to wat file <br>(but it's not efficient, you can use nodemon)</td>
+</tr>
+<td>--output</td>
+<td>filename for .wasm <br>(otherwise replaces .wat to .wasm)</td>
+</tr>
+</tr>
+<td>--debug-names</td>
+<td>expose function, global names etc. <br>(too see in browser's source tab rather then $function24 -> $call.my.name)</td>
+</tr>
+</tr>
+<td>--compiler</td>
+<td>use external compiler eg. wat2wasm<br>(some features not available libwabt.js)</td>
+</tr>
+</table>
 
-## Why wat4wasm?
+useable:
+```webassembly      
+(include "some-path.wat")                               ;; replace with file content
+(text "hello world!")                                   ;; text to externref
+(start $main (local $any i32) ...)                      ;; start to start + func
+(global $self.location.origin externref)                ;; text from table get
+(global $ANY_TEXT_GLOBAL "any text global")             ;; text as global 
+(call $self.Array.of<i32>ref (i32.const 2))             ;; direct call
+(call $self.Math.random f32)                            ;; direct imported call
+(apply $self.Math.random f32)                           ;; Reflect.apply applied
+(log<ref> (global.get $self.location.origin))           ;; console.log
+(new $self.Uint8Array<i32> (i32.const 4))               ;; constructor
 
-Standard WebAssembly text format (`.wat`) tools are often heavy, require complex build chains (wabt, emscripten), or don't run natively in the browser.
+(get <refx2>ref self (text "origin"))                   ;; getter
+(set <refx2.fun> self text("onresize") func($onresize)) ;; setter 
 
-**wat4wasm** is designed for runtime flexibility. It allows you to:
-1.  **Skip the build step:** Compile `.wat` strings to executable `Wasm` instances instantly at runtime.
-2.  **Write less boilerplate:** Use "Syntactic Sugar" for auto-imports, file inclusions, and data embedding.
-3.  **Bridge JS & Wasm easily:** Call JavaScript functions directly from Wasm without manually constructing complex import objects.
+(call $self.requestAnimationFrame<fun>                  ;; auto imported
+    (func $inlinefunction<f32>                          ;; inline function
+        (param $performance.now f32)
+        (error<f32> (local.get $performance.now))       ;; console.error
+    )
+)
 
-## Key Features
+(apply $self.Math.max<i32x3.f32>i32                     ;; function
+    (self)                                              ;; this
+    (param                                              ;; arguments array
+        (i32.const 2)
+        (i32.const 4)
+        (i32.const 5)
+        (f32.const 1122.2)
+    )
+)
 
--   ✨ **Auto-Imports via `$self`:** Call JavaScript functions directly using the `$self` namespace. `wat4wasm` automatically generates the necessary imports.
--   📦 **File Inclusion:** Modularize your code using `(include "path/to/file.wat")`.
--   🖼️ **Asset Embedding:** Embed binary files (images, json, models) directly into Wasm memory using `(data $id "path/to/file.png")`.
--   🚀 **Runtime Compilation:** Runs anywhere JavaScript runs (Browser & Node.js).
--   🧠 **Zero Dependencies:** No heavy binaries, no huge node_modules.
+(new $self.Worker<refx2>ref
+    (text "worker.js")
+    (call $self.Object.fromEntries<ref>ref
+        (call $self.Array<ref>ref
+            (call $self.Array.of<refx2>ref
+                (text "name")
+                (text "özgür")
+            )
+        )
+    )
+)
 
-## Installation
+(async                                                  ;; promise working
+    (call $self.navigator.gpu.requestAdapter)           ;; converted to global
+    (then $onadapter                                    ;; moved to outer scope as func
+        (param $adapter externref)
+        (warn <ref> this)
+    )
+    (catch $onfail                                      ;; moved to outer scope as func
+        (param $msg externref)
+        (error <ref> local($msg))
+    )
+)  
 
-~~~bash
-npm install wat4wasm
-~~~
+i32(2)                                                  ;; type(N -> (type.const N
+f32(1.2)                                                ;; type(N -> (type.const N
+...
+(self|this|null)                                        ;; replaces paranthesis to spaces:
+ self                                                   ;; (global.get $wat4wasm/self)                
+ this                                                   ;; (local.get 0)                
+ null                                                   ;; (ref.null extern)      
+...
+(on $message                                            ;; bind event listener at start 
+    (param $event externref)
+    (log<refx2> this (text "hello özgür"))
+)
+...
+(compile "cpu.wat"                                      ;; compile wat into data
+    (data   $cpu.wasm/buffer) 
+    (global $cpu.wasm/byteLength i32)
+)
 
-## Usage
+...
+(data $any_text "file://any.text")                      ;; data from file read
+(data $wattowasm "wasm://memory.wat")                   ;; see: (log<ref> global($wattowasm))          
+(data $some_url "fetch://central.network/a.txt")        ;; data from url fetch         
+...
+(data $wasm:cpu "wasm://cpu.wat")
+(func $any
+    ...
+    $wasm:cpu()                                             ;; instantiate (data $wasm:cpu)
+    ;; or
+    $wasm:cpu<ref>( self )                                  ;; instantiate with imports
+    ;; or
+    $wasm:cpu<fun>( func($callback) )                       ;; instantiate and callback without imports
+    ;; or
+    $wasm:cpu<ref.fun>( 
+        (global.get $imports) 
+        (ref.func $callback)  
+    )                                                       ;; instantiate with imports and callback 
+    ...
+)
+...
+(alias $myLabel $myName<ref>i32)                        ;; replace all $myLabel -> $myName<ref>i32
+```
 
-`wat4wasm` exposes a static `WatCompiler` class. Since it supports file I/O (for includes/data), the compilation is asynchronous.
+if you want to use without "./" prefixed then you can copy:
+```shell
+cp wat4wasm /usr/local/bin/wat4wasm
+```
+now usable without prefix:
+```shell
+wat4wasm test.wat --enable-multi-memory --debug-names --no-unlink --watch
+```
 
-~~~javascript
-import { WatCompiler } from "wat4wasm";
+## keyword: include
 
-// 1. Write Enhanced WAT Code
-const source = `
-  ;; Include other wat files
-  (include "./math_utils.wat")
+You can use "include" keyword to replace your code with given path file:
 
-  ;; Embed a binary file into memory
-  (data $icon "./assets/icon.png")
+```webassembly
+(include "some-path.wat")
+```
 
-  (func $main (export "main")
-    ;; Call JS functions directly! 
-    ;; Syntax: $self.object.method<paramTypes>returnType
+This code segment will be replaced with content of "some-path.wat" file. Compiler reads file as a string and replaces with (include "some-path.wat") frame. This skill works recursively, so you can use another "include" code in your sub-content wat files.
+
+For example, consider that your project folder has two files: 
+- test.wat 
+- test-sub.wat
+
+
+and your test.wat file content is:
+ ```webassembly
+(module 
+    (import "a" "b" (global $ab i32))
+
+    (include "./test-sub.wat")
+
+    (func $second)
+)
+```
+
+
+and your test-sub.wat file content is:
+ ```webassembly
+    (func $test-sub)
+    (global $num i32 
+        (i32.const 0)
+    )
+```
+
+then your compiled wat file will be:
+ ```webassembly
+(module 
+    (import "a" "b" (global $ab i32))
     
-    ;; Example: console.log(42)
-    (call $self.console.log<i32> (i32.const 42))
-    
-    ;; Example: Math.random() -> returns f32
-    (call $self.Math.random<>f32) 
-    drop
-  )
-`;
+    (func $test-sub)
+    (global $num i32 
+        (i32.const 0)
+    )
 
-// 2. Define a Loader (Environment Specific)
-// This tells the compiler how to resolve "include" and "data" paths.
-const loader = async (path) => {
-    // Node.js Example:
-    const fs = require('fs/promises');
-    return fs.readFile(path); 
-    
-    // Browser Example:
-    // return fetch(path).then(res => res.arrayBuffer());
-};
+    (func $second)
+)
+```
 
-// 3. Compile!
-const wasmBuffer = await WatCompiler.compile(source, { loader });
 
-// 4. Run
-const module = await WebAssembly.instantiate(wasmBuffer, {
-    // The compiler generates 'self' imports, so we provide the environment
-    self: window // or global in Node
-});
+## keyword: start
 
-module.instance.exports.main();
-~~~
+You can use "start" keyword to define and trigger at the same time:
 
-## Enhanced Syntax Reference
-
-`wat4wasm` extends the standard WAT format with three powerful directives. These are processed before the standard compilation.
-
-### 1. Auto-Imports (`$self`)
-
-Instead of manually declaring `(import "env" "log" ...)` at the top of your file, you can use the `$self` namespace inline.
-
-**Syntax:** `$self.path.to.function<paramTypes>returnType`
-
-* **path.to.function**: Maps to the JavaScript object hierarchy provided in the import object.
-* **<paramTypes>**: `i32`, `f32`, `f64`, etc. Empty `<>` means no parameters.
-* **returnType**: Optional. `i32`, `f32`, etc. Omit if void.
-
-**Examples:**
-
-~~~wat
-;; Calls self.alert(i32)
-(call $self.alert<i32> (i32.const 1))
-
-;; Calls self.Math.pow(f32, f32) -> f32
-(call $self.Math.pow<f32f32>f32 (local.get $base) (local.get $exp))
-~~~
-
-### 2. File Inclusion (`include`)
-
-Pastes the content of another `.wat` file at the current position. Handled recursively.
-
-**Syntax:** `(include "path/string")`
-
-~~~wat
+```webassembly
 (module
-  (include "./headers.wat")
-  (include "./utils/math.wat")
-  
-  (func $start ...)
+    (start $main
+        (local $any i32)
+    )
 )
-~~~
+```
 
-### 3. Data Embedding (`data`)
-
-Reads a file via the `loader`, converts it to a byte array, and embeds it into the Wasm `data` section.
-
-**Syntax:** `(data $variableName "path/string")`
-
-~~~wat
-;; Embeds 'image.png' at a managed offset
-(data $myImage "./image.png")
-
-(func $test
-  ;; $myImage is replaced by the memory offset (i32.const OFFSET)
-  (call $process_image (i32.const $myImage)) 
+then your code will be replaced with:
+```webassembly
+(module
+    (start $main) 
+    
+    (func $main
+        (local $any i32)
+    )
 )
-~~~
+```
 
-## API Reference
 
-### `WatCompiler.compile(source, options)`
+## keyword: text (table)
 
-* **`source`** (String): The enhanced WAT source code.
-* **`options`** (Object):
-    * **`loader`** (Function): `async (path: string) => Promise<Uint8Array | string>`. Required if using `include` or `data`.
-* **Returns**: `Promise<Uint8Array>` containing the compiled binary Wasm.
+Use "text" type keyword to create a string content with externref behaviour:
 
-## License
+```webassembly
+(text "hello world!")
+```
 
-MIT
+Compiler will encode your string with char codes and stores in a data segment as u16 integers. When instance raises then start function begins to generate text contents and stores and table to able for getter calls. Every text calls returns an externref value from an externref table.
+
+You can see console output if you want to:
+```webassembly
+(module
+    (import "console" "log" (func $log (param externref)))
+
+    (start $main
+        (call $log (text "hello world!"))
+    )
+)
+```
+
+## keyword: text (global) 
+
+In general, text definitions runs over table get calls. This method also gives opportunitiy to set texts' external references to global variables. 
+```webassembly
+(global $ANY_TEXT_GLOBAL "any text global")
+```
+
+Compiler modifies your global definiton to mutable externref type and sets global value at the begining of instance. Basic example:
+```webassembly
+(module
+    (import "console" "log" (func $log<ref> (param externref)))
+    (import "console" "log" (func $log<f32> (param f32)))
+
+    (include "./test-sub.wat")
+
+    (global $self.screen.width f32)
+    (global $self.location.origin externref)
+    (global $self.MessageEvent.prototype.data/get externref)
+    (global $self.Worker:onmessage/set externref)
+
+    (global $ANY_TEXT_GLOBAL "any text global")
+
+    (memory 10 10 shared)
+
+    (start $main
+        (call $log<ref> (text "interal text converted to table.get!"))
+        (call $log<ref> (global.get $self.location.origin))
+        (call $log<f32> (global.get $self.screen.width))
+        (call $log<ref> (global.get $self.MessageEvent.prototype.data/get))
+        (call $log<ref> (global.get $self.Worker:onmessage/set))
+        (call $log<ref> (global.get $ANY_TEXT_GLOBAL))
+    )
+)
+```
+
+
+## keyword: ref.func (elem)
+
+Compiler will create an "elem" segment and puts all necessary function pointers. You can simply use ref.func call like before, this is for just "elem" segment definition:
+
+```webassembly
+(ref.func $any_of_your_func)
+```
+
+will generate:
+```webassembly
+(elem $wat4wasm/refs funcref (ref.func $any_of_your_func))
+```
+
+multiple references will be joined:
+```webassembly
+(elem $wat4wasm/refs funcref (ref.func $ref1) (ref.func $ref2) ... (ref.func $refN))
+```
+
+## keyword: apply
+
+Compiler will convert your Reflect.apply requests as well as:
+
+```webassembly
+(func $example 
+
+    ... body
+
+    (apply $self.Math.max<i32x3.f32>i32     ;; function
+        (self)                              ;; this
+        (param                              ;; arguments array
+            (i32.const 2)
+            (i32.const 4)
+            (i32.const 5)
+            (f32.const 1122.2)
+        )
+    )
+
+    (error<i32>)
+
+    body ...
+)
+```
+
+you don't need to define (global $self.Math.max externref) your code turns into:
+```webassembly
+(func $example 
+
+    ... body
+
+    (call $self.Reflect.apply<refx3>i32     ;; inputs always ref.ref.ref / output from you
+        (global.get $self.Math.max)         ;; auto reflected import
+        (global.get $wat4wasm/self)         ;; default wat4wasm import
+        (call $self.Array.of<i32x3.f32>ref  ;; inputs from you / output always externref
+            (i32.const 2)
+            (i32.const 4)
+            (i32.const 5)
+            (f32.const 1122.2)
+        )
+    )
+
+    (call $self.console.error<i32>)
+
+    body ...
+)
+```
+
+those examples also works:
+```webassembly
+(apply $self.Math.random)           ;; no result, no mean :) (no typed, result is empty)
+(nop)
+
+(apply $self.Math.random<>ref)      ;; result is externref (typed in function name)
+(drop)
+
+(apply $self.Math.random f32)       ;; result is float 32 (typed like global definition)
+(drop)
+
+(apply $self.Math.random externref) ;; result is externref (typed like global definition)
+(drop)
+
+(apply $self.Math.random ref)       ;; result is externref (typed shorten global definition)
+(drop)
+
+```
+
+## keyword: new, construct
+
+Compiler will convert your Reflect.construct requests as well as:
+
+```webassembly
+(func $example 
+
+    ... body
+
+    (construct $self.Uint8Array<i32>ref     ;; constructor
+        (param                              ;; arguments array
+            (i32.const 4)
+        )
+    )
+
+    (error<ref>)
+
+    body ...
+)
+```
+
+you don't need to define (global $self.Uint8Array externref) your code turns into:
+```webassembly
+(func $example 
+
+    ... body
+
+    (call $self.Reflect.construct<refx2>ref ;; inputs always ref.ref / output always ref
+        (global.get $self.Uint8Array)       ;; auto reflected import for constructor
+        (call $self.Array.of<i32>ref        ;; inputs from you / output always externref
+            (i32.const 4)
+        )
+    )
+
+    (call $self.console.error<ref>)
+
+    body ...
+)
+```
+
+those examples also works:
+```webassembly
+(new $self.Array)                           ;; no output/args (always externref)          
+(new $self.Uint8Array<i32> (i32.const 4))   ;; no param
+(new $self.Number<f32> f32(4.4))            ;; Type(N -> (Type.const N)
+(new $self.Worker<ref> (text "worker.js"))  ;; result always externref
+(construct $self.Worker<refx2>ref           ;; long but understanable
+    (param
+        (text "worker.js")
+        (new $Object)
+    )
+)
+(construct $self.Worker<refx2>ref           ;; no param expressed
+    (text "worker.js") 
+    (new $Object)
+)
+```
+
+## keyword: async
+
+Compiler will know you are working with promises and binds then/catch/finally functions to moved outer scope functions. Maximum 3 level deeper self object are allowed in here. Also "call" requests turns into "apply" requests because of deeper objects requires parent object for "this" parameter.
+
+```webassembly
+(func $example 
+
+    ... body
+
+    (async
+        (call $self.navigator.gpu.requestAdapter)
+        (then $onadapter
+            (param $adapter externref)
+            (warn <ref> this)
+        )
+        (catch $onfail
+            (param $msg externref)
+            (error <ref> local($msg))
+        )
+    ) 
+
+    body ...
+)
+```
+
+converted into:
+```webassembly
+(func $example 
+
+    ... body
+
+    (call $self.Reflect.apply<refx3>
+        (global.get $self.Promise.prototype.catch)
+        (call $self.Reflect.apply<refx3>ref
+            (global.get $self.Promise.prototype.then)
+            (call $self.Reflect.apply<refx3>ref 
+                (global.get $self.navigator.gpu.requestAdapter) 
+                (global.get $self.navigator.gpu) 
+                (call $self.Array.of<>ref)
+            )
+            (call $self.Array.of<fun>ref
+                (ref.func $async1_onadapter)
+            )
+        )
+        (call $self.Array.of<fun>ref
+            (ref.func $async2_onfail)
+        )
+    )
+
+    body ...
+)
+
+(func $async1_onadapter
+    (param $adapter externref)
+    (call $self.console.warn<ref> (local.get 0))
+)
+
+(func $async2_onfail
+    (param $msg externref)
+    (call $self.console.error<ref> (local.get $msg))
+)
+
+(elem $wat4wasm/async funcref 
+    (ref.func $async1_onadapter)
+    (ref.func $async2_onfail)
+)
+```
+
+also appended to module scope:
+```webassembly
+(global $self.Promise.prototype.then (mut externref) ref.null extern)
+(global $self.Promise.prototype.catch (mut externref) ref.null extern)	
+(global $self.navigator.gpu (mut externref) ref.null extern)
+(global $self.navigator.gpu.requestAdapter (mut externref) ref.null extern)
+```
+
+and start function includes more global setters:
+```webassembly
+(global.set $self.Promise.prototype.then
+    (call $wat4wasm/Reflect.get<refx2>ref
+        (call $wat4wasm/Reflect.get<refx2>ref 
+                    (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
+                        (table.get $extern (i32.const 22)) 
+                    ) 
+                    (table.get $extern (i32.const 16)) 
+                )
+        (table.get $extern (i32.const 23)) 
+    )
+)
+
+(global.set $self.Promise.prototype.catch
+    (call $wat4wasm/Reflect.get<refx2>ref
+        (call $wat4wasm/Reflect.get<refx2>ref 
+                    (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
+                        (table.get $extern (i32.const 22)) 
+                    ) 
+                    (table.get $extern (i32.const 16)) 
+                )
+        (table.get $extern (i32.const 24)) 
+    )
+)
+
+(global.set $self.navigator.gpu
+    (call $wat4wasm/Reflect.get<refx2>ref
+        (call $wat4wasm/Reflect.get<refx2>ref 
+            (global.get $wat4wasm/self) 
+            (table.get $extern (i32.const 27)) 
+        )
+        (table.get $extern (i32.const 28)) 
+    )
+)
+
+(global.set $self.navigator.gpu.requestAdapter
+    (call $wat4wasm/Reflect.get<refx2>ref
+        (call $wat4wasm/Reflect.get<refx2>ref 
+            (call $wat4wasm/Reflect.get<refx2>ref 
+                (global.get $wat4wasm/self) 
+                (table.get $extern (i32.const 27)) 
+            ) 
+            (table.get $extern (i32.const 28)) 
+        )
+        (table.get $extern (i32.const 29)) 
+    )
+)
+```
+
+Notice that you can/need to define result parameter. Otherwise no result will be return for chain: 
+```webassembly
+(warn<ref>
+    (async externref
+        ...
+    )
+) 
+```
+
+## keyword: on
+
+You can bind event listeners for self/globalThis/window target at the begining of intance:
+
+```webassembly
+(module
+
+    (func ...)
+
+    (on $message
+        (param $event externref)
+        (log<ref> this)
+        (log<ref> (text "hello özgür"))
+    )
+
+    (memory ...)
+)
+```
+
+just be aware that definitions at the module scope, NOT inside a function. Compiler adds an apply call to start function and converts your "(on" keyword into "(func" for settle to self object: 
+```webassembly
+(module
+    ...
+
+    (start
+        ...
+        (call $self.Reflect.set<ref.ref.fun>            
+            (global.get $wat4wasm/self)                 ;; self
+            (table.get $extern (i32.const 8))           ;; (text "onmessage")
+            (ref.func $self.onmessage)                  ;; handler
+        )
+        ...
+    )
+    
+    ...
+
+    (func $self.onmessage
+        (param $event externref)
+        (log<ref> this)
+        (log<ref> (text "hello özgür"))
+    )
+
+    ...
+
+    (elem funcref (ref.func $self.onmessage))
+)
+```
+
+
+
+## keyword: get, set
+
+Compiler will convert your Reflect.get / Reflect.set requests as well as:
+
+```webassembly
+(func $example 
+
+    ... body
+
+    (get <refx2>ref self (text "origin"))        
+    (warn<ref>)
+
+    (set <refx2.fun> self text("onresize") func($onresize))        
+
+    body ...
+)
+```
+
+you don't need to define (global $self.Uint8Array externref) your code turns into:
+```webassembly
+(func $example 
+
+    ... body
+
+    (call $self.Reflect.get<refx2>ref       ;; input / output comes from you
+        (global.get $wat4wasm/self)         ;; self -> global.get ...
+        (table.get $extern (i32.const N))   ;; text -> table.get ...
+    )
+
+    (call $self.console.warn<ref>)
+
+    (call $self.Reflect.set<refx2.fun>      ;; input / output comes from you
+        (global.get $wat4wasm/self)         ;; self -> global.get ...
+        (table.get $extern (i32.const N))   ;; text -> table.get ...
+        (ref.func $onresize)                ;; func -> ref.func ...
+    )
+
+    body ...
+)
+```
+
+## keyword: alias
+
+You define aliases for any variable names
+
+```webassembly
+(module
+
+    (func ...)
+
+    (alias $deref $deref<i32>ref)
+
+    (func $deref<i32>ref 
+        (param $index                    i32)
+        (result $value              <Object>)
+
+        $WeakRef:deref<ref>ref( get($ref local($index)) )
+    )
+
+    (func $caller 
+        (result ref)
+        (call $defref i32(4))
+    )
+
+    (memory ...)
+)
+```
+
+## keyword: i32, f32, i64, f64
+
+Compiler will turn your constants into formal type:
+```webassembly
+i32(4)              --> (i32.const 4)                
+f32(3.4)            --> (f32.const 3.4)
+i64(511235124)      --> (i64.const 511235124)                            
+f64(3241.55114)     --> (f64.const 3241.55114)    
+```
+
+## keyword: local, global, func, table
+
+Compiler will turn your constants into formal type:
+```webassembly
+local(0)            --> (local.get 0)                
+local($a)           --> (local.get $a)                
+global($A)          --> (global.get $A)
+func($on)           --> (ref.func $on)                            
+table($db)          --> (table.get $db)                            
+```
+
+## keyword: this, self, null
+
+Compiler will turn your constants into formal type:
+```webassembly
+this                --> (local.get 0)                
+self                --> (global.get $wat4wasm/self)                
+null                --> (ref.null extern)                
+```
+
+
+## keyword: log, warn, error
+
+use without call requests:
+```webassembly
+(log<i32> (i32.const 2))
+(warn<ref> (ref.null extern))
+(error<i32.f32x2> (i32.const 2) (f32.const 2.2) (f32.const 0.1))
+```
+
+will be replaced by:
+```webassembly
+(call $self.console.log<i32> (i32.const 2))
+(call $self.console.warn<ref> (ref.null extern))
+(call $self.console.error<i32.f32x2> (i32.const 2) (f32.const 2.2) (f32.const 0.1))
+```
+
+
+At this time you can use combitaions of abilities:
+```webassembly
+(module
+    (include "./test-sub.wat")
+
+    (global $self.screen.width f32)
+    (global $self.location.origin externref)
+    (global $self.console.warn externref)
+    (global $self.MessageEvent.prototype.data/get externref)
+    (global $self.Worker:onmessage/set externref)
+
+    (global $ANY_TEXT_GLOBAL "any text global")
+
+    (memory 10 10 shared)
+
+    (start $main
+        (log<ref> (text "interal text converted to table.get!"))
+        (log<ref> (global.get $self.location.origin))
+        (log<f32> (global.get $self.screen.width))
+        (log<ref> (global.get $self.MessageEvent.prototype.data/get))
+        (log<ref> (global.get $self.Worker:onmessage/set))
+        (log<ref> (global.get $ANY_TEXT_GLOBAL))
+
+
+        (call $self.console.error<ref>
+            (call $self.Array.of<i32x3.f32>ref
+                (i32.const 2)
+                (i32.const 4)
+                (i32.const 5)
+                (f32.const 2.2)
+            )
+        )
+
+        (call $self.requestAnimationFrame<fun>
+            (ref.func $onanimationframe<f32>)
+        )
+
+        (call $self.setTimeout<fun.i32>
+            (ref.func $ontimeout)
+            (i32.const 1000)
+        )
+    )
+
+    (func $onanimationframe<f32>
+        (param $performance.now f32)
+        (warn<ref.f32>
+            (text "animation frame ready:") 
+            (local.get $performance.now)
+        )
+    )
+
+    (func $ontimeout
+        (error<ref> 
+            (text "timer done, 1000ms passed..")
+        )
+    )
+)
+```
+
+## keyword: compile
+
+compile another wat project into a data segment:
+```webassembly
+(compile "main_file_path.wat" 
+    (data   $namefor_data_element/buffer) 
+    (global $namefor_data_length/byteLength i32)
+)
+```
+
+will be replaced by:
+```webassembly
+(data $namefor_data_element/buffer "\00\61\73\6d\01\00...\72\61\79")
+(global $namefor_data_length/byteLength i32 (i32.const 967))
+```
+
+**Be aware that "main_file_path.wat" is completely different compilation and independent from others. it's like you are compiling any wat code at anywhere and copying it's content to a data segment.**
+
+
+## name: $self... (import)
+
+No need to use "import" keyword anymore!
+Now, you can use "global" definitions to reach any object that starts with global path like self.screen.width. Compiler will be split your path and starts to reach last property definition. This process runs in the "start" functions' body and uses Reflect.get and/or Reflect.getOwnPropertyDescriptor calls which means you can assign "getter" and "setter" functions as an externref global too. 
+
+Be aware those "self" globals are always mutable.
+
+Basic definition examples:
+```webassembly
+(global $self.screen.width f32)
+(global $self.location.origin externref)
+(global $self.MessageEvent.prototype.data/get externref)
+(global $self.Worker:onmessage/set externref)
+```
+
+ans full source to see console outputs:
+```webassembly
+(module
+    (import "console" "log" (func $log<ref> (param externref)))
+    (import "console" "log" (func $log<f32> (param f32)))
+
+    (include "./test-sub.wat")
+
+    (global $self.screen.width f32)
+    (global $self.location.origin externref)
+    (global $self.MessageEvent.prototype.data/get externref)
+    (global $self.Worker:onmessage/set externref)
+
+    (memory 10 10 shared)
+
+    (start $main
+        (call $log<ref> (text "Text to externref is easy!"))
+        (call $log<ref> (global.get $self.location.origin))
+        (call $log<f32> (global.get $self.screen.width))
+        (call $log<ref> (global.get $self.MessageEvent.prototype.data/get))
+        (call $log<ref> (global.get $self.Worker:onmessage/set))
+    )
+)
+```
+
+ <img width="100%" alt="console output" src="image.png">
+
+
+compiler also knows : means .prototype. and replaces at first. 
+
+
+## name: $self... (call)
+
+Compiler will create import definitions for your $self. prefixed calls. Maximum level of deep objects is 2 which means you can use for *Number, Boolean, console.log, Math.floor* etc.. but you can **NOT** use *navigator.permissions.query* because of path has three level of deepness.
+
+use without definition import:
+```webassembly
+(call $self.console.log<i32> (i32.const 2))
+```
+
+compiler appends import definition to wat code:
+```webassembly
+(import "console" "log" (func $self.console.log<i32> (param i32)))
+```
+
+The end of the name definition is important because of parameters and result types cames from it. Between the &lt;bracets&gt; defines input arguments which every one of it is "param" and result type comes to end. Every type sperates with a dot (.) like i32.f32.i32 and you can also use multiplier (x) symbol like i32x3.. Externref shortened with "ref" keyword and funcref is shortened with "fun" keyword..
+
+Examine those definitions to understand:
+<table>
+    <thead>
+        <tr>
+            <td>Your WAT Code</td>
+            <td align="center">Input</td>
+            <td align="center">Output</td>
+            <td>Import definition</td>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>(call $name&lt;i32.f32&gt;ref .. )</td>
+            <td align="center">i32, i32</td>
+            <td align="center">externref</td>
+            <td>(func $name (param i32 f32) (result externref))</td>
+        </tr>
+        <tr>
+            <td>(call $name&lt;f32x2&gt; .. )</td>
+            <td align="center">f32 f32</td>
+            <td align="center"></td>
+            <td>(func $name (param f32 f32))</td>
+        </tr>
+        <tr>
+            <td>(call $name&lt;&gt;i32)</td>
+            <td align="center"></td>
+            <td align="center">i32</td>
+            <td>(func $name (result i32))</td>
+        </tr>
+    </tbody>
+</table>
+
+
+
+## shorten: (self)
+
+Compiler will convert your globalThis getter:
+
+```webassembly
+(self)
+```
+
+uses:
+```webassembly
+(import "self" "self" (global $wat4wasm/self externref))
+```
+
+
+## shorten: (null)
+
+Compiler will convert your null reference getter:
+
+```webassembly
+(null)
+```
+
+turns into:
+```webassembly
+(ref.null extern)
+```
+
+## inline functions
+
+You can use inline functions. Compiler will be copy your function to outer scope and replace it's place with "ref.func". You can see at example:
+
+```webassembly
+(func $outer 
+
+    ... body
+
+    (call $self.requestAnimationFrame<fun>
+        (func $inlinefunction<f32>
+            (param $performance.now f32)
+            (error<f32> (local.get $performance.now))
+        )
+    )
+
+    body ...
+)
+```
+
+will be replaced with (elem definitions also will be generated):
+```webassembly
+(func $inlinefunction<f32>
+    (param $performance.now f32)
+
+    (call $self.console.error<f32>
+        (local.get $performance.now)
+    )
+)
+
+(func $outer 
+
+    ... body
+
+    (call $self.requestAnimationFrame<fun>
+        (ref.func $inlinefunction<f32>)
+    )
+
+    body ...
+
+)
+
+```
+

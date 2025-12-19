@@ -6,6 +6,7 @@ import { optimizeWat } from "./lib/Optimizer.js";
 const ENTRY_FILE = "test.wat";
 const OUTPUT_FILE = "output.wat";
 
+
 const w4 = {
     include: function (match) {
         let path = match.blockContent;
@@ -54,7 +55,6 @@ const w4 = {
     dataOffset: 4,
     externref: new Map,
     globalize: new Map,
-    needimport: new Set,
     textExtern: new Array,
 
     NAME_REGEXP: /[a-zA-Z0-9\@\:\*\!\=\?\#\^\&\`<>\|\%\$\.\+-_\/\\]/,
@@ -81,18 +81,6 @@ const w4 = {
             if (text.length > 20) {
                 text = text.substring(0, 20) + ".."
             }
-
-            let importBlocks = `
-            (import "Array" "of" (func $self.Array.of<ext>ext (param externref) (result externref)))
-            (import "Reflect" "construct" (func $self.Reflect.construct<ext.ext>ext (param externref externref) (result externref)))
-            (import "Reflect" "set" (func $self.Reflect.set<ext.i32.i32> (param externref i32 i32) (result)))
-            (import "Reflect" "set" (func $self.Reflect.set<ext.i32.ext> (param externref i32 externref) (result)))
-            (import "Reflect" "get" (func $self.Reflect.get<ext.ext>ext (param externref externref) (result externref)))
-            (import "Reflect" "apply" (func $self.Reflect.apply<ext.ext.ext>ext (param externref externref externref) (result externref)))
-            (import "String" "fromCharCode" (global $self.String.fromCharCode externref))
-            `.split(/\n/g).map(b => b.trim()).filter(Boolean).filter(b => !this.needimport.has(b)).forEach(importCodeBlock => {
-                this.needimport.add(importCodeBlock)
-            });
 
             firstTimeSetterInitTickets = `            
             (oninit
@@ -141,7 +129,6 @@ const w4 = {
 
         let blockName = ref_func.blockName;
 
-        let [funcName, rootName = "self"] = blockName.split(".").reverse();
         if (blockName.startsWith("self") === false) {
             blockName = `self.${blockName}`
         }
@@ -156,21 +143,8 @@ const w4 = {
             .replace(signature.result.block, "")
             .trim();
 
-        const caller = `
-        (call ${signedFuncName} ${callerArguments})`.replaceAll(/\s+\)/g, ")");
-
-        const needed = `
-        (needed "${rootName}" "${funcName}"
-            (func ${signedFuncName} 
-                ${signature.param.block} 
-                ${signature.result.block}
-            )
-        )`;
-
         return `
-            ${caller}
-            ${needed}
-        `;
+        (call ${signedFuncName} ${callerArguments})`.replaceAll(/\s+\)/g, ")");
     },
 
     self: function (match) {
@@ -409,11 +383,36 @@ const w4 = {
         return globalize;
     },
 
-    block: function (raw = "(module)", tag = "include") {
+    block: function (raw = "(module)", tag = "nop", start = 0) {
+
+        if (tag.startsWith("(")) {
+            throw `The "tag" argument for block search must not start with paranthesis: ${tag}`
+        }
+
+        if (start !== 0) {
+            if (!tag) {
+                let tagNameStart = start + 1;
+                let tagNameEnd = tagNameStart;
+
+                while (raw.charAt(tagNameEnd).trim()) {
+                    tagNameEnd++;
+                }
+
+                tag = raw.substring(tagNameStart, tagNameEnd);
+            }
+        }
+
+        if (!tag) {
+            throw `At least one of "tag" or "start" argument is required for block search. (tag: [${tag}], start: [${start}])`
+        }
+
         const regex = new RegExp(`\\(${tag.replaceAll(/([\.|\s|\$])/g, "\\\$1")}`);
-        const match = String(raw).match(regex);
+        const match = String(raw).substring(start).match(regex);
 
         if (match) {
+            match.input = raw;
+            match.index += start;
+
             let { index, input } = match;
             let end;
             let maxEnd = input.length;
@@ -500,6 +499,7 @@ const w4 = {
 
             const signature = [type, param, result].filter(Boolean).join(" ").trim();
             const pathName = blockName.split(/[^\w|\.]/gi).at(0);
+            const hasSelfPath = pathName.startsWith("self");
 
             Reflect.defineProperty(match, "pathName", { value: pathName, enumerable: true });
             Reflect.defineProperty(match, "tagType", { value: tagType, enumerable: true });
@@ -510,36 +510,82 @@ const w4 = {
             Reflect.defineProperty(match, "tagSubType", { value: tagSubType, enumerable: true });
             Reflect.defineProperty(match, "blockName", { value: blockName, enumerable: true });
             Reflect.defineProperty(match, "blockContent", { value: blockContent, enumerable: true });
-            Reflect.defineProperty(match, "raw", { value: substring, enumerable: true });
+            Reflect.defineProperty(match, "raw", { value: substring, enumerable: false });
             Reflect.defineProperty(match, "input", { value: match.input, enumerable: false });
+            Reflect.defineProperty(match, "startedAt", { value: start, enumerable: true });
+            Reflect.defineProperty(match, "hasSelfPath", { value: hasSelfPath, enumerable: true });
+            Reflect.defineProperty(match, "generateParamBlock", {
+                value: function () {
+
+                    if (this.blockName.includes("<") === false ||
+                        this.blockName.includes("<>")
+                    ) { return this.param || "(param)" }
+
+                    return String()
+                        .concat("(param ")
+                        .concat(
+                            this.blockName
+                                .split(/\</).at(1)
+                                .split(/\>/).at(0)
+                                .split(/\./).map(t => w4.longType[t])
+                                .join(" ")
+                                .trim()
+                        )
+                        .concat(")")
+                        ;
+                }
+            });
+
+            Reflect.defineProperty(match, "generateResultBlock", {
+                value: function () {
+                    if (this.blockName.includes(">") === false ||
+                        this.blockName.endsWith(">")
+                    ) { return this.result || "(result)" }
+
+                    return String()
+                        .concat("(result ")
+                        .concat(
+                            this.blockName
+                                .split(/\>/).at(1)
+                                .split(/\./).map(t => w4.longType[t])
+                                .join(" ")
+                                .trim()
+                        )
+                        .concat(")")
+                        ;
+                }
+            });
+
+            Reflect.defineProperty(match, "generatedSignature", {
+                get: function () {
+                    return Array.of(
+                        this.generateParamBlock(),
+                        this.generateResultBlock()
+                    ).join(" ").trim();
+                }
+            });
+
+            Reflect.defineProperty(match, "generatedImportCode", {
+                get: function () {
+                    const [prop, root = "self"] = this.pathName.split(".").reverse();
+                    return String(`
+                    (import 
+                        "${root}" 
+                        "${prop}" 
+                        
+                        (func $${this.blockName}
+                            ${this.generateParamBlock()}
+                            ${this.generateResultBlock()}
+                        ) 
+                    ) 
+                `).replaceAll(/\s+/g, " ").replaceAll(/\s\)/g, ")").trim();
+                }
+            });
 
             delete match.groups;
         }
 
         return match;
-    },
-
-    needed: function (raw, match) {
-        raw = w4.remove(raw, match);
-
-        const imports = Array.from(raw.matchAll(/\(import\s/g));
-
-        if (imports.length) {
-            const needed = match.blockContent.substring(
-                match.blockContent.indexOf("("),
-                match.blockContent.lastIndexOf(")"),
-            );
-            const tagName = needed.split(" ").at(0).substring(1);
-            const blockName = w4.block(match.blockContent, tagName).blockName;
-
-            if (imports.map(i => w4.block(raw.substring(i.index), "import")).some(b => b.block.includes(`$${blockName} `))) {
-                return raw;
-            }
-        }
-
-        return raw.replace(/\(module\s/, `(module 
-            (import ${match.blockContent.replaceAll(/\s+/g, " ")})
-        `);
     },
 
     globalized: function (raw, match) {
@@ -651,7 +697,6 @@ const w4 = {
         if (starter) {
             raw = w4.remove(raw, starter);
             starter = `
-            
             (call $${starter.blockName})`;
         }
 
@@ -661,37 +706,32 @@ const w4 = {
             textDataHex.set(t.view, t.offset)
         });
 
+        let wat4Memory = "";
+        if (raw.includes("(memory ") === false) {
+            wat4Memory = `(memory $wat4wasm 1)`;
+        }
+
         textDataHex = Array.from(
             textDataHex
         ).map(c => c.toString(16).padStart(2, 0)).join("\\");
 
-        raw = raw.replace("(module", `(module\n`.concat(Array.from(this.needimport).join("\n")));
         raw = raw.substring(0, raw.lastIndexOf(")"));
         raw = raw.concat(Array.from(this.globalize.values()).map(g => g.def).join("\n"));
-        raw = raw.concat(`
-            (elem  $wat4wasm declare func $wat4wasm)
-            (func  $wat4wasm
+
+        return `${raw}
+            (elem   $wat4wasm declare func $wat4wasm)
+            (func   $wat4wasm
                 ${Array.from(initFuncBodyParts.head).sort(sorter).reverse().join("\n")}\n
                 ${Array.from(initFuncBodyParts.blocks).join("\n\n")}\n
                 ${Array.from(initFuncBodyParts.table_set).sort(sorter).reverse().join("\n\n")}
                 
-                (nop)${starter}
-            ) 
-            (data  $wat4wasm "\\${textDataHex}")
+                ${starter}) 
+            (data   $wat4wasm "\\${textDataHex}")
             ${TableManager.generateTableDefinition()}
-            (start $wat4wasm)
-        `);
-
-        raw = raw.concat(")");
-        raw = raw.replaceAll(" )", ")");
-        raw = raw.replace(/\n\s*\n\s*\n/g, '\n\n');
-        raw = raw.split("\n").filter((l, i, p) => {
-            if (l.trim()) { return true }
-            if (i === 0) { return true }
-            return !p[i - 1].trim().match(/\(((global|table|local)\.)|(import)/);
-        }).join("\n");
-
-        return raw;
+            (start  $wat4wasm)
+            (global $wat4wasm (mut extern) (ref.null externef))
+            ${wat4Memory}
+        )`;
     },
 
     replace: function (raw, match, replaceWith = "") {
@@ -855,13 +895,7 @@ const w4 = {
     array_of: function (match) {
         const blockContent = match.blockContent.split("\n").filter(l => l.trim() || !l.trim().startsWith(";;")).join("\n").trim();
         const argsTypeDotJoin = match.param.split(/\s+|\)|\(/).filter(w4.is_type).join(".");
-        const argsTypeLongJoin = match.param.split(/\s+|\)|\(/).filter(w4.is_type).map(t => this.longType[t]).join(" ");
         const selfCallFuncName = `$self.Array.of<${argsTypeDotJoin}>ext`;
-        const importCodeBlock = `(import "Array" "of" (func ${selfCallFuncName} (param ${argsTypeLongJoin}) (result externref)))`;
-
-        if (this.needimport.has(importCodeBlock) === false) {
-            this.needimport.add(importCodeBlock);
-        }
 
         return `(call ${selfCallFuncName} 
             ${blockContent}
@@ -974,12 +1008,19 @@ const w4 = {
 
             (block $memory.init
                 (i32.const 0)
-                (i32.load (i32.const 0))
+                (i32.const 0)
+                (i32.load)
 
                 (loop $i--
                     (local.set $byteLength (i32.sub (local.get $byteLength) (i32.const 1)))    
                     (memory.init $wat4wasm (i32.const 0) (local.get $byteLength) (i32.const 1))                    
-                    (call $self.Reflect.set<ext.i32.i32> (local.get $view) (local.get $byteLength) (i32.load8_u (i32.const 0)))
+                    
+                    (call $self.Reflect.set<ext.i32.i32> 
+                        (local.get $view) 
+                        (local.get $byteLength) 
+                        (i32.load8_u (i32.const 0))
+                    )
+
                     (br_if $i-- (local.get $byteLength))
                 )
 
@@ -1011,6 +1052,62 @@ const w4 = {
     },
 }
 
+function redefineImports(source) {
+    let match, index;
+
+    const userImports = new Set;
+    const selfImports = new Map;
+
+    // find import blocks and remove
+    index = -1;
+    while (match = w4.block(source, "import", ++index)) {
+        source = w4.remove(source, match);
+
+        const raw = match.raw;
+        if (match = w4.block(match.blockContent, "", match.blockContent.indexOf("("))) {
+
+            if (match.hasSelfPath === false) {
+                if (userImports.has(raw) === false) {
+                    userImports.add(raw);
+                }
+                continue;
+            }
+
+            const blockName = match.blockName;
+            if (true === selfImports.has(blockName)) { continue; }
+            else { selfImports.set(blockName, match.generatedImportCode) }
+        }
+    }
+
+    // find $self[*]+ calls and create an import
+    index = -1;
+    while (match = w4.block(source, "call", ++index)) {
+        if (match.hasSelfPath === false) { continue; }
+
+        const blockName = match.blockName;
+        if (true === selfImports.has(blockName)) { continue; }
+        else { selfImports.set(blockName, match.generatedImportCode); }
+    }
+
+    const sorter = (a, b) => {
+        const aLen = a.split(/\s+\(/g).at(0).length;
+        const bLen = b.split(/\s+\(/g).at(0).length;
+        return (aLen - bLen) || (
+            a.split(/\$/g).at(1).split(" ").at(0).length -
+            b.split(/\$/g).at(1).split(" ").at(0).length
+        );
+    }
+
+    const refinedImportSection = Array.of(
+        Array.from(userImports.values()).sort(sorter),
+        "",
+        Array.from(selfImports.values()).sort(sorter)
+    ).flat().join("\n").trim();
+
+    return source.replace(`(module`, `(module\n
+        ${refinedImportSection}    
+    `);
+}
 
 let iteration = 0;
 function wat4wasm(wat) {
@@ -1072,11 +1169,6 @@ function wat4wasm(wat) {
             continue;
         }
 
-        if (match = w4.block(wat, "needed")) {
-            wat = w4.needed(wat, match);
-            continue;
-        }
-
         if (match = w4.block(wat, "globalized")) {
             wat = w4.globalized(wat, match);
             continue;
@@ -1094,7 +1186,11 @@ function wat4wasm(wat) {
 
     const { textLocals, prepareBlock } = w4.generateFinalArgs();
 
-    return optimizeWat(w4.boot(wat), textLocals, prepareBlock);
+    wat = w4.boot(wat);
+    wat = optimizeWat(wat, textLocals, prepareBlock);
+    wat = redefineImports(wat);
+
+    return wat;
 }
 
 function main() {
