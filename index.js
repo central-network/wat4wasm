@@ -1347,9 +1347,13 @@ function wat4wasm(wat) {
                     (oninit
                         (block $${propertyPath}
                             (local.set $value/${type}
-                                (call $self.Reflect.get<ext.ext>${type}
-                                    (local.get $${prevPath})
-                                    (text "${propertyKey}")
+                                (call $self.Object<ext>${type}
+                                    (local.tee $${propertyPath}
+                                        (call $self.Reflect.get<ext.ext>ext
+                                            (local.get $${prevPath})
+                                            (text "${propertyKey}")
+                                        )
+                                    )
                                 )
                             )
                                 

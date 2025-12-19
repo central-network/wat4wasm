@@ -35,6 +35,19 @@
         (global.get $self.window.length i32)
         (call $warn/i)
 
+        (array
+            (param ext ext i32 ext ext i32)
+            (result i32)
+
+            (global.get $self.window.clientInformation)
+            (global.get $self.window.clientInformation.appName)
+            (global.get $self.window.clientInformation.cpuPerformance i32)
+            (global.get $self.window.alert)
+            (table.get $self.window.name)
+            (global.get $self.window.length i32)
+        )
+        (call $warn)
+
     )
 
     (start $main)
