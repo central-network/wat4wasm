@@ -22,6 +22,12 @@
         (table.get $self.location.href)
         (call $warn)
 
+        (table.get $self.GPU:wgslLanguageFeatures[get])
+        (call $warn)
+
+        (text "bu günlük bu kadar...")
+        (call $warn)
+
     )
 
     (start $main)
