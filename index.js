@@ -75,7 +75,7 @@ const w4 = {
             let length = view.length;
 
             this.externref.forEach(item => {
-                if (item.text?.includes(text)) {
+                if (item.offset && item.text.includes(text)) {
                     const begin = item.text.indexOf(text);
                     if (begin !== -1) {
                         offset = item.offset + begin;
@@ -950,6 +950,13 @@ const w4 = {
             (local $buffer       externref)
             (local $byteLength   i32)
             (local $decodedText  externref)
+
+            (local $value/i32    i32)
+            (local $value/f32    f32)
+            (local $value/i64    i64)
+            (local $value/f64    f64)
+            (local $value/ext    externref)
+            (local $value/fun    funcref)
         `.trimStart();
 
         const prepareBlock = `
@@ -1198,6 +1205,7 @@ function wat4wasm(wat) {
 
             let step = 0;
             let prevPath = pathWalk.walkingKeys.at(step);
+            const type = match.type || "ext";
 
             while (++step < pathWalk.walkingPaths.length) {
                 const stepKey = pathWalk.walkingKeys.at(step);
@@ -1223,14 +1231,16 @@ function wat4wasm(wat) {
                     pathWalk.iBlocks.push(`\
                     (oninit
                         (block $${propertyPath}
-                            (local.set $${propertyPath}
-                                (call $self.Reflect.get<ext.ext>ext
-                                    (local.get $${prevPath})
-                                    (text "${propertyKey}")
+                            (local.set $value/ext
+                                (local.tee $${propertyPath}
+                                    (call $self.Reflect.get<ext.ext>${type}
+                                        (local.get $${prevPath})
+                                        (text "${propertyKey}")
+                                    )
                                 )
                             )
+                            ${TableManager.generateSetter(extern_index, `(local.get $value/ext)`)}
                         )
-                        ${TableManager.generateSetter(extern_index, `(local.get $${propertyPath})`)}
                     )
                     `);
                     break;
@@ -1246,9 +1256,7 @@ function wat4wasm(wat) {
                             )
                         )
                     )
-                )
-                    
-                (oninit
+
                     (block $${propertyPath}/${descriptorKey}
                         (local.set $${propertyPath}/${descriptorKey}
                             (call $self.Reflect.get<ext.ext>ext
@@ -1256,6 +1264,7 @@ function wat4wasm(wat) {
                                 (text "${descriptorKey}")
                             )
                         )
+
                         ${TableManager.generateSetter(extern_index, `(local.get $${propertyPath}/${descriptorKey})`)}
                     )
                 )`);
@@ -1337,16 +1346,17 @@ function wat4wasm(wat) {
                     pathWalk.iBlocks.push(`\
                     (oninit
                         (block $${propertyPath}
-                            (local.set $${propertyPath}
-                                (call $self.Reflect.get<ext.ext>ext
+                            (local.set $value/${type}
+                                (call $self.Reflect.get<ext.ext>${type}
                                     (local.get $${prevPath})
                                     (text "${propertyKey}")
                                 )
                             )
-
-                            (global.set $${label} (local.get $${propertyPath}))
+                                
+                            (global.set $${label} (local.get $value/${type}))
                         )
-                    )`);
+                    )
+                    `);
                     break;
 
                 case "get":
@@ -1360,17 +1370,18 @@ function wat4wasm(wat) {
                             )
                         )
                     )
-                )`, `
-                (oninit
+
                     (block $${propertyPath}/${descriptorKey}
-                        (local.set $${propertyPath}/${descriptorKey}
-                            (call $self.Reflect.get<ext.ext>ext
-                                (local.get $${propertyPath})
-                                (text "${descriptorKey}")
+                        (local.set $value/${type}
+                            (local.tee $${propertyPath}/${descriptorKey}
+                                (call $self.Reflect.get<ext.ext>${type}
+                                    (local.get $${propertyPath})
+                                    (text "${descriptorKey}")
+                                )
                             )
                         )
 
-                        (global.set $${label} (local.get $${propertyPath}/${descriptorKey}))
+                        (global.set $${label} (local.get $value/${type}))
                     )
                 )`);
                     break;

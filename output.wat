@@ -1,8 +1,10 @@
 (module
 	(import "console" "warn"                     (func $warn                                              (param externref)))
+	(import "console" "warn"                     (func $warn/i                                            (param i32)))
 	(import "Array" "of"                         (func $self.Array.of<ext>ext                             (param externref) (result externref)))
 	(import "self" "self"                        (global $self                                            externref))
 	(import "Reflect" "get"                      (func $self.Reflect.get<ext.ext>ext                      (param externref externref) (result externref)))
+	(import "Reflect" "get"                      (func $self.Reflect.get<ext.ext>i32                      (param externref externref) (result i32)))
 	(import "Reflect" "set"                      (func $self.Reflect.set<ext.i32.i32>                     (param externref i32 i32) (result)))
 	(import "Reflect" "apply"                    (func $self.Reflect.apply<ext.ext.ext>ext                (param externref externref externref) (result externref)))
 	(import "Reflect" "construct"                (func $self.Reflect.construct<ext.ext>ext                (param externref externref) (result externref)))
@@ -13,7 +15,10 @@
 		(table.get $wat4wasm (i32.const 1)) ;; "GPUAdapter"
 
 		(call $warn)
-		(table.get $wat4wasm (i32.const 3)) ;; $self.GPUAdapter
+		(table.get $wat4wasm (i32.const 2)) ;; $self.GPUAdapter
+
+		(call $warn)
+		(table.get $wat4wasm (i32.const 3)) ;; $self.window
 
 		(call $warn)
 		(table.get $wat4wasm (i32.const 4)) ;; $self.GPUAdapter.prototype.requestDevice
@@ -28,14 +33,18 @@
 		(table.get $wat4wasm (i32.const 6)) ;; $self.location.href
 
 		(call $warn)
-		(table.get $wat4wasm (i32.const 2)) ;; "mywgslLanguageFeatur.."
+		(table.get $wat4wasm (i32.const 7)) ;; $self.length/set
 
 		(call $warn)
-		(table.get $wat4wasm (i32.const 7)) ;; $self.GPU.prototype.wgslLanguageFeatures/get
+		(table.get $wat4wasm (i32.const 8)) ;; $self.GPU.prototype.wgslLanguageFeatures/get
 
 		(call $warn)
+		(global.get $self.window.length)
+
+		(call $warn/i)
 	)
 	(global $self.location.origin (mut externref) (ref.null extern))
+	(global $self.window.length   (mut i32) (i32.const 0))
 	(elem   $wat4wasm declare func $wat4wasm)
 	(func   $wat4wasm ;; @tokbuga 💚
 		(local $TextDecoder  externref)
@@ -46,6 +55,12 @@
 		(local $buffer       externref)
 		(local $byteLength   i32)
 		(local $decodedText  externref)
+		(local $value/i32    i32)
+		(local $value/f32    f32)
+		(local $value/i64    i64)
+		(local $value/f64    f64)
+		(local $value/ext    externref)
+		(local $value/fun    funcref)
 		(local $level/0      externref)
 		(local $level/1      externref)
 		(local $level/2      externref)
@@ -53,7 +68,7 @@
 		(local $level/4      externref)
 
 		(block $init
-			(local.set $byteLength (i32.const 98))
+			(local.set $byteLength (i32.const 108))
 			(local.set $level/0 (global.get $self))
 
 			(block $TextDecoder
@@ -218,50 +233,10 @@
 				(table.set $wat4wasm (i32.const 1) (local.get $decodedText))
 			)
 
-			(block $text<14:28> ;; "mywgslLanguageFeatur.."
+			(block $text<14:6> ;; "window"
 
 				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 14))
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 28))
-
-				(local.set $decodedText
-					(call $self.Reflect.apply<ext.ext.ext>ext
-						(local.get $decode)
-						(local.get $TextDecoder)
-						(call $self.Array.of<ext>ext
-							(call $self.Reflect.construct<ext.ext>ext
-								(local.get $Uint8Array)
-								(local.get $arguments)
-							)
-						)
-					)
-				)
-				(table.set $wat4wasm (i32.const 2) (local.get $decodedText))
-			)
-
-			(block $text<42:9> ;; "prototype"
-
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 42))
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 9))
-
-				(local.set $decodedText
-					(call $self.Reflect.apply<ext.ext.ext>ext
-						(local.get $decode)
-						(local.get $TextDecoder)
-						(call $self.Array.of<ext>ext
-							(call $self.Reflect.construct<ext.ext>ext
-								(local.get $Uint8Array)
-								(local.get $arguments)
-							)
-						)
-					)
-				)
-				(table.set $wat4wasm (i32.const 8) (local.get $decodedText))
-			)
-
-			(block $text<51:13> ;; "requestDevice"
-
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 51))
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 13))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 6))
 
 				(local.set $decodedText
 					(call $self.Reflect.apply<ext.ext.ext>ext
@@ -278,10 +253,10 @@
 				(table.set $wat4wasm (i32.const 9) (local.get $decodedText))
 			)
 
-			(block $text<64:12> ;; "MessageEvent"
+			(block $text<20:9> ;; "prototype"
 
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 64))
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 12))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 20))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 9))
 
 				(local.set $decodedText
 					(call $self.Reflect.apply<ext.ext.ext>ext
@@ -298,10 +273,10 @@
 				(table.set $wat4wasm (i32.const 10) (local.get $decodedText))
 			)
 
-			(block $text<76:4> ;; "data"
+			(block $text<29:13> ;; "requestDevice"
 
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 76))
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 4))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 29))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 13))
 
 				(local.set $decodedText
 					(call $self.Reflect.apply<ext.ext.ext>ext
@@ -318,10 +293,10 @@
 				(table.set $wat4wasm (i32.const 11) (local.get $decodedText))
 			)
 
-			(block $text<39:3> ;; "get"
+			(block $text<42:12> ;; "MessageEvent"
 
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 39))
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 3))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 42))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 12))
 
 				(local.set $decodedText
 					(call $self.Reflect.apply<ext.ext.ext>ext
@@ -338,10 +313,10 @@
 				(table.set $wat4wasm (i32.const 12) (local.get $decodedText))
 			)
 
-			(block $text<80:8> ;; "location"
+			(block $text<54:4> ;; "data"
 
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 80))
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 8))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 54))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 4))
 
 				(local.set $decodedText
 					(call $self.Reflect.apply<ext.ext.ext>ext
@@ -358,10 +333,10 @@
 				(table.set $wat4wasm (i32.const 13) (local.get $decodedText))
 			)
 
-			(block $text<88:6> ;; "origin"
+			(block $text<58:3> ;; "get"
 
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 88))
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 6))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 58))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 3))
 
 				(local.set $decodedText
 					(call $self.Reflect.apply<ext.ext.ext>ext
@@ -378,10 +353,10 @@
 				(table.set $wat4wasm (i32.const 14) (local.get $decodedText))
 			)
 
-			(block $text<94:4> ;; "href"
+			(block $text<61:8> ;; "location"
 
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 94))
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 4))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 61))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 8))
 
 				(local.set $decodedText
 					(call $self.Reflect.apply<ext.ext.ext>ext
@@ -396,6 +371,86 @@
 					)
 				)
 				(table.set $wat4wasm (i32.const 15) (local.get $decodedText))
+			)
+
+			(block $text<69:6> ;; "origin"
+
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 69))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 6))
+
+				(local.set $decodedText
+					(call $self.Reflect.apply<ext.ext.ext>ext
+						(local.get $decode)
+						(local.get $TextDecoder)
+						(call $self.Array.of<ext>ext
+							(call $self.Reflect.construct<ext.ext>ext
+								(local.get $Uint8Array)
+								(local.get $arguments)
+							)
+						)
+					)
+				)
+				(table.set $wat4wasm (i32.const 16) (local.get $decodedText))
+			)
+
+			(block $text<75:4> ;; "href"
+
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 75))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 4))
+
+				(local.set $decodedText
+					(call $self.Reflect.apply<ext.ext.ext>ext
+						(local.get $decode)
+						(local.get $TextDecoder)
+						(call $self.Array.of<ext>ext
+							(call $self.Reflect.construct<ext.ext>ext
+								(local.get $Uint8Array)
+								(local.get $arguments)
+							)
+						)
+					)
+				)
+				(table.set $wat4wasm (i32.const 17) (local.get $decodedText))
+			)
+
+			(block $text<79:6> ;; "length"
+
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 79))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 6))
+
+				(local.set $decodedText
+					(call $self.Reflect.apply<ext.ext.ext>ext
+						(local.get $decode)
+						(local.get $TextDecoder)
+						(call $self.Array.of<ext>ext
+							(call $self.Reflect.construct<ext.ext>ext
+								(local.get $Uint8Array)
+								(local.get $arguments)
+							)
+						)
+					)
+				)
+				(table.set $wat4wasm (i32.const 18) (local.get $decodedText))
+			)
+
+			(block $text<85:3> ;; "set"
+
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 85))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 3))
+
+				(local.set $decodedText
+					(call $self.Reflect.apply<ext.ext.ext>ext
+						(local.get $decode)
+						(local.get $TextDecoder)
+						(call $self.Array.of<ext>ext
+							(call $self.Reflect.construct<ext.ext>ext
+								(local.get $Uint8Array)
+								(local.get $arguments)
+							)
+						)
+					)
+				)
+				(table.set $wat4wasm (i32.const 19) (local.get $decodedText))
 			)
 
 			(block $text<4:3> ;; "GPU"
@@ -415,12 +470,12 @@
 						)
 					)
 				)
-				(table.set $wat4wasm (i32.const 16) (local.get $decodedText))
+				(table.set $wat4wasm (i32.const 20) (local.get $decodedText))
 			)
 
-			(block $text<16:20> ;; "wgslLanguageFeatures"
+			(block $text<88:20> ;; "wgslLanguageFeatures"
 
-				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 16))
+				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 1) (i32.const 88))
 				(call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 2) (i32.const 20))
 
 				(local.set $decodedText
@@ -435,39 +490,67 @@
 						)
 					)
 				)
-				(table.set $wat4wasm (i32.const 17) (local.get $decodedText))
+				(table.set $wat4wasm (i32.const 21) (local.get $decodedText))
 			)
 		)
 
 		(block $self
 			(block $self.GPUAdapter
 				(block $self.GPUAdapter
-					(local.set $level/1
-						(call $self.Reflect.get<ext.ext>ext
-							(local.get $level/0)
-							(table.get $wat4wasm (i32.const 1)) ;; "GPUAdapter"
+					(local.set $value/ext
+						(local.tee $level/1
+							(call $self.Reflect.get<ext.ext>ext
+								(local.get $level/0)
+								(table.get $wat4wasm (i32.const 1)) ;; "GPUAdapter"
+							)
 						)
 					)
-					(table.set $wat4wasm (i32.const 3) (local.get $level/1))
+					(table.set $wat4wasm (i32.const 2) (local.get $value/ext))
 				)
 
 				(block $self.GPUAdapter.prototype
 					(local.set $level/2
 						(call $self.Reflect.get<ext.ext>ext
 							(local.get $level/1)
-							(table.get $wat4wasm (i32.const 8)) ;; "prototype"
+							(table.get $wat4wasm (i32.const 10)) ;; "prototype"
 						)
 					)
 				)
 
 				(block $self.GPUAdapter.prototype.requestDevice
-					(local.set $level/3
-						(call $self.Reflect.get<ext.ext>ext
-							(local.get $level/2)
-							(table.get $wat4wasm (i32.const 9)) ;; "requestDevice"
+					(local.set $value/ext
+						(local.tee $level/3
+							(call $self.Reflect.get<ext.ext>ext
+								(local.get $level/2)
+								(table.get $wat4wasm (i32.const 11)) ;; "requestDevice"
+							)
 						)
 					)
-					(table.set $wat4wasm (i32.const 4) (local.get $level/3))
+					(table.set $wat4wasm (i32.const 4) (local.get $value/ext))
+				)
+			)
+
+			(block $self.window
+				(block $self.window
+					(local.set $value/ext
+						(local.tee $level/1
+							(call $self.Reflect.get<ext.ext>ext
+								(local.get $level/0)
+								(table.get $wat4wasm (i32.const 9)) ;; "window"
+							)
+						)
+					)
+					(table.set $wat4wasm (i32.const 3) (local.get $value/ext))
+				)
+
+				(block $self.window.length
+					(local.set $value/i32
+						(call $self.Reflect.get<ext.ext>i32
+							(local.get $level/1)
+							(table.get $wat4wasm (i32.const 18)) ;; "length"
+						)
+					)
+					(global.set $self.window.length (local.get $value/i32))
 				)
 			)
 
@@ -476,7 +559,7 @@
 					(local.set $level/1
 						(call $self.Reflect.get<ext.ext>ext
 							(local.get $level/0)
-							(table.get $wat4wasm (i32.const 10)) ;; "MessageEvent"
+							(table.get $wat4wasm (i32.const 12)) ;; "MessageEvent"
 						)
 					)
 				)
@@ -485,7 +568,7 @@
 					(local.set $level/2
 						(call $self.Reflect.get<ext.ext>ext
 							(local.get $level/1)
-							(table.get $wat4wasm (i32.const 8)) ;; "prototype"
+							(table.get $wat4wasm (i32.const 10)) ;; "prototype"
 						)
 					)
 				)
@@ -494,7 +577,7 @@
 					(local.set $level/3
 						(call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
 							(local.get $level/2)
-							(table.get $wat4wasm (i32.const 11)) ;; "data"
+							(table.get $wat4wasm (i32.const 13)) ;; "data"
 						)
 					)
 				)
@@ -503,7 +586,7 @@
 					(local.set $level/4
 						(call $self.Reflect.get<ext.ext>ext
 							(local.get $level/3)
-							(table.get $wat4wasm (i32.const 12)) ;; "get"
+							(table.get $wat4wasm (i32.const 14)) ;; "get"
 						)
 					)
 					(table.set $wat4wasm (i32.const 5) (local.get $level/4))
@@ -515,29 +598,52 @@
 					(local.set $level/1
 						(call $self.Reflect.get<ext.ext>ext
 							(local.get $level/0)
-							(table.get $wat4wasm (i32.const 13)) ;; "location"
+							(table.get $wat4wasm (i32.const 15)) ;; "location"
 						)
 					)
 				)
 
 				(block $self.location.href
-					(local.set $level/2
-						(call $self.Reflect.get<ext.ext>ext
-							(local.get $level/1)
-							(table.get $wat4wasm (i32.const 15)) ;; "href"
+					(local.set $value/ext
+						(local.tee $level/2
+							(call $self.Reflect.get<ext.ext>ext
+								(local.get $level/1)
+								(table.get $wat4wasm (i32.const 17)) ;; "href"
+							)
 						)
 					)
-					(table.set $wat4wasm (i32.const 6) (local.get $level/2))
+					(table.set $wat4wasm (i32.const 6) (local.get $value/ext))
 				)
 
 				(block $self.location.origin
+					(local.set $value/ext
+						(call $self.Reflect.get<ext.ext>ext
+							(local.get $level/1)
+							(table.get $wat4wasm (i32.const 16)) ;; "origin"
+						)
+					)
+					(global.set $self.location.origin (local.get $value/ext))
+				)
+			)
+
+			(block $self.length
+				(block $self.length
+					(local.set $level/1
+						(call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
+							(local.get $level/0)
+							(table.get $wat4wasm (i32.const 18)) ;; "length"
+						)
+					)
+				)
+
+				(block $self.length/set
 					(local.set $level/2
 						(call $self.Reflect.get<ext.ext>ext
 							(local.get $level/1)
-							(table.get $wat4wasm (i32.const 14)) ;; "origin"
+							(table.get $wat4wasm (i32.const 19)) ;; "set"
 						)
 					)
-					(global.set $self.location.origin (local.get $level/2))
+					(table.set $wat4wasm (i32.const 7) (local.get $level/2))
 				)
 			)
 
@@ -546,7 +652,7 @@
 					(local.set $level/1
 						(call $self.Reflect.get<ext.ext>ext
 							(local.get $level/0)
-							(table.get $wat4wasm (i32.const 16)) ;; "GPU"
+							(table.get $wat4wasm (i32.const 20)) ;; "GPU"
 						)
 					)
 				)
@@ -555,7 +661,7 @@
 					(local.set $level/2
 						(call $self.Reflect.get<ext.ext>ext
 							(local.get $level/1)
-							(table.get $wat4wasm (i32.const 8)) ;; "prototype"
+							(table.get $wat4wasm (i32.const 10)) ;; "prototype"
 						)
 					)
 				)
@@ -564,7 +670,7 @@
 					(local.set $level/3
 						(call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
 							(local.get $level/2)
-							(table.get $wat4wasm (i32.const 17)) ;; "wgslLanguageFeatures"
+							(table.get $wat4wasm (i32.const 21)) ;; "wgslLanguageFeatures"
 						)
 					)
 				)
@@ -573,17 +679,17 @@
 					(local.set $level/4
 						(call $self.Reflect.get<ext.ext>ext
 							(local.get $level/3)
-							(table.get $wat4wasm (i32.const 12)) ;; "get"
+							(table.get $wat4wasm (i32.const 14)) ;; "get"
 						)
 					)
-					(table.set $wat4wasm (i32.const 7) (local.get $level/4))
+					(table.set $wat4wasm (i32.const 8) (local.get $level/4))
 				)
 			)
 		)
 
 		(call $main))
-	(data   $wat4wasm "\00\00\00\00\47\50\55\41\64\61\70\74\65\72\6d\79\77\67\73\6c\4c\61\6e\67\75\61\67\65\46\65\61\74\75\72\65\73\73\65\74\67\65\74\70\72\6f\74\6f\74\79\70\65\72\65\71\75\65\73\74\44\65\76\69\63\65\4d\65\73\73\61\67\65\45\76\65\6e\74\64\61\74\61\6c\6f\63\61\74\69\6f\6e\6f\72\69\67\69\6e\68\72\65\66")
-	(table  $wat4wasm 18 externref)
+	(data   $wat4wasm "\00\00\00\00\47\50\55\41\64\61\70\74\65\72\77\69\6e\64\6f\77\70\72\6f\74\6f\74\79\70\65\72\65\71\75\65\73\74\44\65\76\69\63\65\4d\65\73\73\61\67\65\45\76\65\6e\74\64\61\74\61\67\65\74\6c\6f\63\61\74\69\6f\6e\6f\72\69\67\69\6e\68\72\65\66\6c\65\6e\67\74\68\73\65\74\77\67\73\6c\4c\61\6e\67\75\61\67\65\46\65\61\74\75\72\65\73")
+	(table  $wat4wasm 22 externref)
 	(start  $wat4wasm)
 	(global $wat4wasm             (mut externref) (ref.null extern))
 	(memory $wat4wasm 1)
