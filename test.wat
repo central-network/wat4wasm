@@ -2,52 +2,45 @@
 
     (import "console" "warn" (func $warn (param externref)))
     (import "console" "warn" (func $warn/i (param i32)))
+    (import "console" "warn" (func $warn/f.e (param funcref externref) (result)))
 
     (func $main
 
-        (text "GPUAdapter")
-        (call $warn)
-
-        (table.get $self.GPUAdapter)
-        (call $warn)
-
-        (table.get $self.window)
-        (call $warn)
-
-        (table.get $self.GPUAdapter:requestDevice)
-        (call $warn)
-
-        (table.get $self.MessageEvent:data[get])
-        (call $warn)
-
-        (global.get $self.location.origin)
-        (call $warn)
-
-        (table.get $self.location.href)
-        (call $warn)
-
-        (table.get $self.length[set])
-        (call $warn)
-
-        (table.get $self.GPU:wgslLanguageFeatures[get])
-        (call $warn)
-
-        (global.get $self.window.length i32)
-        (call $warn/i)
-
-        (array
-            (param ext ext i32 ext ext i32)
-            (result i32)
-
-            (global.get $self.window.clientInformation)
-            (global.get $self.window.clientInformation.appName)
-            (global.get $self.window.clientInformation.cpuPerformance i32)
-            (global.get $self.window.alert)
-            (table.get $self.window.name)
-            (global.get $self.window.length i32)
+        (call $self.console.warn<ext>
+            (array
+                (param ext ext ext ext f32 i32)
+                (result ext)
+                (ref.func $self.GPUAdapter:requestDevice)
+                (ref.extern $self.console.warn)
+                (global.get $self.console.warn)
+                (ref.extern $self.location.origin)
+                (call $self.Math.random<>f32)
+                (call $self.requestAnimationFrame<fun>i32 
+                    (ref.func $onanimationframe<f32>)
+                )
+            )
         )
-        (call $warn)
 
+        (apply
+            (param fun ext ext)
+            (result)
+
+            (ref.func $self.console.log<ext.ext>)
+            (null)
+            (array
+                (param fun ext)
+                (result ext)
+
+                (ref.func $self.console.warn)
+                (ref.extern $self.console.warn)
+            )
+        )
+
+    )
+
+    (func $onanimationframe<f32>
+        (param $epoch f32)
+        (call $self.console.log<f32> (this))
     )
 
     (start $main)

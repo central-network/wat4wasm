@@ -36,7 +36,11 @@ const w4 = {
 
     shortType: new Proxy({
         externref: "ext",
+        extern: "ext",
+        ext: "ext",
         funcref: "fun",
+        func: "fun",
+        fun: "fun",
         i32: "i32",
         i64: "i64",
         f32: "f32",
@@ -449,9 +453,15 @@ const w4 = {
             match.end = end;
 
             let blockContent = substring.substring(
-                substring.indexOf(" "),
+                substring.match(/\(([\w\.]+)/)[0].length,
                 substring.lastIndexOf(")")
-            ).trim();
+            );
+
+            if (blockContent.length) {
+                while (!blockContent.charAt(0).trim()) {
+                    blockContent = blockContent.substring(1);
+                }
+            }
 
             const charMatch = blockContent.charAt(0).match(/["'`]/);
             if (charMatch && blockContent.charAt(blockContent.length - 1) === charMatch.at(0)) {
@@ -466,15 +476,22 @@ const w4 = {
 
             let blockName = "";
             if (blockContent.trim().startsWith("$")) {
-                let nameStart = 0;
+                let nameStart = -1;
                 let nameLen = blockContent.length;
+                let char = "";
 
-                while (blockContent.charAt(nameStart++) === "$") {
-                    break;
+                while (char = blockContent.charAt(nameStart++)) {
+                    if (!char.trim()) {
+                        continue;
+                    };
+                    if (char === "$") {
+                        nameStart--;
+                        break;
+                    };
                 }
 
                 let nameEnd = nameStart;
-                let char = ";"
+                char = ";"
                 while (char = blockContent.charAt(nameEnd++)) {
                     if (!char.trim()) break;
                     if (char === ")") break;
@@ -482,18 +499,18 @@ const w4 = {
                 }
 
                 blockName = blockContent.substring(nameStart, nameEnd).trim();
+                blockContent = blockContent.substring(nameEnd);
             }
 
-
-            if (blockName) {
-                blockContent = blockContent.substring(
-                    blockContent.indexOf(blockName) + blockName.length
-                ).trim() || blockContent;
+            if (blockContent.length) {
+                while (!blockContent.charAt(0).trim()) {
+                    blockContent = blockContent.substring(1);
+                }
             }
 
             let type = "";
-            if (blockContent.trim().startsWith("(type ")) {
-                const typeStart = blockContent.indexOf("(type ");
+            if (blockContent.trim().startsWith("(type")) {
+                const typeStart = blockContent.indexOf("(type");
                 const typeEnd = blockContent.indexOf(")", typeStart) + 1;
 
                 type = blockContent.substring(typeStart, typeEnd);
@@ -503,8 +520,8 @@ const w4 = {
             }
 
             let param = "";
-            if (blockContent.trim().startsWith("(param ")) {
-                const paramStart = blockContent.indexOf("(param ");
+            if (blockContent.trim().startsWith("(param")) {
+                const paramStart = blockContent.indexOf("(param");
                 const paramEnd = blockContent.indexOf(")", paramStart) + 1;
 
                 param = blockContent.substring(paramStart, paramEnd);
@@ -514,8 +531,8 @@ const w4 = {
             }
 
             let result = "";
-            if (blockContent.trim().startsWith("(result ")) {
-                const resultStart = blockContent.indexOf("(result ");
+            if (blockContent.trim().startsWith("(result")) {
+                const resultStart = blockContent.indexOf("(result");
                 const resultEnd = blockContent.indexOf(")", resultStart) + 1;
 
                 result = blockContent.substring(resultStart, resultEnd);
@@ -525,9 +542,9 @@ const w4 = {
             }
 
             const signature = [type, param, result].filter(Boolean).join(" ").trim();
-            const pathName = blockName.split(/[^\w|\.]/gi).at(0);
+            const pathName = blockName.split("<").at(0).split("/").at(0).split(/\$|\./g).filter(Boolean).join(".");
             const hasSelfPath = pathName.startsWith("self");
-            const $name = `$${blockName}`;
+            const $name = `${blockName}`;
 
             Reflect.defineProperty(match, "pathName", { value: pathName, enumerable: true });
             Reflect.defineProperty(match, "tagType", { value: tagType, enumerable: true });
@@ -543,6 +560,19 @@ const w4 = {
             Reflect.defineProperty(match, "input", { value: match.input, enumerable: false });
             Reflect.defineProperty(match, "startedAt", { value: start, enumerable: true });
             Reflect.defineProperty(match, "hasSelfPath", { value: hasSelfPath, enumerable: true });
+
+            Reflect.defineProperty(match, "generateNameSignature", {
+                value: function (defaultType = { param: "", result: "", overwriteParam: false, overwriteResult: false }) {
+                    let param = w4.block(this.generateParamBlock(), "param").blockContent.split(" ").filter(Boolean).map(p => w4.shortType[p]).join(".").trim(),
+                        result = w4.block(this.generateResultBlock(), "result").blockContent.split(" ").filter(Boolean).map(p => w4.shortType[p]).join(".").trim();
+
+                    if (defaultType.overwriteParam || !param) { param = defaultType.param; }
+                    if (defaultType.overwriteResult || !result) { result = defaultType.result; }
+
+                    return `<${param}>${result}`
+                }
+            });
+
             Reflect.defineProperty(match, "generateParamBlock", {
                 value: function () {
 
@@ -561,6 +591,7 @@ const w4 = {
                                 .trim()
                         )
                         .concat(")")
+                        .replace(" )", ")")
                         ;
                 }
             });
@@ -581,6 +612,7 @@ const w4 = {
                                 .trim()
                         )
                         .concat(")")
+                        .replace(" )", ")")
                         ;
                 }
             });
@@ -595,14 +627,14 @@ const w4 = {
             });
 
             Reflect.defineProperty(match, "generatedImportCode", {
-                get: function () {
-                    const [prop, root = "self"] = this.pathName.split(".").reverse();
+                value: function () {
+                    const [prop, root = "self"] = this.$name.substring(1).split("<").at(0).split("/").at(0).split(".").reverse();
                     return String(`
                     (import 
                         "${root}" 
                         "${prop}" 
                         
-                        (func $${this.blockName}
+                        (func ${this.$name}
                             ${this.generateParamBlock()}
                             ${this.generateResultBlock()}
                         ) 
@@ -916,15 +948,12 @@ const w4 = {
     },
 
     array_of: function (match) {
-        const blockContent = match.blockContent.split("\n").filter(l => l.trim() || !l.trim().startsWith(";;")).join("\n").trim();
-        const argsTypeDotJoin = match.param.split(/\s+|\)|\(/).filter(w4.is_type).join(".");
-        const selfCallFuncName = `$self.Array.of<${argsTypeDotJoin}>ext`;
+        const nameSig = match.generateNameSignature({ result: "ext", overwriteResult: true });
+        const $name = `$self.Array.of${nameSig}`;
 
-        return `
-        (call ${selfCallFuncName} 
-            ${blockContent}
-        )
-        `;
+        return `(call ${$name}
+            ${match.blockContent}
+        )`;
     },
 
     i32_extern: function (match) {
@@ -1084,6 +1113,55 @@ const w4 = {
     },
 }
 
+function redefineReferences(source) {
+    let match, index;
+    const elemBlocks = new Map;
+    let $wat4wasmElemBlock;
+
+    index = -1;
+    while (match = w4.block(source, "elem", ++index)) {
+        if (elemBlocks.has(match.index) === false) {
+            elemBlocks.set(match.index, match.blockContent);
+            if (match.$name === "$wat4wasm") {
+                $wat4wasmElemBlock = match;
+            }
+        }
+    }
+
+    const refFuncs = new Set;
+    index = -1;
+    while (match = w4.block(source, "ref.func", ++index)) {
+        if (refFuncs.has(match.$name) === false) {
+            refFuncs.add(match.$name);
+        }
+    }
+
+    refFuncs.forEach($name => {
+        let isDefined = false;
+        elemBlocks.forEach(blockContent => {
+            if (isDefined === false &&
+                blockContent.endsWith(` ${$name}`) ||
+                blockContent.includes(` ${$name} `) ||
+                blockContent.includes(` ${$name})`)
+            ) { isDefined = true; }
+        });
+
+        if (isDefined) { refFuncs.delete($name); }
+    });
+
+    if (refFuncs.size > 0) {
+        let imports = Array.from(refFuncs).filter($name => $name.startsWith("$self")).map($self_func => {
+            return w4.block(`(func ${$self_func})`, `func`).generatedImportCode();
+        }).join("\n")
+
+        source = w4.replace(source, $wat4wasmElemBlock, String(`
+            (elem   $wat4wasm declare func $wat4wasm ${Array.from(refFuncs).join(" ")})
+        `).concat(imports).replaceAll(" )", ")").trim());
+    }
+
+    return source;
+}
+
 function redefineImports(source) {
     let match, index;
 
@@ -1107,18 +1185,17 @@ function redefineImports(source) {
 
             const blockName = match.blockName;
             if (true === selfImports.has(blockName)) { continue; }
-            else { selfImports.set(blockName, match.generatedImportCode) }
+            else { selfImports.set(blockName, match.generatedImportCode()) }
         }
     }
 
     // find $self[*]+ calls and create an import
     index = -1;
-    while (match = w4.block(source, "call", ++index)) {
-        if (match.hasSelfPath === false) { continue; }
+    while (match = w4.block(source, "call $self", ++index)) {
 
         const blockName = match.blockName;
         if (true === selfImports.has(blockName)) { continue; }
-        else { selfImports.set(blockName, match.generatedImportCode); }
+        else { selfImports.set(blockName, match.generatedImportCode()); }
     }
 
     if (selfImports.has("$self") === false) {
@@ -1155,6 +1232,10 @@ function wat4wasm(wat) {
     wat = wat.replaceAll(/\[(.)et(ter|)\]/g, `/$1et`);
     wat = wat.replaceAll(/TypedArray(\:|\.)/g, `Uint8Array.__proto__$1`);
     wat = wat.replaceAll(/\$(.[^\s]*)\:(.)/g, `$$$1.prototype.$2`);
+    wat = wat.replaceAll(/\(null\)/g, `(ref.null extern)`);
+    wat = wat.replaceAll(/\(self\)/g, `(global.get $self)`);
+    wat = wat.replaceAll(/\(this\)/g, `(local.get 0)`);
+    wat = wat.replaceAll(/\(array\)/g, `(call $self.Array<>ext)`);
 
     while (match) {
         console.log(`☘️ cursing! for \x1b[36m${(++iteration).toString().padStart(3, " ")}\x1b[0m times.. \x1b[33m${match.tagType}\x1b[0m`.trim());
@@ -1174,11 +1255,23 @@ function wat4wasm(wat) {
             continue;
         }
 
+        if (match = w4.block(wat, "ref.extern $self.")) {
+            wat = w4.replace(wat, match, `(table.get ${match.blockName})`);
+            continue;
+        }
     }
 
     let index;
     let pathWalks = [];
     let replaceRaws = new Map;
+
+
+    index = -1;
+    while (match = w4.block(wat, "ref.func $self.", ++index)) {
+        if (match.pathName.split(".").length > 3) {
+            wat = wat.replaceAll(`(ref.func ${match.$name})`, `(global.get ${match.$name})`);
+        }
+    }
 
     index = -1;
     while (match = w4.block(wat, "table.get $self.", ++index)) {
@@ -1186,12 +1279,14 @@ function wat4wasm(wat) {
         let extern_index;
         let pathWalker = "";
 
-        if (false === w4.externref.has(match.$name)) {
+        if (false === w4.externref.has(match.raw)) {
             extern_index = TableManager.reserveIndex();
 
-            w4.externref.set(match.$name, {
+            w4.externref.set(match.raw, {
                 index: extern_index
             });
+
+            console.log(match)
 
             const pathWalk = {
                 iBlocks: [],
@@ -1231,15 +1326,13 @@ function wat4wasm(wat) {
                     pathWalk.iBlocks.push(`\
                     (oninit
                         (block $${propertyPath}
-                            (local.set $value/ext
-                                (local.tee $${propertyPath}
-                                    (call $self.Reflect.get<ext.ext>${type}
-                                        (local.get $${prevPath})
-                                        (text "${propertyKey}")
-                                    )
+                            (local.set $${propertyPath}
+                                (call $self.Reflect.get<ext.ext>${type}
+                                    (local.get $${prevPath})
+                                    (text "${propertyKey}")
                                 )
                             )
-                            ${TableManager.generateSetter(extern_index, `(local.get $value/ext)`)}
+                            ${TableManager.generateSetter(extern_index, `(local.get $${propertyPath})`)}
                         )
                     )
                     `);
@@ -1275,9 +1368,7 @@ function wat4wasm(wat) {
         }
 
         if (replaceRaws.has(match.raw) === false) {
-            extern_index = w4.externref.get(
-                match.$name
-            ).index;
+            extern_index = w4.externref.get(match.raw).index;
 
             replaceRaws.set(match.raw,
                 TableManager
@@ -1347,17 +1438,22 @@ function wat4wasm(wat) {
                     (oninit
                         (block $${propertyPath}
                             (local.set $value/${type}
-                                (call $self.Object<ext>${type}
-                                    (local.tee $${propertyPath}
-                                        (call $self.Reflect.get<ext.ext>ext
-                                            (local.get $${prevPath})
-                                            (text "${propertyKey}")
-                                        )
-                                    )
+                                (call $self.Reflect.get<ext.ext>${type}
+                                    (local.get $${prevPath})
+                                    (text "${propertyKey}")
                                 )
                             )
                                 
                             (global.set $${label} (local.get $value/${type}))
+                        )
+
+                        (block $${propertyPath}
+                            (local.set $${propertyPath}
+                                (call $self.Reflect.get<ext.ext>ext
+                                    (local.get $${prevPath})
+                                    (text "${propertyKey}")
+                                )
+                            )
                         )
                     )
                     `);
@@ -1404,9 +1500,6 @@ function wat4wasm(wat) {
     });
 
 
-    while (match = w4.block(wat, "text")) {
-        wat = w4.replace(wat, match, w4.text(match));
-    }
 
     index = -1;
     while (match = w4.block(wat, "i32.extern", ++index)) {
@@ -1417,15 +1510,25 @@ function wat4wasm(wat) {
         wat = w4.replace(wat, match, w4.array_of(match));
     }
 
+    while (match = w4.block(wat, "apply")) {
+        wat = w4.replace(wat, match, `(call $self.Reflect.apply${match.generateNameSignature()}
+            ${match.blockContent}
+        )`);
+    }
+
+    while (match = w4.block(wat, "text")) {
+        wat = w4.replace(wat, match, w4.text(match));
+    }
     while (match = w4.block(wat, "oninit")) {
         wat = w4.oninit(wat, match);
     }
 
-    const { textLocals, prepareBlock } = w4.generateFinalArgs();
-
     wat = w4.boot(wat);
-    wat = optimizeWat(wat, textLocals, prepareBlock);
+    wat = redefineReferences(wat);
+
+    const { textLocals, prepareBlock } = w4.generateFinalArgs();
     wat = redefineImports(wat);
+    wat = optimizeWat(wat, textLocals, prepareBlock);
 
     return wat;
 }
