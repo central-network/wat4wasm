@@ -44,4 +44,6 @@
     )
 
     (start $main)
+
+    (data $testing "wasm://test/sub-folder/test-sub.wat")
 )

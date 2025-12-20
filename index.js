@@ -1,11 +1,23 @@
-import fs from "fs";
+import fs, { readFileSync } from "fs";
+import cp from "child_process";
 import wat4beauty from "wat4beauty"
 import { TableManager } from "./lib/TableManager.js";
 import { optimizeWat } from "./lib/Optimizer.js";
 
-const ENTRY_FILE = "test.wat";
-const OUTPUT_FILE = "output.wat";
+const [
+    ENTRY_FILE = "",
+    OUTPUT_FILE = ENTRY_FILE.replace(".wat", "-output.wat")
+] = Array.from(process.argv).filter(a => a.endsWith(".wat")).map(f => f.split("=").pop() || f);
 
+let spawner = process.argv.slice(0, 2).map(d => `'${d}'`).join(" ");
+
+if (!ENTRY_FILE) {
+    throw "entry file required!"
+}
+
+console.log({
+    ENTRY_FILE, OUTPUT_FILE
+})
 
 const w4 = {
     include: function (match) {
@@ -463,11 +475,6 @@ const w4 = {
                 }
             }
 
-            const charMatch = blockContent.charAt(0).match(/["'`]/);
-            if (charMatch && blockContent.charAt(blockContent.length - 1) === charMatch.at(0)) {
-                blockContent = blockContent.substring(1, blockContent.length - 1);
-            }
-
             const [
                 tagType, tagSubType = ""
             ] = substring.substring(
@@ -506,6 +513,12 @@ const w4 = {
                 while (!blockContent.charAt(0).trim()) {
                     blockContent = blockContent.substring(1);
                 }
+            }
+
+
+            const charMatch = blockContent.charAt(0).match(/["'`]/);
+            if (charMatch && blockContent.charAt(blockContent.length - 1) === charMatch.at(0)) {
+                blockContent = blockContent.substring(1, blockContent.length - 1);
             }
 
             let type = "";
@@ -654,8 +667,6 @@ const w4 = {
 
         const globals = Array.from(raw.matchAll(/\(global\s\$(.[^\s]*)\s/g)).map(g => g[1]);
 
-        console.log({ globals });
-
         if (globals.some(g => g === match.blockName)) {
             return raw;
         }
@@ -783,7 +794,6 @@ const w4 = {
             ) 
             (data   $wat4wasm "\\${textDataHex}")
             ${TableManager.generateTableDefinition()}
-            (start  $wat4wasm)
             (global $wat4wasm (mut externref) (ref.null extern))
             ${wat4Memory}
         )`;
@@ -1168,42 +1178,39 @@ function redefineImports(source) {
     const userImports = new Set;
     const selfImports = new Map;
 
+    selfImports.set("$self", `(import "self" "self" (global $self externref))`)
+    selfImports.set("$self.String.fromCharCode", `(import "String" "fromCharCode" (global $self.String.fromCharCode externref))`)
+
     // find import blocks and remove
-    index = -1;
+    index = -1
     while (match = w4.block(source, "import", ++index)) {
-        source = w4.remove(source, match);
+        const raw = match.raw.substring(1, match.raw.length - 1).split("\"").pop().trim();
+        const tag = raw.match(/\((.[^\s]*)/).at(1);
 
-        const raw = match.raw;
-        if (match = w4.block(match.blockContent, "", match.blockContent.indexOf("("))) {
-
-            if (match.hasSelfPath === false) {
-                if (userImports.has(raw) === false) {
-                    userImports.add(raw);
+        let imatch;
+        if (imatch = w4.block(raw, tag)) {
+            if (imatch.hasSelfPath === false) {
+                if (userImports.has(match.raw) === false) {
+                    userImports.add(match.raw);
                 }
-                continue;
             }
-
-            const blockName = match.blockName;
-            if (true === selfImports.has(blockName)) { continue; }
-            else { selfImports.set(blockName, match.generatedImportCode()) }
+            else {
+                if (true === selfImports.has(imatch.$name)) { continue; }
+                else { selfImports.set(imatch.$name, imatch.generatedImportCode()) }
+            }
         }
     }
 
-    // find $self[*]+ calls and create an import
     index = -1;
     while (match = w4.block(source, "call $self", ++index)) {
-
-        const blockName = match.blockName;
-        if (true === selfImports.has(blockName)) { continue; }
-        else { selfImports.set(blockName, match.generatedImportCode()); }
+        if (true === selfImports.has(match.$name)) { continue; }
+        else { selfImports.set(match.$name, match.generatedImportCode()); }
     }
-
-    if (selfImports.has("$self") === false) {
-        selfImports.set("$self", `(import "self" "self" (global $self externref))`)
-    }
-
-    if (selfImports.has("$self.String.fromCharCode") === false) {
-        selfImports.set("$self.String.fromCharCode", `(import "String" "fromCharCode" (global $self.String.fromCharCode externref))`)
+    // find $self[*]+ calls and create an import
+    index = -1;
+    while (match = w4.block(source, "global.get $self", ++index)) {
+        if (true === selfImports.has(match.$name)) { continue; }
+        else { selfImports.set(match.$name, match.generatedImportCode()); }
     }
 
     const sorter = (a, b) => {
@@ -1221,6 +1228,10 @@ function redefineImports(source) {
         Array.from(selfImports.values()).sort(sorter)
     ).flat().join("\n").trim();
 
+    while (match = w4.block(source, "import")) {
+        source = w4.remove(source, match);
+    }
+
     return source.replace(`(module`, `(module\n
         ${refinedImportSection}    
     `);
@@ -1229,6 +1240,7 @@ function redefineImports(source) {
 let iteration = 0;
 function wat4wasm(wat) {
     let match = { tagType: "boot" };
+    wat = `${wat || ""}`.trim();
     wat = wat.replaceAll(/\[(.)et(ter|)\]/g, `/$1et`);
     wat = wat.replaceAll(/TypedArray(\:|\.)/g, `Uint8Array.__proto__$1`);
     wat = wat.replaceAll(/\$(.[^\s]*)\:(.)/g, `$$$1.prototype.$2`);
@@ -1244,6 +1256,8 @@ function wat4wasm(wat) {
             wat = w4.replace(wat, match, w4.include(match));
             continue;
         }
+
+
 
         if (match = w4.block(wat, "text")) {
             wat = w4.replace(wat, match, w4.text(match));
@@ -1285,8 +1299,6 @@ function wat4wasm(wat) {
             w4.externref.set(match.raw, {
                 index: extern_index
             });
-
-            console.log(match)
 
             const pathWalk = {
                 iBlocks: [],
@@ -1500,7 +1512,6 @@ function wat4wasm(wat) {
     });
 
 
-
     index = -1;
     while (match = w4.block(wat, "i32.extern", ++index)) {
         wat = w4.replace(wat, match, w4.i32_extern(match));
@@ -1525,10 +1536,43 @@ function wat4wasm(wat) {
 
     wat = w4.boot(wat);
     wat = redefineReferences(wat);
+    wat = redefineImports(wat);
 
     const { textLocals, prepareBlock } = w4.generateFinalArgs();
-    wat = redefineImports(wat);
     wat = optimizeWat(wat, textLocals, prepareBlock);
+    wat = redefineImports(wat);
+
+    index = -1;
+    while (match = w4.block(wat, "data", ++index)) {
+        const url = match.blockContent.match(/([a-z0-9]{2,4}\:\/\/)(.[^\s]*)/);
+        if (url) {
+            const [imatch, proto, path] = url;
+            let buffer = fs.readFileSync(path);
+            switch (proto) {
+                case "wasm://":
+                    try {
+                        const fileName = path.split("/").pop()
+                        const fileBaseName = fileName.split(".").reverse().slice(1).reverse().join(".");
+                        const tmp_wat = `/tmp/${fileBaseName}.wat`;
+                        const tmp_wat4 = `/tmp/${fileBaseName}.wat4`;
+                        const tmp_wasm = `/tmp/${fileBaseName}.wasm`;
+
+                        fs.writeFileSync(tmp_wat, buffer)
+                        cp.execSync(`${spawner} ${tmp_wat} --output=${tmp_wat}`);
+                        cp.execSync(`wat2wasm ${tmp_wat} --debug-names --enable-threads --no-check`);
+                        buffer = fs.readFileSync(tmp_wasm)
+                    } catch (e) {
+                        process.exit(console.error(e.message.substring(0, 100)))
+                    }
+                    break;
+
+                case "file://":
+                    break;
+            }
+            const data = Array.from(buffer.toString("hex").matchAll(/[a-f0-9]{2}/g)).join("\\");
+            wat = w4.replace(wat, match, match.raw.replace(imatch, `\\${data}`));
+        }
+    }
 
     return wat;
 }
