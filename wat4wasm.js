@@ -135,16 +135,10 @@ class WatBlock {
 
     extractAlias() {
         let raw = this.source,
-            watRemain = raw,
+            watRemain = this.getBlockTextContent(),
             $name = "",
             alias = { $name, toString: function () { return `${this.$name}` } };
 
-        if (watRemain.trim().startsWith(`(${this.constructor.tag}`)) {
-            watRemain = watRemain.substring(
-                watRemain.indexOf(" "),
-                watRemain.lastIndexOf(")")
-            ).trim();
-        }
 
         if (watRemain.startsWith("$")) {
             alias.$name = watRemain.split(/\s/).at(0).split(")").at(0)
@@ -159,19 +153,26 @@ class WatBlock {
         return alias;
     }
 
+    getBlockTextContent() {
+        let raw = this.source;
+
+        let starter = `(${this.constructor.tag}`;
+
+        if (raw.trim().startsWith(starter)) {
+            raw = raw.substring(
+                raw.indexOf(starter) + starter.length,
+                raw.lastIndexOf(")")
+            ).trim();
+        }
+
+        return raw;
+    }
+
     extractBlocks() {
         let raw = this.source,
             begin,
-            watRemain = raw,
+            watRemain = this.getBlockTextContent(),
             block, blocks = [];
-
-        let starter = `(${this.constructor.tag}`;
-        if (watRemain.trim().startsWith(starter)) {
-            watRemain = watRemain.substring(
-                watRemain.indexOf(starter) + starter.length,
-                watRemain.lastIndexOf(")")
-            ).trim();
-        }
 
         while (true) {
             begin = watRemain.indexOf("(");
@@ -196,15 +197,8 @@ class WatBlock {
     extractQuotes() {
         let raw = this.source,
             begin,
-            watRemain = raw,
+            watRemain = this.getBlockTextContent(),
             quote, quotes = [];
-
-        if (watRemain.trim().startsWith(`(${this.constructor.tag}`)) {
-            watRemain = watRemain.substring(
-                watRemain.indexOf(" "),
-                watRemain.lastIndexOf(")")
-            ).trim();
-        }
 
         while (true) {
             begin = watRemain.indexOf('"');
@@ -334,11 +328,47 @@ WatBlock.register(class WatMemory extends WatBlock {
     static ops = [
         class extends this {
             static tag = "memory.init";
-            static #template = "([tag][dot][op][space][?alias][block][block][block])"
-            static #consumes = 3;
-            static #produces = 0;
         }
     ]
+
+    toString() {
+        const args = [];
+
+        if (this.alias.$name) { args.push(this.alias.$name) }
+        if (this.isI64Memory) { args.push("i64") }
+        if (!isNaN(this.initial)) { args.push(this.initial) }
+        if (!isNaN(this.maximum)) { args.push(this.maximum) }
+        if (this.isSharedBuffer) { args.push("shared") }
+
+        return `(memory ${args.join(" ")})`
+    }
+
+    reset() {
+        const alias = this.extractAlias();
+        const content = this.getBlockTextContent().split(/\s+/).filter(Boolean);
+
+        if (content[0] === "i64") {
+            this.isI64Memory = true;
+            content.splice(0, 1);
+        }
+
+        if (content[content.length - 1] === "shared") {
+            this.isSharedBuffer = "shared";
+            content.splice(-1, 1);
+        }
+
+        if (isNaN(content[0]) === false) {
+            this.initial = content[0];
+            content.splice(0, 1);
+        }
+
+        if (isNaN(content[0]) === false) {
+            this.maximum = content[0];
+            content.splice(0, 1);
+        }
+
+        assign(this, "alias", alias);
+    }
 })
 
 WatBlock.register(class WatData extends WatBlock {
@@ -446,30 +476,6 @@ WatBlock.register(
     }
 )
 
-WatBlock.register(
-    class WatImport extends WatBlock {
-        static tag = "include"
-
-        content = "";
-
-        toString() {
-            return this.content.toString();
-        }
-
-        reset() {
-            const [path] = this.extractQuotes();
-            assign(this, "path", path);
-
-            const content = fs.readFileSync(path, "utf8").trim();
-            if (content) {
-                this.content = WatBlock.fromRaw(content)
-                console.log(this.content)
-            }
-        }
-    }
-)
-
-
 console.log(WatBlock.registeredClasses)
 
 export class WatCompiler {
@@ -478,7 +484,9 @@ export class WatCompiler {
     }
 
     compile(wat) {
-        const wp = WatBlock.fromRaw(wat);
+        const wp = WatBlock.fromRaw(
+            this.resolveIncludes(wat)
+        );
 
         // 1. Recursive Include Resolution
         //wat = this.resolveIncludes(wat);
