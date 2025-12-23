@@ -24,11 +24,17 @@ class WatBlock {
     static #consumes = NaN;
     static #produces = NaN;
 
-    constructor(raw = "(nop)", begin = 0, end = begin + raw.length, rootSource = raw) {
-        assign(this, "rootSource", rootSource)
-        assign(this, "begin", begin)
-        define(this, "end", end)
+    constructor(raw = "(nop)", scope) {
         assign(this, "raw", raw)
+        this.scope = scope;
+    }
+
+    get root() {
+        let root = this;
+        while (root.scope) {
+            root = root.scope;
+        }
+        return root;
     }
 
     get raw() { }
@@ -103,13 +109,15 @@ class WatBlock {
         return Class
     }
 
-    static fromRaw(source) {
+    static fromRaw(source, scope) {
         if (this.isBlock(source) === false) {
             throw new RangeError(`Block is NOT valid: ${source}`);
         }
 
         return Reflect.construct(
-            this.findClass(source), arguments
+            this.findClass(source), Array.of(
+                source, scope
+            )
         );
     }
 
@@ -135,7 +143,7 @@ class WatBlock {
 
     extractAlias() {
         let raw = this.source,
-            watRemain = this.getBlockTextContent(),
+            watRemain = this.trimBlockWrapper(),
             $name = "",
             alias = { $name, toString: function () { return `${this.$name}` } };
 
@@ -153,25 +161,49 @@ class WatBlock {
         return alias;
     }
 
-    getBlockTextContent() {
-        let raw = this.source;
+    static trimBlockWrapper(raw) {
 
-        let starter = `(${this.constructor.tag}`;
+        raw = raw.trim();
 
-        if (raw.trim().startsWith(starter)) {
+        if (raw.startsWith('(') && raw.endsWith(')')) {
             raw = raw.substring(
-                raw.indexOf(starter) + starter.length,
-                raw.lastIndexOf(")")
-            ).trim();
+                raw.indexOf('('), raw.lastIndexOf(')'),
+            );
+
+            //walk untik (tag... ends
+            while (raw.length && raw.at(0).trim()) { raw = raw.substring(1); }
         }
 
+        raw = raw.trim();
+
         return raw;
+    }
+
+    trimBlockWrapper() {
+        return WatBlock.trimBlockWrapper(this.source);
+    }
+
+    static splitBlocks(raw) {
+        let begin = -1, block, blocks = [];
+
+        while ((begin = raw.indexOf("(", begin)) !== -1) {
+
+            if (block = WatBlock.blockAt(raw, begin)) {
+                begin = begin + block.length;
+                blocks.push(block);
+                continue;
+            }
+
+            break;
+        }
+
+        return blocks;
     }
 
     extractBlocks() {
         let raw = this.source,
             begin,
-            watRemain = this.getBlockTextContent(),
+            watRemain = this.trimBlockWrapper(),
             block, blocks = [];
 
         while (true) {
@@ -197,7 +229,7 @@ class WatBlock {
     extractQuotes() {
         let raw = this.source,
             begin,
-            watRemain = this.getBlockTextContent(),
+            watRemain = this.trimBlockWrapper(),
             quote, quotes = [];
 
         while (true) {
@@ -251,77 +283,308 @@ class WatBlock {
     }
 }
 
-WatBlock.register(
-    class WatModule extends WatBlock {
-        static tag = "module"
+class WatModule {
+    constructor(raw) {
+        const content = WatBlock.trimBlockWrapper(raw);
 
-        get headSegments() {
-            return Array()
-                .concat(this.importBlocks)
-                .flat().filter(Boolean);
-        }
+        this.blocks = [];
+        this.importBlocks = [];
+        this.typeBlocks = [];
+        this.globalBlocks = [];
+        this.memoryBlocks = [];
+        this.elemBlocks = [];
+        this.funcBlocks = [];
+        this.dataBlocks = [];
+        this.tableBlocks = [];
+        this.startBlocks = [];
 
-        get bodySegments() {
-            return Array()
-                .concat(this.globalDefinitions)
-                .concat(this.memoryDefinitions)
-                .concat(this.tableDefinitions)
-                .concat(this.elemSegments)
-                .concat(this.funcBlocks)
-                .concat(this.dataSegments)
-                .concat(this.startCall)
-                .concat(this.unknownBlocks)
-                .flat().filter(Boolean);
-        }
+        WatBlock.splitBlocks(content).forEach(block => {
+            this.blocks.push(block);
 
-        reset() {
-            assign(this, "importBlocks", new Array)
-            assign(this, "globalDefinitions", new Array)
-            assign(this, "memoryDefinitions", new Array)
-            assign(this, "tableDefinitions", new Array)
-            assign(this, "elemSegments", new Array)
-            assign(this, "funcBlocks", new Array)
-            assign(this, "dataSegments", new Array)
-            assign(this, "startCall", null)
-            assign(this, "unknownBlocks", new Array)
+            switch (this.getBlockTag(block)) {
+                case "import":
+                    this.importBlocks.push(block);
+                    break;
 
-            let blocks = this.extractBlocks();
+                case "data":
+                    this.dataBlocks.push(block);
+                    break;
 
-            if (this.isEmpty() === false) {
-                throw new Error(`Module block has non-block expression: \x1b[31m${this.source}\x1b[0m`);
+                case "func":
+                    this.funcBlocks.push(block);
+                    break;
+
+                case "elem":
+                    this.elemBlocks.push(block);
+                    break;
+
+                case "table":
+                    this.tableBlocks.push(block);
+                    break;
+
+                case "memory":
+                    this.memoryBlocks.push(block);
+                    break;
+
+                case "start":
+                    this.startBlocks.push(block);
+                    break;
+
+                case "type":
+                    this.typeBlocks.push(block);
+                    break;
+
             }
+        })
 
-            while (blocks.length) {
-                const [raw] = blocks.splice(0, 1);
-                const { tag } = WatBlock.parseTag(raw);
+        define(this, "raw", raw);
+    }
 
-                const block = WatBlock.fromRaw(raw);
+    get saccharine() {
+        let sugar, block;
+        let blockIndex = this.blocks.length;
+        let sugarIndex;
 
-                switch (tag) {
-                    case "import": this.importBlocks.push(block); break;
-                    case "global": this.globalDefinitions.push(block); break;
-                    case "memory": this.memoryDefinitions.push(block); break;
-                    case "table": this.tableDefinitions.push(block); break;
-                    case "elem": this.elemSegments.push(block); break;
-                    case "func": this.funcBlocks.push(block); break;
-                    case "data": this.dataSegments.push(block); break;
-                    case "start": this.startCall = block; break;
-                    default: this.unknownBlocks.push(block); break;
+        while (--blockIndex) {
+            block = this.blocks.at(blockIndex);
+            sugarIndex = WatModule.sugars.length
+
+            while (--sugarIndex) {
+                sugar = WatModule.sugars.at(sugarIndex);
+
+                if (sugar.exec.test(block)) {
+                    return { sugar, block };
                 }
             }
         }
-
-        toString() {
-            return (`
-                (module
-                    ${this.headSegments.map(s => s.toString().trim()).filter(Boolean).join("\n\n\t")}
-                    ${this.bodySegments.map(s => s.toString().trim()).filter(Boolean).join("\n\n\t")}
-                    ${this.footSegments.map(s => s.toString().trim()).filter(Boolean).join("\n\n\t")}
-                )
-            `);
-        }
     }
-);
+
+    get blockTags() {
+        return this.blocks.map(b => this.getBlockTag(b))
+    }
+
+    hasBlock(tag) {
+        return this.blockTags.some(t => t === tag);
+    }
+
+    getBlockTag(block) {
+        return block.split(" ").at(0).split(")").at(0).substring(1);
+    }
+
+    getBlock(tag) {
+        return this.blocks[this.blockTags.indexOf(tag)] || ``;
+    }
+
+    replaceTag(block, tag) {
+        return block && block.replace(this.getBlockTag(block), tag) || ``;
+    }
+
+    get $wat4wasm_memory() {
+        if (this.hasBlock("memory")) return ``
+        return `(memory $wat4wasm 1)`
+    }
+
+    get hex() {
+        return `\\00\\00\\00\\00`;
+    }
+
+    get $wat4wasm_data() {
+        return `(data $wat4wasm "${this.hex}")`
+    }
+
+    get $wat4wasm_start() {
+        return `(start $wat4wasm)`
+    }
+
+    get $wat4wasm_global() {
+        return `(global $wat4wasm (mut extern) (ref.null externref))`
+    }
+
+    get $wat4wasm_table() {
+        return `(table $wat4wasm externref)`
+    }
+
+    get $wat4wasm_func() {
+        return `(func $wat4wasm
+            (local $TextDecoder externref)
+            (local $arguments externref)
+
+                    (call $self.Reflect.set<ext.i32.fun> (local.get $arguments) (i32.const 0) (i32.const 25))
+                    (call $self.Reflect.set<ext.v128.fun.i64.f64.ext>fun.i64.f64.ext (local.get $arguments) (i32.const 0) (i32.const 25))
+
+            (block $prepare
+                (block $TextDecoder
+                    (local.set $arguments (call $self.Array<i32>ext (i32.const 0)))
+                    (call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 0) (i32.const 25))
+
+                    (local.set $TextDecoder
+                        (call $self.Reflect.construct<ext.ext>ext
+                            (call $self.Reflect.get<ext.ext>ext
+                                (global.get $self)
+                                (call $self.Reflect.apply<ext.ext.ext>ext
+                                    (global.get $self.String.fromCharCode<ext>)
+                                    (ref.null externref)
+                                    (local.get $arguments)
+                                )
+                            )
+                            (global.get $self)
+                        )
+                    )
+                )
+            )
+
+            ${this.startBlocks.map(b => this.replaceTag(b, 'call')).join("\n")}
+        )`;
+    }
+
+    get $wat4wasm_elem() {
+        return `(elem $wat4wasm declare func $wat4wasm)`
+    }
+
+    static create_global_definer(name, type) {
+        let value, mutater;
+        switch (type.substring(0, 3)) {
+            case "i32":
+            case "f32":
+            case "i64":
+            case "f64":
+                mutater = `(mut ${type})`;
+                value = `(${type}.const 0)`;
+                break;
+            case "v12":
+                mutater = `(mut ${type})`;
+                value = `(${type}.const i32x4 0 0 0 0)`;
+                break;
+
+            case "fun":
+                mutater = `(mut funcref)`;
+                value = `(ref.null func)`;
+                break;
+
+            case "ext":
+                mutater = `(mut externref)`;
+                value = `(ref.null extern)`;
+                break;
+        }
+
+        return `(global ${name} 
+            ${mutater}
+            ${value}
+        )`.replaceAll(/\s+/g, ` `).replaceAll(" )", ")");
+    }
+
+    static create_function_definer(name, param, result) {
+        return `(func ${name} 
+            (param ${param.join(" ")}) 
+            (result ${result.join(" ")})
+        )`.replaceAll(/\s+/g, ` `).replaceAll(" )", ")");
+    }
+
+    static desugar_path(path, tag) {
+        path = path.replaceAll(/\:/g, ".prototype.");
+        path = path.replaceAll("self.TypedArray.", "self.Uint8Array.__proto__.");
+
+        let name = path;
+        let signature = path.match(
+            /\<((?:(?:i32|f32|i64|f64|ext|fun|v128)(?:\.?))*)>((?:(?:i32|f32|i64|f64|ext|fun|v128)(?:\.?))*)/
+        );
+
+        let param = [];
+        let result = [];
+        let definer = ``;
+
+        if (signature) {
+            const replaceType = t => {
+                if (t.startsWith("ext")) { t = "externref"; }
+                else if (t.startsWith("fun")) { t = "funcref"; }
+                return `${t}`
+            }
+
+            const convertSign = t => {
+                return t.split(".").map(replaceType);
+            }
+
+            path = path.replace(signature.at(0), "");
+            param = convertSign(signature.at(1));
+            result = convertSign(signature.at(2));
+        }
+
+        signature = { name, path: path.split(".").slice(1), definer }
+
+        switch (tag) {
+            case "call":
+                signature.type = "func";
+                signature.param = param;
+                signature.result = result;
+                break;
+
+            case "global.get":
+                signature.type = "global";
+                signature.kind = param[0] || "ext";
+                break;
+
+            case "ref.func":
+                signature.type = "elem";
+                signature.kind = "funcref";
+                break;
+
+            case "ref.extern":
+                signature.type = "table";
+                signature.kind = "externref";
+                break;
+        }
+
+        if (signature.type === "func") {
+            signature.definer = this.create_function_definer(signature.name, signature.param, signature.result);
+        }
+        else if (signature.type === "global") {
+            signature.definer = this.create_global_definer(signature.name, signature.kind);
+        }
+
+        return signature
+    }
+
+    importsFor(body) {
+        return Array.from(
+            body
+                .matchAll(/\((.[^\s]*)\s+(\$self([\.a-zA-Z0-9\+\_\<\>\[\]\/\:]*))/g))
+            .map(m => Object({ tag: m[1], path: WatModule.desugar_path(m[2], m[1]), at: m.index }))
+            .map(m => {
+                let { tag, path, at } = m;
+                console.log(m)
+
+            }).filter(Boolean).join("\n");
+    }
+
+    toString() {
+        const body = (`
+            ;; developer
+            ${this.typeBlocks.join("\n\n\t")}
+            ${this.globalBlocks.join("\n\n\t")}
+            ${this.memoryBlocks.join("\n\n\t")}
+            ${this.tableBlocks.join("\n\n\t")}
+            ${this.elemBlocks.join("\n\n\t")}
+            ${this.funcBlocks.join("\n\n\t")}
+            ${this.dataBlocks.join("\n\n\t")}
+            ;; $wat4wasm 
+            ${this.$wat4wasm_memory}
+            ${this.$wat4wasm_global}
+            ${this.$wat4wasm_table}
+            ${this.$wat4wasm_func}
+            ${this.$wat4wasm_elem}
+            ${this.$wat4wasm_data}
+            ${this.$wat4wasm_start}            
+        `);
+
+        return `
+        (module
+            ${this.importsFor(body)}
+            ${this.importBlocks.join("\n\n\t")}
+            ${body}
+        )
+        `;
+    }
+}
 
 WatBlock.register(class WatMemory extends WatBlock {
     static tag = "memory"
@@ -345,7 +608,7 @@ WatBlock.register(class WatMemory extends WatBlock {
 
     reset() {
         const alias = this.extractAlias();
-        const content = this.getBlockTextContent().split(/\s+/).filter(Boolean);
+        const content = this.trimBlockWrapper().split(/\s+/).filter(Boolean);
 
         if (content[0] === "i64") {
             this.isI64Memory = true;
@@ -466,7 +729,7 @@ WatBlock.register(
             }
 
             if (blocks.length === 1) {
-                assign(this, "variable", WatBlock.fromRaw(blocks[0]));
+                assign(this, "variable", WatBlock.fromRaw(blocks[0], this.root));
             }
 
             if (this.isEmpty() === false) {
@@ -484,7 +747,7 @@ export class WatCompiler {
     }
 
     compile(wat) {
-        const wp = WatBlock.fromRaw(
+        const wp = new WatModule(
             this.resolveIncludes(wat)
         );
 
