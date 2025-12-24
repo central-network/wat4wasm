@@ -1,17 +1,40 @@
 (module
-    (ref.func $inlinefunction<f32>)
+    (import "console" "log" (func $self.console.log<f32> (param f32)))
+    (import "console" "warn" (func $self.console.warn<f32> (param f32)))
+    (import "console" "warn" (func $self.console.warn<i32> (param i32)))
 
     (func $Array
     
-        (global.get $self.history.length<i32>)
+        (string "hello
+            asd\"asd\" 11
+        f1")
+        (drop)
+
+        (string "helözgür
+            asd(a)sd
+            f2")
+        (drop)
+        
+        (string "hello")
+        (drop)
+
+        (string "getPrototypeOf")
+        (drop)
+
+        (string "özgür")
+        (drop)
+
+        (string "şık")
+        (drop)
+
+        (string "get")
+        (drop)
     )
 
-    (memory 1 10 shared)
     (data $filread "file://test-out.txt")
-    (import "console" "log" (func $self.console.log<f32> (param f32)))
     (include "test-include.wat")
-    (import "console" "warn" (func $self.console.warn<f32> (param f32)))
+    (start $Array)
 
-    (start $main)
-    (start $main2)
+    (func $calc)
+    (export "calc" (func $calc))
 )

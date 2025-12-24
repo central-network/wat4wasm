@@ -297,6 +297,7 @@ class WatModule {
         this.dataBlocks = [];
         this.tableBlocks = [];
         this.startBlocks = [];
+        this.otherBlocks = [];
 
         WatBlock.splitBlocks(content).forEach(block => {
             this.blocks.push(block);
@@ -334,8 +335,16 @@ class WatModule {
                     this.typeBlocks.push(block);
                     break;
 
+                default:
+                    this.otherBlocks.push(block);
+                    break;
+
             }
-        })
+        });
+
+        if (false === this.importBlocks.some(b => b.match(/\(global\s+\$self\s+externref\)/))) {
+            this.importBlocks.unshift(`(import "self" "self" (global $self externref))`)
+        }
 
         define(this, "raw", raw);
     }
@@ -385,11 +394,11 @@ class WatModule {
     }
 
     get hex() {
-        return `\\00\\00\\00\\00`;
+        return Array.from(this.textBuffer.toString("hex").matchAll(/[a-f0-9]{2}/g)).join("\\") || "00";
     }
 
     get $wat4wasm_data() {
-        return `(data $wat4wasm "${this.hex}")`
+        return `(data $wat4wasm "\\${this.hex}")`
     }
 
     get $wat4wasm_start() {
@@ -397,41 +406,68 @@ class WatModule {
     }
 
     get $wat4wasm_global() {
-        return `(global $wat4wasm (mut extern) (ref.null externref))`
+        return `(global $wat4wasm (mut externref) (ref.null extern))`
     }
 
     get $wat4wasm_table() {
-        return `(table $wat4wasm externref)`
+        return `(table $wat4wasm ${this.externrefs.length + 1} externref)`
+    }
+
+    static TEMPLATE = {
+        stringFromCharCode: (offset, length, extindex, string = "") => String(`
+            (block $text/${offset}+=${length / 4} (; ${string.replaceAll(/\s+/g, " ").substring(0, 50)} ;)
+                (local.set $arguments (call $self.Reflect.ownKeys<ext>ext (global.get $self.String.fromCharCode)))
+                
+                (local.set $offset (i32.const ${offset}))
+                (local.set $length (i32.const ${length}))
+                (local.set $charAt (i32.const 0))
+
+                (loop $i--
+                    (if (local.get $length)
+                        (then
+                            (memory.init $wat4wasm 
+                                (i32.const 0) (local.get $offset) (i32.const 4)
+                            )
+
+                            (call $self.Reflect.set<ext.i32.i32> 
+                                (local.get $arguments) 
+                                (local.get $charAt) 
+                                (i32.sub (i32.load (i32.const 0)) (i32.const 0xffff))  
+                            )  
+
+                            (local.set $charAt (i32.add (local.get $charAt) (i32.const 1)))
+                            (local.set $offset (i32.add (local.get $offset) (i32.const 4)))
+                            (local.set $length (i32.sub (local.get $length) (i32.const 4)))
+
+                            (br $i--)
+                        )
+                    )
+                )
+
+                (table.set $wat4wasm 
+                    (i32.const ${extindex})
+                    (call $self.Reflect.apply<ext.ext.ext>ext
+                        (global.get $self.String.fromCharCode)
+                        (ref.null extern)
+                        (local.get $arguments)
+                    )
+                )
+            ) 
+        `)
     }
 
     get $wat4wasm_func() {
         return `(func $wat4wasm
-            (local $TextDecoder externref)
             (local $arguments externref)
+            (local $offset i32)
+            (local $length i32)
+            (local $charAt i32)
 
-                    (call $self.Reflect.set<ext.i32.fun> (local.get $arguments) (i32.const 0) (i32.const 25))
-                    (call $self.Reflect.set<ext.v128.fun.i64.f64.ext>fun.i64.f64.ext (local.get $arguments) (i32.const 0) (i32.const 25))
-
-            (block $prepare
-                (block $TextDecoder
-                    (local.set $arguments (call $self.Array<i32>ext (i32.const 0)))
-                    (call $self.Reflect.set<ext.i32.i32> (local.get $arguments) (i32.const 0) (i32.const 25))
-
-                    (local.set $TextDecoder
-                        (call $self.Reflect.construct<ext.ext>ext
-                            (call $self.Reflect.get<ext.ext>ext
-                                (global.get $self)
-                                (call $self.Reflect.apply<ext.ext.ext>ext
-                                    (global.get $self.String.fromCharCode<ext>)
-                                    (ref.null externref)
-                                    (local.get $arguments)
-                                )
-                            )
-                            (global.get $self)
-                        )
-                    )
-                )
-            )
+            ${this.externrefs
+                .filter(e => Reflect.has(Object(e), "text"))
+                .map(t => WatModule.TEMPLATE.stringFromCharCode(t.offset, t.length, t.extindex, t.text))
+                .join("\n")
+            }
 
             ${this.startBlocks.map(b => this.replaceTag(b, 'call')).join("\n")}
         )`;
@@ -441,63 +477,75 @@ class WatModule {
         return `(elem $wat4wasm declare func $wat4wasm)`
     }
 
-    static create_global_definer(name, type) {
-        let value, mutater;
-        switch (type.substring(0, 3)) {
+    create_global_importer(signature) {
+        let value, mutater, type;
+        switch (signature.kind.substring(0, 3)) {
             case "i32":
             case "f32":
             case "i64":
             case "f64":
+                type = signature.kind;
                 mutater = `(mut ${type})`;
                 value = `(${type}.const 0)`;
                 break;
             case "v12":
+                type = signature.kind;
                 mutater = `(mut ${type})`;
                 value = `(${type}.const i32x4 0 0 0 0)`;
                 break;
 
             case "fun":
-                mutater = `(mut funcref)`;
+                type = "funcref";
+                mutater = `(mut ${type}ref)`;
                 value = `(ref.null func)`;
                 break;
 
             case "ext":
-                mutater = `(mut externref)`;
+                type = "externref";
+                mutater = `(mut ${type}ref)`;
                 value = `(ref.null extern)`;
                 break;
         }
 
-        return `(global ${name} 
-            ${mutater}
-            ${value}
-        )`.replaceAll(/\s+/g, ` `).replaceAll(" )", ")");
+        return String(`(import
+            "${signature.object}" 
+            "${signature.property}"
+
+            (global ${signature.name} ${type})
+        )`).trim().replaceAll(/\s+/g, ` `).replaceAll(" )", ")");
     }
 
-    static create_function_definer(name, param, result) {
-        return `(func ${name} 
-            (param ${param.join(" ")}) 
-            (result ${result.join(" ")})
-        )`.replaceAll(/\s+/g, ` `).replaceAll(" )", ")");
+    create_function_importer(signature) {
+        return String(`(import 
+            "${signature.object}" 
+            "${signature.property}"
+            
+            (func ${signature.name} 
+                (param ${signature.param.join(" ")}) 
+                (result ${signature.result.join(" ")})
+            )
+        )`).trim().replaceAll(/\s+/g, ` `).replaceAll(" )", ")");
     }
 
-    static desugar_path(path, tag) {
+    desugar_path(path, tag) {
         path = path.replaceAll(/\:/g, ".prototype.");
         path = path.replaceAll("self.TypedArray.", "self.Uint8Array.__proto__.");
 
         let name = path;
+        path = path.substring(path.indexOf("$") + 1);
+
         let signature = path.match(
             /\<((?:(?:i32|f32|i64|f64|ext|fun|v128)(?:\.?))*)>((?:(?:i32|f32|i64|f64|ext|fun|v128)(?:\.?))*)/
         );
 
         let param = [];
         let result = [];
-        let definer = ``;
 
         if (signature) {
             const replaceType = t => {
                 if (t.startsWith("ext")) { t = "externref"; }
                 else if (t.startsWith("fun")) { t = "funcref"; }
-                return `${t}`
+                return `${t}`;
             }
 
             const convertSign = t => {
@@ -509,7 +557,11 @@ class WatModule {
             result = convertSign(signature.at(2));
         }
 
-        signature = { name, path: path.split(".").slice(1), definer }
+        const pathParts = path.split(".");
+
+        signature = { name, path };
+        signature.object = pathParts.at(-2);
+        signature.property = pathParts.at(-1);
 
         switch (tag) {
             case "call":
@@ -521,6 +573,9 @@ class WatModule {
             case "global.get":
                 signature.type = "global";
                 signature.kind = param[0] || "ext";
+                if (pathParts.length > 3) {
+                    signature.type = "externref"
+                }
                 break;
 
             case "ref.func":
@@ -534,31 +589,100 @@ class WatModule {
                 break;
         }
 
-        if (signature.type === "func") {
-            signature.definer = this.create_function_definer(signature.name, signature.param, signature.result);
-        }
-        else if (signature.type === "global") {
-            signature.definer = this.create_global_definer(signature.name, signature.kind);
-        }
-
-        return signature
+        return signature;
     }
 
-    importsFor(body) {
-        return Array.from(
-            body
-                .matchAll(/\((.[^\s]*)\s+(\$self([\.a-zA-Z0-9\+\_\<\>\[\]\/\:]*))/g))
-            .map(m => Object({ tag: m[1], path: WatModule.desugar_path(m[2], m[1]), at: m.index }))
-            .map(m => {
-                let { tag, path, at } = m;
-                console.log(m)
+    generateHead() {
+        const functions = [];
+        const globals = [];
 
-            }).filter(Boolean).join("\n");
+        this.externrefs = [null];
+        this.texts = [];
+
+        const body = this.body.concat(
+            WatModule.TEMPLATE.stringFromCharCode()
+        )
+
+        Array
+            .from(body.matchAll(/\((.[^\s]*)\s+(\$self([\.a-zA-Z0-9\+\_\<\>\[\]\/\:]*))/g))
+            .map(m => Object({ tag: m[1], signature: this.desugar_path(m[2], m[1]), at: m.index }))
+            .filter(m => false === this.importBlocks.some(b => b.includes(` ${m.signature.name} `)))
+            .forEach(m => {
+                switch (m.signature.type) {
+                    case "func":
+                        functions.push(this.create_function_importer(m.signature));
+                        break;
+
+                    case "global":
+                        globals.push(this.create_global_importer(m.signature));
+                        break;
+
+                    case "externref":
+                        this.externrefs.push(this.handle_externref_request(m.signature));
+                        break;
+                }
+            });
+
+        Array
+            .from(this.body.replaceAll(/\\\"/g, "*:*").matchAll(/\(text\s+\"(.[^\"]*)\"\)/gm))
+            .map(m => Object({ block: m[0].replaceAll("*:*", '\\"'), length: m[1].length, text: m[1].replaceAll("*:*", "\"") }))
+            .filter(m => false === this.texts.some(t => t.block === m.block))
+            .forEach(m => this.texts.push(m))
+            ;
+
+        this.texts.sort((a, b) => b.length - a.length);
+
+        let text = "💚 özgür ...";
+        let buffers = [Buffer.from(text)];
+        let lastOffset = buffers[0].byteLength;
+
+        let extindex = this.externrefs.length;
+
+        this.texts.forEach(t => {
+            let ccodes = t.text.split("").map(c => c.charCodeAt());
+            let length = ccodes.length * 4;
+            let buffer = new ArrayBuffer(length);
+            let writer = new DataView(buffer);
+
+            let offset = -4;
+            ccodes.forEach(c => {
+                writer.setUint32(offset += 4, c + 0xffff, true);
+            });
+
+            offset = text.indexOf(t.text);
+            if (offset === -1) {
+                offset = lastOffset;
+                lastOffset += length;
+                buffers.push(Buffer.from(buffer));
+                text = text + t.text;
+                t.extindex = ++extindex;
+                this.externrefs.push(t)
+            }
+            else {
+                t.extindex = this.texts.find(b => b.text.includes(t.text)).extindex;
+            }
+
+            t.offset = offset;
+            t.length = length;
+        });
+
+        this.texts.forEach(t => {
+            this.body = this.body.replaceAll(
+                t.block, `(table.get $wat4wasm (i32.const ${t.extindex})) (; ${t.text.replaceAll(/\s+/g, " ").substring(0, 25)} ;)`
+            );
+        });
+
+        this.textBuffer = Buffer.concat(buffers);
+        this.head = Array(functions.sort(), globals.sort()).flat().filter((c, i, t) => t.lastIndexOf(c) === i).join("\n");
+    }
+
+    get $wat4wasm_import() {
+        return this.head;
     }
 
     toString() {
-        const body = (`
-            ;; developer
+        this.body = String(`
+            ${this.importBlocks.join("\n\n\t")}
             ${this.typeBlocks.join("\n\n\t")}
             ${this.globalBlocks.join("\n\n\t")}
             ${this.memoryBlocks.join("\n\n\t")}
@@ -566,23 +690,23 @@ class WatModule {
             ${this.elemBlocks.join("\n\n\t")}
             ${this.funcBlocks.join("\n\n\t")}
             ${this.dataBlocks.join("\n\n\t")}
+            ${this.otherBlocks.join("\n\n\t")}
+        `);
+
+        this.generateHead()
+
+        return `(module
+            ${this.$wat4wasm_import}
+            ${this.body}
             ;; $wat4wasm 
+            ${this.$wat4wasm_func}
             ${this.$wat4wasm_memory}
             ${this.$wat4wasm_global}
             ${this.$wat4wasm_table}
-            ${this.$wat4wasm_func}
             ${this.$wat4wasm_elem}
             ${this.$wat4wasm_data}
             ${this.$wat4wasm_start}            
-        `);
-
-        return `
-        (module
-            ${this.importsFor(body)}
-            ${this.importBlocks.join("\n\n\t")}
-            ${body}
-        )
-        `;
+        )`.trim();
     }
 }
 
