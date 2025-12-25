@@ -7,6 +7,7 @@
     (import "Reflect" "apply"       (func $self.Reflect.apply<ext.ext.ext>ext (param externref externref externref) (result externref)))
     (import "Reflect" "construct"   (func $self.Reflect.construct<ext.ext>ext (param externref externref) (result externref)))
     (import "Array" "of"            (func $self.Array.of<ext>ext (param externref) (result externref)))
+    (import "Array" "of"            (func $self.Array.of<i32>ext (param i32) (result externref)))
     (import "self" "Array"            (func $self.Array<>ext (param) (result externref)))
     (import "self" "self"           (global $self externref))
     (import "String" "fromCharCode" (global $self.String.fromCharCode externref))
@@ -26,17 +27,24 @@
         (string "hello")
         (call $self.console.log<ext>)
 
-        (string "getPrototypeOf")
+        (text "getPrototypeOf")
         (call $self.console.log<ext>)
 
         (string "özgür")
         (call $self.console.log<ext>)
 
-        (string "şık")
-        (call $self.console.log<ext>)
-
         (string "get")
         (call $self.console.log<ext>)
+
+        (text "get")
+        (call $self.console.log<ext>)
+
+        (text "getPrototypeOf")
+        (call $self.console.log<ext>)
+
+        (text "get")
+        (call $self.console.log<ext>)
+
     )
 
     (data $filread "file://test-out.txt")
@@ -45,4 +53,6 @@
     (func $calc)
     (export "calc" (func $calc))
     (start $Array)
+
+    (memory 1)
 )

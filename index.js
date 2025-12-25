@@ -11,15 +11,16 @@ scripts.splice(wat4pcs, 1);
 scripts.unshift("wat4wasm.js");
 
 const imports = await Array.fromAsync(scripts.map(file => import(`${pcs_dir}/${file}`).then(p => Object.assign(p.default, p))));
+const WAT4WASM = imports[0];
 
 processCLI(async wat4 => {
     let wat = wat4, f, i = -1, llen, m = -1, c = 0, ci = 0;
 
     while (f = imports[++i]) {
 
-        if (!i) { console.log("\n♻️  cycle (", ++ci, ") started..") }
+        //if (!i) { console.log("\n♻️  cycle (", ++ci, ") started..") }
 
-        wat4 = f(wat, imports)
+        wat4 = f(wat, WAT4WASM, imports)
         llen = (wat4.length - wat.length);
 
         if (llen > 0) { llen = `\x1b[32m+ ${llen}\x1b[0m` }
