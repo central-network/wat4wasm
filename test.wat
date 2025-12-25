@@ -1,6 +1,7 @@
 (module
     (import "console" "log" (func $self.console.log<ext> (param externref)))
     (import "console" "warn" (func $self.console.warn<f32> (param f32)))
+    (import "console" "warn" (func $self.console.warn<fun> (param funcref)))
     (import "console" "warn" (func $self.console.warn<i32> (param i32)))
     (import "Reflect" "get"         (func $self.Reflect.get<ext.ext>ext (param externref externref) (result externref) ))
     (import "Reflect" "set"         (func $self.Reflect.set<ext.i32.i32> (param externref i32 i32)))
@@ -12,6 +13,9 @@
     (import "self" "self"           (global $self externref))
     (import "String" "fromCharCode" (global $self.String.fromCharCode externref))
 
+
+    (data $filetest "wasm://test-out.wat")
+
     (func $Array
     
         (text "hello
@@ -19,18 +23,21 @@
         f1")
         (call $self.console.log<ext>)
 
-        (string "helözgür
+        (ref.func $wat4wasm)
+        (call $self.console.warn<fun>)
+
+        (text "helözgür
             asd(a)sd
             f2")
         (call $self.console.log<ext>)
         
-        (string "hello")
+        (text "hello")
         (call $self.console.log<ext>)
 
         (text "getPrototypeOf")
         (call $self.console.log<ext>)
 
-        (string "özgür")
+        (text "özgür")
         (call $self.console.log<ext>)
 
         (string "get")
@@ -47,7 +54,6 @@
 
     )
 
-    (data $filread "file://test-out.txt")
     (include "test-include.wat")
 
     (func $calc)
