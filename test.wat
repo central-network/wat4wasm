@@ -1,40 +1,48 @@
 (module
-    (import "console" "log" (func $self.console.log<f32> (param f32)))
+    (import "console" "log" (func $self.console.log<ext> (param externref)))
     (import "console" "warn" (func $self.console.warn<f32> (param f32)))
     (import "console" "warn" (func $self.console.warn<i32> (param i32)))
+    (import "Reflect" "get"         (func $self.Reflect.get<ext.ext>ext (param externref externref) (result externref) ))
+    (import "Reflect" "set"         (func $self.Reflect.set<ext.i32.i32> (param externref i32 i32)))
+    (import "Reflect" "apply"       (func $self.Reflect.apply<ext.ext.ext>ext (param externref externref externref) (result externref)))
+    (import "Reflect" "construct"   (func $self.Reflect.construct<ext.ext>ext (param externref externref) (result externref)))
+    (import "Array" "of"            (func $self.Array.of<ext>ext (param externref) (result externref)))
+    (import "self" "Array"            (func $self.Array<>ext (param) (result externref)))
+    (import "self" "self"           (global $self externref))
+    (import "String" "fromCharCode" (global $self.String.fromCharCode externref))
 
     (func $Array
     
-        (string "hello
+        (text "hello
             asd\"asd\" 11
         f1")
-        (drop)
+        (call $self.console.log<ext>)
 
         (string "helözgür
             asd(a)sd
             f2")
-        (drop)
+        (call $self.console.log<ext>)
         
         (string "hello")
-        (drop)
+        (call $self.console.log<ext>)
 
         (string "getPrototypeOf")
-        (drop)
+        (call $self.console.log<ext>)
 
         (string "özgür")
-        (drop)
+        (call $self.console.log<ext>)
 
         (string "şık")
-        (drop)
+        (call $self.console.log<ext>)
 
         (string "get")
-        (drop)
+        (call $self.console.log<ext>)
     )
 
     (data $filread "file://test-out.txt")
     (include "test-include.wat")
-    (start $Array)
 
     (func $calc)
     (export "calc" (func $calc))
+    (start $Array)
 )
