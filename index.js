@@ -2,8 +2,6 @@
 
 import fs from "fs";
 import { processCLI } from "./lib/cli.js";
-import $text from "./lib/text.js";
-import $imports from "./lib/processors/import.js";
 
 const pcs_dir = "./lib/processors";
 const scripts = fs.readdirSync(pcs_dir);
@@ -93,9 +91,6 @@ processCLI(async wat4 => {
         }
     }
 
-    wat = $text(wat, WAT4WASM);
-    wat = $imports(wat, WAT4WASM);
-    wat = $text(wat, WAT4WASM);
 
     return wat;
 });

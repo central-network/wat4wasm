@@ -1,8 +1,8 @@
 (module
-	(import "Array" "of"            (func $self.Array.of<i32>ext              (param i32) (result externref)))
-	(import "Array" "of"            (func $self.Array.of<ext>ext              (param externref) (result externref)))
 	(import "self" "Array"          (func $self.Array<>ext                    (param) (result externref)))
+	(import "Array" "of"            (func $self.Array.of<i32>ext              (param i32) (result externref)))
 	(import "Reflect" "set"         (func $self.Reflect.set<ext.i32.i32>      (param externref i32 i32) (result)))
+	(import "Array" "of"            (func $self.Array.of<ext>ext              (param externref) (result externref)))
 	(import "Reflect" "apply"       (func $self.Reflect.apply<ext.ext.ext>ext (param externref externref externref) (result externref)))
 	(import "Reflect" "get"         (func $self.Reflect.get<ext.ext>f64       (param externref externref) (result f64)))
 	(import "Reflect" "get"         (func $self.Reflect.get<ext.ext>i32       (param externref externref) (result i32)))
