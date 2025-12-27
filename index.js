@@ -16,51 +16,31 @@ const WAT4WASM = imports[0];
 processCLI(async wat4 => {
     let wat = wat4, f, i = -1, llen, m = -1, c = 0, ci = 0;
 
-
     while (f = imports[++i]) {
-
-        //if (!i) { console.log("\n♻️  cycle (", ++ci, ") started..") }
-
-        wat4 = f(wat, WAT4WASM, imports);
+        wat4 = f(wat, WAT4WASM);
 
         const input = wat;
         const output = wat4;
-
         const inLines = input.split("\n").map(l => l.trim()).filter(Boolean);
         const outLines = output.split("\n").map(l => l.trim()).filter(Boolean);
 
-        // 1. Baştan kaç satır aynı? (Prefix)
         let startCommon = 0;
         while (
             startCommon < inLines.length &&
             startCommon < outLines.length &&
             inLines[startCommon] === outLines[startCommon]
-        ) {
-            startCommon++;
-        }
+        ) { startCommon++; }
 
-        // 2. Sondan kaç satır aynı? (Suffix)
-        // Not: Başlangıçtaki ortak kısımla çakışmamasına dikkat etmeliyiz.
         let endCommon = 0;
         while (
             endCommon < inLines.length - startCommon &&
             endCommon < outLines.length - startCommon &&
             inLines[inLines.length - 1 - endCommon] === outLines[outLines.length - 1 - endCommon]
-        ) {
-            endCommon++;
-        }
+        ) { endCommon++; }
 
-        // Toplam değişmeyen satır sayısı
-        const totalCommonLines = startCommon + endCommon;
-
-        // Hesaplamalar
-        // Silinenler: Orijinal satır sayısından ortak olanları çıkar
-        const removedLines = inLines.length - totalCommonLines;
-
-        // Eklenenler: Yeni satır sayısından ortak olanları çıkar
-        const addedLines = outLines.length - totalCommonLines;
-
-        // Net değişim (Sizin appendedLines dediğiniz)
+        const commonLines = startCommon + endCommon;
+        const removedLines = inLines.length - commonLines;
+        const addedLines = outLines.length - commonLines;
         const netChange = outLines.length - inLines.length;
 
         const stat = [
@@ -81,16 +61,10 @@ processCLI(async wat4 => {
         }
 
         if (!imports[i + 1]) {
-            if (c) {
-                i = -1; c = 0;
-                //console.log("\n♻️ cycle has changes, reloading..")
-            }
-            else {
-                console.log("☘️  untouched raw \x1b[32m-->\x1b[0m finalizing..")
-            }
+            if (c) { i = -1; c = 0; }
+            else { console.log("☘️  untouched raw \x1b[32m-->\x1b[0m finalizing..") }
         }
     }
-
 
     return wat;
 });
