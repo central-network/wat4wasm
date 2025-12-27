@@ -9,42 +9,28 @@
         (text "özgür")
         (call $self.console.log<ext>)
 
-        (self $navigator.geolocation)
+        (ref.extern $self.Worker<ext>)    
         (console $log<ext>)
 
-        (self $GPUAdapter:features[get])
+        (new $Worker<ext>ext    
+            (text "worker.js")
+        )
         (console $log<ext>)
 
-        (data.size $boot.wasm)
-        (console $warn<i32>)
-
-        (data.view $boot.wasm)
+        (new $Number)
         (console $warn<ext>)
 
-        (apply.ext
-            (self $WebAssembly.instantiate)
-            (self $WebAssembly)
-            (array $of<ext.ext>ext
-                (data.view $boot.wasm)
-                (self)
-            )
-        )
-        (console $warn<ext>)
-
-        (apply.i32
-            (self $setTimeout)
-            (null)
-            (array)
-        )
-        (console $warn<i32>)
-
-        (reflect $construct<ext.ext>ext
-            (self $Worker)
-            (object)
-        )
+        (new $Object)
         (console $log<ext>)
 
+        (ref.func $elemreq)
+        (console $log<fun>)
+
+        (table.get $wat4wasm (i32.const 3))
+        (console $error<ext>)
     )
+
+    (func $elemreq)
 
     (memory 10)
 
