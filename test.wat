@@ -44,7 +44,6 @@
             (then nop)
         )
 
-
         (data.size $boot.wasm)
         (call $self.console.log<i32>)
 

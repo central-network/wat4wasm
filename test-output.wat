@@ -93,16 +93,16 @@
 							(call $self.Array<>ext)
 						)
 
-						(call $self.Array.of<fun>ext (ref.func $then_1057_68))
+						(call $self.Array.of<fun>ext (ref.func $then_1056_68))
 					)
 
-					(call $self.Array.of<fun>ext (ref.func $then_1057_117))
+					(call $self.Array.of<fun>ext (ref.func $then_1056_117))
 				)
 
 				(call $self.Array.of<fun>ext (ref.func $onasynccallfail))
 			)
 
-			(call $self.Array.of<fun>ext (ref.func $finally_1057_215))
+			(call $self.Array.of<fun>ext (ref.func $finally_1056_215))
 		)
 	)
 
@@ -120,7 +120,7 @@
 	(memory 10)
 	(global $wat4wasm (mut externref) (ref.null extern))
 	(table $wat4wasm 36 externref)
-	(elem $wat4wasm declare func $wat4wasm $finally_1057_215 $onasynccallfail $then_1057_117 $then_1057_68)
+	(elem $wat4wasm declare func $wat4wasm $finally_1056_215 $onasynccallfail $then_1056_117 $then_1056_68)
 	(func $wat4wasm
 		(local $textDecoder externref)
 		(local $textDecoder.decode externref)
@@ -1970,7 +1970,7 @@
 	)
 	(data $wat4wasm "\30\30\30\30\30\30\30\30\61\73\79\6e\63\20\63\61\6c\6c\20\66\69\6e\61\6c\6c\79\20\72\65\61\63\68\65\64\61\73\79\6e\63\20\63\61\6c\6c\20\64\65\76\69\63\65\20\72\65\61\63\68\65\64\61\73\79\6e\63\20\63\61\6c\6c\20\61\64\61\70\74\65\72\20\72\65\61\63\68\65\64\57\6f\72\6b\65\72\70\72\6f\74\6f\74\79\70\65\50\72\6f\6d\69\73\65\63\61\74\63\68\74\68\65\6e\45\72\72\6f\72\77\6f\72\6b\65\72\2e\6a\73\c3\b6\7a\67\c3\bc\72\61\6e\6f\74\68\65\72\20\74\69\6d\65\2e\2e\2e\72\65\71\75\65\73\74\41\64\61\70\74\65\72\47\50\55\67\70\75\6e\61\76\69\67\61\74\6f\72\72\65\71\75\65\73\74\44\65\76\69\63\65\47\50\55\41\64\61\70\74\65\72\75\6e\64\65\66\69\6e\65\64")
 
-	(func $then_1057_68
+	(func $then_1056_68
 		(param $adapter externref)
 		(result externref)
 
@@ -1987,7 +1987,7 @@
 		)
 	)
 
-	(func $then_1057_117
+	(func $then_1056_117
 		(param $device externref)
 
 		(call $self.console.log<ext.ext>
@@ -1996,7 +1996,7 @@
 		)
 	)
 
-	(func $finally_1057_215
+	(func $finally_1056_215
 
 		(call $self.console.log<ext>
 			(table.get $wat4wasm (i32.const 6));; async ... ached
