@@ -47,6 +47,27 @@
         (data.size $boot.wasm)
         (call $self.console.log<i32>)
 
+        (data.view $boot.wasm)
+        (call $self.console.log<ext>)
+
+        (async
+            (reflect $apply<ext.ext.ext>ext
+                (self $WebAssembly.compile)
+                (self $WebAssembly)
+                (array $of<ext>ext
+                    (data.view $boot.wasm)
+                )
+            )
+            (then $onwasmmodule
+                (param $module <Module>)
+                (console $warn<ext> (lget $module))
+            )
+            (catch $oncompileerror
+                (param $error <Error>)
+                (console $error<ext> (lget $error))
+            )
+        )
+
         (text "özgür")
         (call $self.console.log<ext>)
 
