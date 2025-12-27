@@ -26,7 +26,7 @@
                 (self $navigator.gpu<ext>)
                 (array)
             )
-            (then 
+            (then $onadapter
                 (param $adapter externref)
                 (console $warn<ext> (this))
             )
