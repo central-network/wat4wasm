@@ -2,6 +2,8 @@
     (data $boot.wasm "wasm://boot.wat")
     (data $worker.js "file://worker.js")
 
+    (include "test/test-sub.wat")
+
     (func $main
         (data.size $boot.wasm)
         (call $self.console.warn<i32>)

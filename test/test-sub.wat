@@ -1,6 +1,6 @@
 
-    (include "/test/sub-folder/test-sub.wat")
 
-    (func $path:test/test-sub-wat
+    (func $test/test-sub-wat
         (text "another time...")
+        (console $log<ext>)
     )
