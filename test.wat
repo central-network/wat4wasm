@@ -11,16 +11,8 @@
         (text "özgür")
         (call $self.console.log<ext>)
 
-        (ref.extern $self.Worker<ext>)    
+        (new $Worker<ext>ext (text "worker.js"))
         (console $log<ext>)
-
-        (new $Worker<ext>ext    
-            (text "worker.js")
-        )
-        (console $log<ext>)
-
-        (new $Number)
-        (console $warn<ext>)
 
         (new $Object)
         (console $log<ext>)
@@ -28,11 +20,30 @@
         (ref.func $elemreq)
         (console $log<fun>)
 
-        (table.get $wat4wasm (i32.const 3))
-        (console $error<ext>)
+        (async
+            (apply.ext 
+                (self $navigator.gpu.requestAdapter<ext>) 
+                (self $navigator.gpu<ext>)
+                (array)
+            )
+            (then 
+                (param $adapter externref)
+                (console $warn<ext> (this))
+            )
+            (catch (ref.func $promise.catch))
+            (finally 
+                (param $promise externref)
+                (console $log<ext> (this))
+            )
+        )
+
     )
 
     (func $elemreq)
+    (func $promise.then0)
+    (func $promise.then1)
+    (func $promise.catch)
+    (func $promise.finally)
 
     (memory 10)
 
