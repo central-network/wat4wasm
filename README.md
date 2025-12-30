@@ -16,6 +16,9 @@
 </p>
 
 ## ... 
+<img src="ss-console.png">
+<hr />
+<img src="ss-terminal.png">
 
 ## License
 
