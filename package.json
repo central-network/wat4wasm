@@ -13,12 +13,16 @@
   "license": "ISC",
   "author": "Özgür Fırat Özpolat",
   "directories": {
-    "example": "examples"
+    "example": "examples",
+    "lib": "lib"
   },
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "rebuild": "cd lib && node build",
+    "posttest": "cd examples && ./shell-usages.sh"
   },
+  "bin": "wat4wasm",
   "dependencies": {
     "wat4beauty": "^1.0.3"
   }
