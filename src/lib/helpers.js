@@ -29,6 +29,10 @@ const helpers = {
         return fs.unlinkSync(path);
     },
 
+    copyFile(path, topath) {
+        return fs.cpSync(path, topath);
+    },
+
     spawnSync(command, argv) {
         return cp.spawnSync(command, argv, { stdio: "inherit" });
     },
@@ -434,7 +438,7 @@ const helpers = {
     assignBlockProperties(raw, block, begin) {
         if (begin === -1) return null;
 
-        let $name = block.split(/[^a-z0-9A-Z\:\.\<\>\/\_\+\-\`\[\]\$\=\#\!]/g).filter(Boolean).at(1) || "";
+        let $name = block.split(/[^a-z0-9A-Z\:\.\<\>\/\_\+\-\`\[\]\$\=\#\!\*]/g).filter(Boolean).at(1) || "";
 
         let isGetter = false;
         let isSetter = false;

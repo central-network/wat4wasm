@@ -35,8 +35,10 @@ const GLOBAL_DEFINE_CODE = ($name) => {
     return `(${tagName} ${$name} ${mutValue(type)} ${nilValue(type)})`;
 }
 
-const PATH_WALKER_CODE = ($name, descriptorKey) => {
+const PATH_WALKER_CODE = ($name) => {
 
+    let descriptorKey;
+    [$name, descriptorKey = "value"] = $name.split("/")
     const nameparts = $name.split("<").at(0).split("$").pop().split(".");
     const stepType = new Array(nameparts.length - 1).fill("ext");
     const type = $name.split(">").at(0).split("<").pop() || "ext";
@@ -116,7 +118,14 @@ export default function (wat, WAT4WASM) {
 
                 const nameparts = pathName.split(".");
 
-                if (nameparts.length <= 3) {
+                /**
+                 * previous logic is based on direct import for
+                 * short paths but this is unnecessary.. just set
+                 * global value in the start function to gathering
+                 * more simple import segment. 
+                 */
+                //if (nameparts.length <= 3) {
+                if (["$self", "$self.String.fromCharCode"].includes($name)) {
                     imports.push(GLOBAL_IMPORT_CODE($name));
                 }
                 else if (globals.includes($name) === false) {

@@ -1,26 +1,68 @@
 (module 
-    (func $01-basic
-        (global.get $self.location.origin<ext>)
-        (drop)
-    )
+    (main $replace 
+        (local $this f32)
+        
+        (this)
+        (console $log<f32>)
 
-    (func $03-extern-of-number
-        (global.get $self.performance.eventCounts.size<ext>)
-        (drop)
-    )
+        (self)
+        (console $log<ext>)
 
-    (func $04-number-of-number
-        (global.get $self.performance.interactionCount<i32>)
-        (drop)
-    )
+        (null)
+        (console $log<ext>)
 
-    (func $05-accessor-of-object
-        (global.get $self.Performance.prototype.interactionCount[get])
-        (drop)
-    )
+        (func)
+        (console $log<fun>)
 
-    (func $06-prototype-keyword-from-<:>-symbol
-        (global.get $self.Performance:timeOrigin[get])
+        (true)
+        (console $log<i32>)
+
+        (false)
+        (console $log<i32>)
+
+        (NaN)
+        (console $log<ext>)
+
+        (nan)
+        (console $log<f32>)
+
+        (array)
+        (console $log<ext>)
+
+        (object)
+        (console $log<ext>)
+
+        (undefined)
+        (console $log<ext>)
+
+        (string)
+        (console $log<ext>)
+
+        (lget $this)
+        (console $log<f32>)
+
+        (gget $wat4wasm)
+        (console $log<ext>)
+
+        (tget $wat4wasm i32(0))
+        (console $log<ext>)
+
+        (grow $wat4wasm (null) i32(0))
         (drop)
+
+        i32(2)
+        (console $log<i32>)
+
+        f32(- 2)
+        (console $log<f32>)
+
+        f32(-2.2)
+        (console $log<f32>)
+
+        f32(+ 2.2)
+        (console $log<f32>)
+
+        i64(+2)
+        (console $log<i64>)
     )
 )

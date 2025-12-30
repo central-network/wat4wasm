@@ -63,7 +63,6 @@ const GENERATE_DATA_VIEWER = (size, $name) => {
 export default function (wat, WAT4WASM) {
 
     const maskSet = new helpers.MaskSet(wat);
-    const unlinkPaths = new Set();
 
     const externgetter = new Map();
     const segmentSizes = new Map();
@@ -97,47 +96,46 @@ export default function (wat, WAT4WASM) {
             filename, basename, extension
         } = helpers.parseProtoPath(content);
 
-        unlinkPaths.clear();
-
         if (protocol === "wasm://") {
-            if (extension !== "wat") {
-                continue;
-            }
 
-            const output = basename.concat(".wasm");
+            const module_wat = `${basename}.wat`;
+            const wasm_output = `${basename}.wasm`;
+            const wat4wasm_out = `${basename}.wasm.wat`;
+
             const params = process.argv
                 .filter(a => a.startsWith("--"))
                 .filter(a => !a.startsWith("--input="))
                 .filter(a => !a.startsWith("--output="))
                 ;
 
+            helpers.copyFile(fullpath, module_wat)
+
             const wat4wasm = process.argv[1];
             const nodejs = process.argv[0];
             const argv = Array.of(
                 wat4wasm,
-                `--input=${filename}`,
-                `--output=${output}`,
+                `--input=${module_wat}`,
+                `--output=${wasm_output}`,
                 `--no-unlink`
             ).concat(params);
 
             helpers.spawnSync(nodejs, argv);
 
-            protocol = "file://";
-            fullpath = output;
+            const { data, size } = helpers.readFileAsHex(wasm_output);
 
-            unlinkPaths.add(output);
-            unlinkPaths.add(output.concat(`.wat`));
+            segmentSizes.set(block.$name, size);
+            maskSet.update(block, block.replace(content, data));
+
+            helpers.unlinkFile(module_wat);
+            helpers.unlinkFile(wasm_output);
+            helpers.unlinkFile(wat4wasm_out);
         }
 
-        if (protocol === "file://") {
+        else if (protocol === "file://") {
             const { data, size } = helpers.readFileAsHex(fullpath);
             segmentSizes.set(block.$name, size);
             maskSet.update(block, block.replace(content, data));
         }
-
-        unlinkPaths.forEach(path =>
-            helpers.unlinkFile(path)
-        );
     }
 
     sizeRequests.forEach(block => {

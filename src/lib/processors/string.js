@@ -8,21 +8,29 @@ export default function (wat) {
 
         let oldBlock = helpers.lastBlockOf(wat, BLOCK_NAME);
         const string = helpers.findQuotedText(oldBlock);
+        const ccodes = helpers.encodeString(string);
 
-        if (string.length === 0) {
-            wat = oldBlock.replacedRaw(
-                `(call $self.String<>ext)`
-            );
+        if (ccodes.length === 0) {
+            wat = oldBlock.replacedRaw(`
+                (reflect $apply<ext.ext.ext>ext
+                    (global.get $self.String.fromCharCode) 
+                    (self)
+                    (self)
+                )
+            `);
         }
-        else if (string.length === 1) {
-            wat = oldBlock.replacedRaw(
-                `(call $self.String.fromCharCode<i32>ext (i32.const ${string.charCodeAt(0)}))`
-            );
+        else if (ccodes.length === 1) {
+            wat = oldBlock.replacedRaw(`
+                (reflect $apply<ext.ext.ext>ext
+                    (global.get $self.String.fromCharCode)
+                    (self)
+                    (array $of<i32>ext (i32.const ${string.charCodeAt(0)})) ;; "${string}"
+                )
+            `);
         }
         else {
-            const ccodes = helpers.encodeString(string);
-            const beauty = helpers.beautify(`
-                (block ;; "${helpers.abstract(string)}"
+            wat = oldBlock.replacedRaw(`
+                (block (; "${helpers.abstract(string)}" ;)
                     (result externref)
                     (global.set $wat4wasm (call $self.Array<>ext))
                     
@@ -35,13 +43,13 @@ export default function (wat) {
                         (global.get $self.String.fromCharCode) 
                         (ref.null extern) 
                         (global.get $wat4wasm)
-                    )
+                    ) 
+                    ;; stacked
     
-                    (global.set $wat4wasm (null))
+                    (global.set $wat4wasm (null)) 
+                    ;; cleared
                 )
             `);
-
-            wat = oldBlock.replacedRaw(beauty);
         }
     }
 
