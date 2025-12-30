@@ -1,4 +1,4 @@
-# wat4beauty
+# wat4wasm
 
 <p align="center">
   <br />
