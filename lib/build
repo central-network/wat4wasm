@@ -2,7 +2,7 @@
 
 import fs from "fs";
 
-const headers = [`#!/usr/bin/env node`, `import fs from "fs";`, `import cp, { spawnSync } from "child_process";`, `import wat4beauty from "wat4beauty"`].join("\n").concat("\n\n");
+const headers = [`#!/usr/bin/env node`, `import fs from "fs";`, `import cp, { spawnSync } from "child_process";`].join("\n").concat("\n\n");
 const index_js = fs.readFileSync("index.js", "utf8").split(/\n+/).filter(l => !l.startsWith("import") && !l.startsWith("#")).join("\n").concat("\n\n");
 const cli_js = fs.readFileSync("cli.js", "utf8").split(/\n+/).filter(l => !l.startsWith("import")).join("\n").replaceAll("export ", "").concat("\n\n");
 const helpers_js = fs.readFileSync("helpers.js", "utf8").split(/\n+/).filter(l => !l.startsWith("import") && !l.startsWith("export")).join("\n").concat("\n\n");
@@ -13,12 +13,15 @@ const imports = fs.readFileSync("index.js", "utf8").split(/\n+/).filter(l => l.s
     .map(([NAME, code]) => code.split(/\n+/).filter(l => !l.startsWith("import")).join("\n").replaceAll("export default function", "function " + NAME).replaceAll("export ", ""))
     .join("\n\n");
 
+const wat4beauty = fs.readFileSync("wat4beauty.js", "utf8");
+
 if (fs.existsSync("../wat4wasm") === true) {
     fs.unlinkSync("../wat4wasm")
 }
 
 fs.writeFileSync("../wat4wasm",
     headers
+        .concat(wat4beauty)
         .concat(helpers_js)
         .concat(imports)
         .concat(clean_js)
