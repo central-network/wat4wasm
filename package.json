@@ -21,7 +21,7 @@
     "test": "cd test && wat4wasm test.wat --wat2wasm=wat2wasm --enable-threads --debug-names --output=test-output.wasm",
     "rebuild": "cd lib && node build",
     "posttest": "cd examples && ./shell-usages.sh",
-    "install": ""
+    "install": "ln -s wat4wasm /usr/local/bin/wat4wasm"
   },
   "bin": "wat4wasm",
   "dependencies": {
