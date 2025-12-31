@@ -10,24 +10,29 @@
         
         (async
             (reflect $apply<ext.ext.ext>ext 
-                (self $GPU:requestAdapter<ext>) 
-                (self $navigator.gpu<ext>) 
-                (array $of<ext>ext 
-                    (object)
+                (ref.extern $self.WebAssembly.instantiate<ext>) 
+                (ref.extern $self.WebAssembly<ext>) 
+                (array $of<ext.ext>ext 
+                    (data.view $module)
+                    (self)
                 )
             )
-            (then $onadapterinlinefunction
-                (param $adapter <GPUAdapter>)
-                (console $log<ext> (local.get $adapter))
+            (then $oninstance
+                (param $instantiate <Object>)
+
+                (console $log<ext.ext> 
+                    (reflect $get<ext.ext>ext (this) (text "module"))
+                    (reflect $get<ext.ext>ext (this) (text "instance"))
+                )
             )
-            (catch ref.func $onrequestfailure)
+            (catch ref.func $onwasmfailure)
             (finally $finallyblock
                 (console $log<ext> (self))
             )
         )
     )
 
-    (func $onrequestfailure
+    (func $onwasmfailure
         (param $error externref)
         
         (console $error<ext.ext.ext>

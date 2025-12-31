@@ -35,8 +35,8 @@ It's not just a compiler; it's the bridge that makes WebAssembly fun to write.
 <br />
 <br />
 
-### Key examples:
-<img src="assets/ss-keyusages.png" width="100%">
+### my way:
+<img src="assets/ss-fullview.png" width="100%">
 <br />
 
 ## API
