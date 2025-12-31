@@ -34,12 +34,35 @@ It is a pre-compiler that treats WebAssembly as a first-class citizen of the Jav
 It's not just a compiler; it's the bridge that makes WebAssembly fun to write. 
 <br />
 <br />
-**Example for a few code transformations:**
+
+### Key example usages:
+<img src="assets/ss-keyusages.png">
 <br />
-<img src="ss-in2out.png?1">
+
+## API
+1. (text/string  ...) (examples-01)
+2. (include      ...) (examples-02)
+3. (ref.extern   ...) (examples-03)
+4. (ref.func     ...) (examples-04)
+5. (global.get   ...) (examples-05)
+6. (async        ...) (examples-06)
+7. (data.size/view ...) (examples-07) 
+
+## Reflectors (examples-08)
+1. (reflect $...)
+2. (array   $...)
+3. (object  $...)
+4. (string  $...)
+5. (number  $...)
+6. (math    $...)
+7. (url     $...)
+8. (console $...)
+
+### Example for a few code transformations:
+<img src="assets/ss-in2out.png">
 <br />
 <br />
-<hr />
+<br />
 
 ## License
 
