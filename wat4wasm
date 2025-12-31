@@ -1168,7 +1168,7 @@ function REF_FUNC (wat, WAT4WASM) {
     while (maskSetElem.hasBlock("elem")) {
         const block = maskSetElem.lastBlockOf("elem");
         const $name = block.$name;
-        if (WAT4WASM.WAT4WASM_$NAME !== $name) {
+        if ("$wat4wasm" !== $name) {
             elemSegments.push(block.toString());
         }
         maskSetElem.mask(block);
@@ -1177,7 +1177,7 @@ function REF_FUNC (wat, WAT4WASM) {
     while (maskSetRef.hasBlock(REF_FUNC_BLOCK_NAME)) {
         const block = maskSetRef.lastBlockOf(REF_FUNC_BLOCK_NAME);
         const $name = block.$name
-        if (WAT4WASM.WAT4WASM_$NAME !== $name) {
+        if ("$wat4wasm" !== $name) {
             if (elemSegments.some(seg => seg.includes($name)) === false) {
                 if (needReference.has($name) === false) {
                     needReference.add($name);
@@ -1246,7 +1246,6 @@ function REPLACE_ALL (wat) {
         .replaceAll(/(i32|f32|i64|f64|fun|ext)\((\+|\-|)\s*([0-9\.]+)\)/g, `($1.const $2$3)`)
         .replaceAll(/\((.*)\.(set|tee)\s+([\+|\-])+\s+(\$.*)\s*\)/g, "($1.$2 $4 (i32.add ($1.get $4) (i32.const $31)))")
         .replaceAll(/\(apply(?:\.*)(i32|f32|i64|f64|fun|ext|)(\s*)/g, `(call $self.Reflect.apply<ext.ext.ext>$1 $2`)
-        .replaceAll(/\(main(\s+)(\$.[^\s]*)(\s)/g, `(start$1$2)\n\n(func$1$2$3`)
         ;
 }
 
@@ -1254,16 +1253,17 @@ const START_BLOCK_NAME = "start";
 function START (wat, WAT4WASM) {
     let startCalls = [];
     let removedWat = wat;
+    wat = wat.replaceAll(/\(main(\s+)(\$.[^\s]*)(\s)/g, `(start$1$2)\n\n(func$1$2$3`)
     while (helpers.hasBlock(removedWat, START_BLOCK_NAME)) {
         let block = helpers.lastBlockOf(removedWat, START_BLOCK_NAME);
         removedWat = block.removedRaw();
-        if (block.includes(WAT4WASM.WAT4WASM_$NAME) === false) {
+        if (block.includes("$wat4wasm") === false) {
             startCalls.push(block);
         }
     }
     if (startCalls.length > 0) {
         wat = removedWat;
-        let $wat4func = helpers.lastBlockOf(wat, "func", { $name: WAT4WASM.WAT4WASM_$NAME });
+        let $wat4func = helpers.lastBlockOf(wat, "func", { $name: "$wat4wasm" });
         let funcblock = $wat4func.toString();
         const appends = startCalls.filter(start => {
             let $name = `${start.$name}`;
@@ -1276,7 +1276,9 @@ function START (wat, WAT4WASM) {
         if (appends.length) {
             wat = $wat4func.replacedRaw(funcblock);
         }
-        wat = helpers.append(wat, WAT4WASM.WAT4WASM_START);
+    }
+    if (!helpers.hasBlock(wat, "start", { $name: "$wat4wasm" })) {
+        wat = helpers.append(wat, `(start $wat4wasm)`);
     }
     return wat;
 }
@@ -1494,22 +1496,22 @@ const WAT4WASM_BLOCKS = {
     data: WAT4WASM_DATA(),
 };
 function FUNC_WAT4WASM(wat) {
-    return helpers.lastBlockOf(wat, "func", { $name: WAT4WASM_$NAME });
+    return helpers.lastBlockOf(wat, "func", { $name: "$wat4wasm" });
 }
 function ELEM_WAT4WASM(wat) {
-    const block = helpers.lastBlockOf(wat, "elem", { $name: WAT4WASM_$NAME });
+    const block = helpers.lastBlockOf(wat, "elem", { $name: "$wat4wasm" });
     return block && Object.assign(block, {
         isInitial: helpers.generateId(block) === helpers.generateId(WAT4WASM_ELEM)
     });
 }
 function MEMORY_WAT4WASM(wat) {
-    return helpers.lastBlockOf(wat, "memory", { $name: WAT4WASM_$NAME });
+    return helpers.lastBlockOf(wat, "memory", { $name: "$wat4wasm" });
 }
 function GLOBAL_WAT4WASM(wat) {
-    return helpers.lastBlockOf(wat, "global", { $name: WAT4WASM_$NAME });
+    return helpers.lastBlockOf(wat, "global", { $name: "$wat4wasm" });
 }
 function START_WAT4WASM(wat) {
-    return helpers.lastBlockOf(wat, "start", { $name: WAT4WASM_$NAME });
+    return helpers.lastBlockOf(wat, "start", { $name: "$wat4wasm" });
 }
 function FUNC_WAT4WASM_NOBLOCKS(wat) {
     const maskSet = new helpers.MaskSet(FUNC_WAT4WASM(wat));
@@ -1569,7 +1571,7 @@ function APPEND_ON_EXTERN_READY(wat, block) {
     return wat;
 }
 function TABLE_WAT4WASM(wat) {
-    const wat4table = helpers.lastBlockOf(wat, "table", { $name: WAT4WASM_$NAME });
+    const wat4table = helpers.lastBlockOf(wat, "table", { $name: "$wat4wasm" });
     const lastIndex = parseInt(wat4table.toString().match(/\s(\d+)/).pop());
     return wat4table && Object.assign(wat4table, {
         lastIndex, isInitial: lastIndex === 1
@@ -1580,8 +1582,8 @@ function WAT4WASM_GROW_EXTERN_TABLE(wat) {
     const lastIndex = wat4table.lastIndex;
     return {
         index: lastIndex,
-        getter: `(table.get ${WAT4WASM_$NAME} (i32.const ${lastIndex}))`,
-        generateSetter: value => `(table.set ${WAT4WASM_$NAME} (i32.const ${lastIndex}) ${value.toString()})`,
+        getter: `(table.get $wat4wasm (i32.const ${lastIndex}))`,
+        generateSetter: value => `(table.set $wat4wasm (i32.const ${lastIndex}) ${value.toString()})`,
         modifiedRaw: wat4table.replacedRaw(WAT4WASM_TABLE(lastIndex + 1))
     };
 }
@@ -1598,7 +1600,7 @@ function WAT4WASM_REFERENCE_FUNC_ELEMENT(wat, $name) {
     return wat;
 }
 function DATA_WAT4WASM(wat) {
-    const block = helpers.lastBlockOf(wat, "data", { $name: WAT4WASM_$NAME });
+    const block = helpers.lastBlockOf(wat, "data", { $name: "$wat4wasm" });
     const strhex = helpers.findQuotedText(block);
     const buffer = Buffer.from(strhex.replaceAll(/[^a-f0-9A-F]/g, ""), "hex");
     return Object.assign(block, {
@@ -1629,13 +1631,12 @@ function W4W (wat) {
         WAT4WASM_BLOCKS.memory = WAT4WASM_MEMORY;
     }
     for (const BLOCK_NAME in WAT4WASM_BLOCKS) {
-        if (wat.includes(`(${BLOCK_NAME} ${WAT4WASM_$NAME}`)) {
+        if (wat.includes(`(${BLOCK_NAME} $wat4wasm`)) {
             continue;
         }
         if (i === 31) console.log("")
-        console.log(`🦋 appending element --> \x1b[${i++}m(${BLOCK_NAME} ${WAT4WASM_$NAME}) ...)\x1b[0m`);
-        raw = WAT4WASM_BLOCKS[BLOCK_NAME].replaceAll("$wat4wasm", WAT4WASM_$NAME);
-        wat = helpers.append(wat, raw);
+        console.log(`🦋 appending element --> \x1b[${i++}m(${BLOCK_NAME} $wat4wasm) ...)\x1b[0m`);
+        wat = helpers.append(wat, WAT4WASM_BLOCKS[BLOCK_NAME]);
     }
     if (i !== 31) console.log("")
     return wat;
@@ -1670,20 +1671,20 @@ function clean (wat) {
         if ($func) {
             wat = $func.removedRaw();
         }
-    }
-    block = ELEM_WAT4WASM(wat);
-    if (block.isInitial) { wat = block.removedRaw(); }
-    block = TABLE_WAT4WASM(wat);
-    if (block.isInitial) { wat = block.removedRaw(); }
-    block = DATA_WAT4WASM(wat);
-    if (block.isInitial) { wat = block.removedRaw(); }
-    if (false === helpers.hasBlock(wat, "global.get", { $name: WAT4WASM_$NAME }) &&
-        false === helpers.hasBlock(wat, "global.set", { $name: WAT4WASM_$NAME })) {
-        wat = GLOBAL_WAT4WASM(wat).removedRaw();
-    }
-    block = MEMORY_WAT4WASM(wat);
-    if (block && (helpers.containsMemoryOperation(wat) === false)) {
-        wat = block.removedRaw();
+        block = ELEM_WAT4WASM(wat);
+        if (block.isInitial) { wat = block.removedRaw(); }
+        block = TABLE_WAT4WASM(wat);
+        if (block.isInitial) { wat = block.removedRaw(); }
+        block = DATA_WAT4WASM(wat);
+        if (block.isInitial) { wat = block.removedRaw(); }
+        if (false === helpers.hasBlock(wat, "global.get", { $name: "$wat4wasm" }) &&
+            false === helpers.hasBlock(wat, "global.set", { $name: "$wat4wasm" })) {
+            wat = GLOBAL_WAT4WASM(wat).removedRaw();
+        }
+        block = MEMORY_WAT4WASM(wat);
+        if (block && (helpers.containsMemoryOperation(wat) === false)) {
+            wat = block.removedRaw();
+        }
     }
     const maskSet = new helpers.MaskSet(wat);
     const imports = new Array();
@@ -1934,6 +1935,7 @@ async function processCLI(compileCallback, PROCESS = process) {
 
 
 const processors = [
+    REPLACE_ALL,
     W4W,
     TEXT,
     ASYNC,
@@ -1945,7 +1947,6 @@ const processors = [
     REF_FUNC,
     START,
     STRING,
-    REPLACE_ALL,
 ];
 processCLI(async wat4 => {
     let wat2 = wat4, f, i = -1, llen, m = -1, c = 0, ci = 0;
