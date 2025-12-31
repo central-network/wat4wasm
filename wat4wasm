@@ -1841,7 +1841,7 @@ async function processCLI(compileCallback, PROCESS = process) {
                     if (isJSTarget) {
                         let wasmGenerator = ``;
                         if (config.generateWASMFromHEXString && !config.generateWASMFromNumberArray) {
-                            wasmGenerator = `Uint8Array.from(\`${wasmhex}\`.match(/../g), $ => \`0x\${$}\`)`;
+                            wasmGenerator = `Uint8Array.from(\`${wasmhex}\`.match(/../g), $ => parseInt($, 16))`;
                         }
                         else if (!config.generateWASMFromHEXString && config.generateWASMFromNumberArray) {
                             wasmGenerator = `Uint8Array.of(${wasmhex.toString().match(/[a-f0-9]{2}/g).map(h => parseInt(h, 16))})`;
@@ -1897,7 +1897,7 @@ async function processCLI(compileCallback, PROCESS = process) {
                         const thenCall = thenCalls.length && String(`.then(wasm => [${thenCalls}])`) || String();
                         let wasmGenerator = ``;
                         if (config.generateWASMFromHEXString && !config.generateWASMFromNumberArray) {
-                            wasmGenerator = `Uint8Array.from(\`${wasmhex}\`.match(/../g), $ => \`0x\${$}\`)`;
+                            wasmGenerator = `Uint8Array.from(\`${wasmhex}\`.match(/../g), $ => parseInt($, 16))`;
                         }
                         else if (!config.generateWASMFromHEXString && config.generateWASMFromNumberArray) {
                             wasmGenerator = `Uint8Array.of(${wasmhex.toString().match(/[a-f0-9]{2}/g).map(h => parseInt(h, 16))})`;
