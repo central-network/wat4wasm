@@ -882,9 +882,9 @@ function DATA (wat, WAT4WASM) {
             filename, basename, extension
         } = helpers.parseProtoPath(content);
         if (protocol === "wasm://") {
-            const module_wat = `${basename}.wat`;
-            const wasm_output = `${basename}.wasm`;
-            const wat4wasm_out = `${basename}.wasm.wat`;
+            const module_wat = `wat4wasm-${basename}.wat`;
+            const wasm_output = `wat4wasm-${basename}.wasm`;
+            const wat4wasm_out = `wat4wasm-${basename}.wasm.wat`;
             const params = process.argv
                 .filter(a => a.startsWith("--"))
                 .filter(a => !a.startsWith("--input="))
@@ -1664,10 +1664,7 @@ function clean (wat) {
         wat = block.removedRaw();
         let $starts = FUNC_WAT4WASM_START_CALLS(wat);
         if ($starts.length === 1) {
-            wat = START_WAT4WASM(wat)?.removedRaw();
-            if ($starts.length === 1) {
-                wat = helpers.append(wat, `(start ${$starts.pop()})`);
-            }
+            wat = wat.replace(`(start $wat4wasm)`, `(start ${$starts.pop()})`);
         }
         let $func = FUNC_WAT4WASM(wat);
         if ($func) {

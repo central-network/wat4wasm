@@ -18,9 +18,10 @@
   },
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "cd test && wat4wasm test.wat --wat2wasm=wat2wasm --enable-threads --debug-names --output=test-output.wasm",
     "rebuild": "cd lib && node build",
-    "posttest": "cd examples && ./shell-usages.sh"
+    "posttest": "cd examples && ./shell-usages.sh",
+    "install": ""
   },
   "bin": "wat4wasm",
   "dependencies": {

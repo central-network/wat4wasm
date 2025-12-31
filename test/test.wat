@@ -1,4 +1,9 @@
 (module 
+    (data $module "wasm://boot.wat")
+    (data $script "file://test_worker.js")
+
+    (include "test-sub.wat")
+
     (main $replace 
         (local $this f32)
         
