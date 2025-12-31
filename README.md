@@ -2,12 +2,10 @@
 
 <p align="center">
   <br />
-  <strong><code>wat4wasm</code></strong>
-  <br />
-  <br />
-  sweet <em><strong>WebAssembly</strong></em> sugars
-  <br />
-  Designed to make you faster, smarter and aesthetically pleasing WebAssembly coder.
+  <strong><code>wat4wasm</code></strong><br />
+  is a pre-compiler for 
+  <strong><code>wat</code></strong> files which 
+  <em><strong>WebAssembly</strong></em> uses<br /> and designed to make you faster, smarter and aesthetically pleasing WebAssembly coder.
 </p>
 
 <p align="center">
@@ -15,10 +13,7 @@
   <img src="https://img.shields.io/badge/node-14.0.0-green.svg" alt="Node.js Version">
 </p>
 
-## BAŞLIK
-İçerik
-
-## Why wat4wasm?
+## Purpose of wat4wasm
 
 Writing WebAssembly Text (WAT) often feels like stepping back in time. While the performance is futuristic, the developer experience is archaic. You manually manage indices, define every single import, and struggle with basic tasks like string handling or asynchronous flows.
 
@@ -33,9 +28,7 @@ It is a pre-compiler that treats WebAssembly as a first-class citizen of the Jav
 
 It's not just a compiler; it's the bridge that makes WebAssembly fun to write. 
 <br />
-<br />
-
-### my way:
+### usage screenshot:
 <img src="assets/ss-fullview.png" width="100%">
 <br />
 
