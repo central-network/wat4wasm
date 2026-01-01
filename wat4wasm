@@ -1733,7 +1733,7 @@ function clean (wat) {
     wat = maskSet.restore();
     wat = helpers.prepend(wat,
         imports
-            .filter(b => new RegExp(`\\${b.$name}\(\\s|\\)\)`).test(wat))
+            .filter(b => new RegExp(`\\${b.$name}\(\\s|\\)\)`).test(wat) || b.toString().match(/(memory|table)/))
             .sort((a, b) => helpers.generateId(a) - helpers.generateId(b))
             .map(b => b.toString())
             .join("\n")
