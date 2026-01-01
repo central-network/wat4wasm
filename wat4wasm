@@ -554,8 +554,15 @@ function wat4beauty(watContent, alignIndentsWith = "\t", exportPadStart = 90) {
         return "0x" + crypto.randomUUID().replace(/\-/g, "");
     },
     hasBlock(raw, keyword, filter) {
+        if (!filter && typeof keyword === "object") {
+            filter = keyword;
+            keyword = "";
+        }
         if (!keyword) { return raw.indexOf("(", 1) !== -1; };
         keyword = this.fixBlockKeyword(keyword, filter);
+        if (filter?.includes) {
+            return raw.includes(filter.includes);
+        }
         return raw.includes(keyword);
     },
     hasAnyBlock(raw) {
@@ -572,6 +579,19 @@ function wat4beauty(watContent, alignIndentsWith = "\t", exportPadStart = 90) {
                 this.delete(block.uuid);
             }
             return this.mask(block, "");
+        }
+        maskAll(keyword, filter) {
+            let block;
+            while (block = this.lastBlockOf(keyword, filter)) {
+                this.mask(block);
+            }
+            return this
+        }
+        maskComments() {
+            this.input = this.input
+                .split(/\n/)
+                .map(l => l.split(";;").at(0))
+                .join("\n");
         }
         mask(block, maskWith = block.uuid) {
             if (!block.uuid) {
@@ -735,6 +755,10 @@ function wat4beauty(watContent, alignIndentsWith = "\t", exportPadStart = 90) {
     },
     lastBlockOf(raw, keyword, filter) {
         if (!raw) throw new Error(`no raw for block: ${keyword}`);
+        if (!filter && typeof keyword === "object") {
+            filter = keyword;
+            keyword = "";
+        }
         keyword = this.fixBlockKeyword(keyword, filter);
         raw = raw.toString();
         let begin = raw.lastIndexOf(keyword);
@@ -1381,6 +1405,7 @@ const TEXT_ONINIT_BLOCK = (offset, length, setter) => String(
         ${setter}
     )    
 `).trim();
+const extern = new Set();
 function TEXT (wat, WAT4WASM) {
     const maskSet = new helpers.MaskSet(wat);
     const textBlocks = new Array();
@@ -1392,14 +1417,22 @@ function TEXT (wat, WAT4WASM) {
     wat = maskSet.restore();
     textBlocks.forEach(block => {
         const text = helpers.findQuotedText(block);
-        const view = helpers.encodeText(text);
-        const dataRequest = WAT4WASM_ALLOC_DATA_BUFFER(wat, view.buffer);
-        block.dataOffset = dataRequest.offset;
-        block.viewLength = view.length;
-        block.strPreview = helpers.abstract(text);
-        wat = dataRequest.modifiedRaw;
+        if (extern.has(text) === false) {
+            extern.add(text)
+            const view = helpers.encodeText(text);
+            const dataRequest = WAT4WASM_ALLOC_DATA_BUFFER(wat, view.buffer);
+            block.dataOffset = dataRequest.offset;
+            block.viewLength = view.length;
+            block.strPreview = helpers.abstract(text);
+            block.strContent = text;
+            block.isExtended = true;
+            wat = dataRequest.modifiedRaw;
+        }
+        else {
+            block.isExtended = false;
+        }
     });
-    textBlocks.forEach(block => {
+    textBlocks.filter(block => block.isExtended).forEach(block => {
         const growRequest = WAT4WASM_GROW_EXTERN_TABLE(wat);
         block.tableGetter = growRequest.getter.concat(`;; ${block.strPreview} \n`);
         block.tableSetter = growRequest.generateSetter(`
@@ -1410,16 +1443,18 @@ function TEXT (wat, WAT4WASM) {
         )`).trim();
         wat = growRequest.modifiedRaw;
     });
-    textBlocks.forEach(block => {
-        wat = wat.replaceAll(block.toString(), block.tableGetter)
+    textBlocks.filter(block => block.isExtended).forEach(block => {
+        wat = wat.replaceAll(block.toString(), block.tableGetter);
     });
-    const oninit = textBlocks.map(block =>
+    const oninit = textBlocks.filter(block => block.isExtended).map(block =>
         TEXT_ONINIT_BLOCK(
             block.dataOffset,
             block.viewLength, block.tableSetter
         )
     ).join("\n");
-    wat = APPEND_ON_INIT(wat, oninit);
+    if (oninit.trim()) {
+        wat = APPEND_ON_INIT(wat, oninit);
+    }
     return wat;
 }
 
@@ -1614,13 +1649,15 @@ function WAT4WASM_ALLOC_DATA_BUFFER(wat, buffer) {
     const all_data = DATA_WAT4WASM(wat);
     let offset = all_data.buffer.indexOf(new_data);
     let modifiedRaw = wat;
-    if (offset < 1) {
+    let isAllocated = offset === -1;
+    if (offset < 0) {
         offset = all_data.offset;
         all_data.buffer.writeUint32LE(offset + new_data.byteLength);
         modifiedRaw = all_data.replacedRaw(WAT4WASM_DATA(Buffer.concat([all_data.buffer, new_data])));
     }
     return {
         offset,
+        isAllocated,
         modifiedRaw,
         isRawModified: modifiedRaw.toString() !== wat.toString()
     };
@@ -1655,7 +1692,7 @@ function W4W (wat) {
     return calls;
 }
 function clean (wat) {
-    let block;
+    let block, $name;
     block = FUNC_WAT4WASM_BLOCK_ONEXTERNREADY(wat);
     if (!block.hasAnyBlock) { wat = block.removedRaw(); }
     block = FUNC_WAT4WASM_BLOCK_ONTEXTREADY(wat);
@@ -1701,6 +1738,26 @@ function clean (wat) {
             .map(b => b.toString())
             .join("\n")
     );
+    const funcMask = new helpers.MaskSet(wat);
+    const unusedCalls = new Set();
+    funcMask.maskAll("import");
+    funcMask.maskComments();
+    while (block = funcMask.lastBlockOf("func")) {
+        funcMask.mask(block);
+        if (($name = block.$name)) {
+            if (wat.match(new RegExp(`\\\((call|start|ref\\.func)\\s+\\${$name}(\\s|\\\))`))) {
+                continue;
+            }
+            if (unusedCalls.has($name) === false) {
+                unusedCalls.add($name);
+            }
+        }
+    }
+    unusedCalls.forEach($name => {
+        const begin = wat.lastIndexOf(`(func ${$name}`);
+        const block = helpers.parseBlockAt(wat, begin);
+        if (block) { wat = block.removedRaw() }
+    });
     return wat;
 }
 
@@ -1935,7 +1992,6 @@ async function processCLI(compileCallback, PROCESS = process) {
 
 
 const processors = [
-    REPLACE_ALL,
     W4W,
     TEXT,
     ASYNC,
@@ -1947,6 +2003,9 @@ const processors = [
     REF_FUNC,
     START,
     STRING,
+    REPLACE_ALL,
+    REF_EXTERN,
+    DATA,
 ];
 processCLI(async wat4 => {
     let wat2 = wat4, f, i = -1, llen, m = -1, c = 0, ci = 0;
