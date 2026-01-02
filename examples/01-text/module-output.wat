@@ -9,47 +9,13 @@
   (import "Reflect" "apply"       (func $self.Reflect.apply<ext.ext.ext>ext (param externref externref externref) (result externref)))
 
 
-  (func $main
-    (table.get $wat4wasm (i32.const 1));; hello world
 
-    (drop)
-
-
-    (block (; "hello world" ;)
-      (result externref)
-      (global.set $wat4wasm (call $self.Array<>ext))
-
-      (call $self.Reflect.set<ext.i32.i32> (global.get $wat4wasm) (i32.const 0) (i32.const 104))
-      (call $self.Reflect.set<ext.i32.i32> (global.get $wat4wasm) (i32.const 1) (i32.const 101))
-      (call $self.Reflect.set<ext.i32.i32> (global.get $wat4wasm) (i32.const 2) (i32.const 108))
-      (call $self.Reflect.set<ext.i32.i32> (global.get $wat4wasm) (i32.const 3) (i32.const 108))
-      (call $self.Reflect.set<ext.i32.i32> (global.get $wat4wasm) (i32.const 4) (i32.const 111))
-      (call $self.Reflect.set<ext.i32.i32> (global.get $wat4wasm) (i32.const 5) (i32.const 32))
-      (call $self.Reflect.set<ext.i32.i32> (global.get $wat4wasm) (i32.const 6) (i32.const 119))
-      (call $self.Reflect.set<ext.i32.i32> (global.get $wat4wasm) (i32.const 7) (i32.const 111))
-      (call $self.Reflect.set<ext.i32.i32> (global.get $wat4wasm) (i32.const 8) (i32.const 114))
-      (call $self.Reflect.set<ext.i32.i32> (global.get $wat4wasm) (i32.const 9) (i32.const 108))
-      (call $self.Reflect.set<ext.i32.i32> (global.get $wat4wasm) (i32.const 10) (i32.const 100))
-
-      (call $self.Reflect.apply<ext.ext.ext>ext
-        (global.get $self.String.fromCharCode)
-        (ref.null extern)
-        (global.get $wat4wasm)
-      )
-      ;; stacked
-
-      (global.set $wat4wasm (ref.null extern))
-      ;; cleared
-    )
-
-    (drop)
-  )
 
   (global $wat4wasm (mut externref) (ref.null extern))
 
   (table $wat4wasm 2 externref)
 
-
+  (elem $wat4wasm declare func)
 
 
   (func $wat4wasm
@@ -225,4 +191,6 @@
   (data $wat4wasm "\0f\00\00\00\68\65\6c\6c\6f\20\77\6f\72\6c\64")
 
   (memory $wat4wasm 1)
+
+  (start $wat4wasm)
 )

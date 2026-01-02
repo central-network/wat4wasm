@@ -94,7 +94,7 @@
 
   (table $wat4wasm 5 externref)
 
-
+  (elem $wat4wasm declare func)
 
 
   (func $wat4wasm
@@ -344,4 +344,6 @@
   (memory $wat4wasm 1)
 
 
+
+  (start $wat4wasm)
 )

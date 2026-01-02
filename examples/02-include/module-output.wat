@@ -2,9 +2,6 @@
 
 
 
-  (func $included_content
-
-  )
 
 
 
@@ -19,4 +16,7 @@
 
 
 
+
+
+  (start $wat4wasm)
 )

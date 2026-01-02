@@ -1785,6 +1785,7 @@ async function processCLI(compileCallback, PROCESS = process) {
         faviconLinkHref: "data:null",
         printOnly: false,
         passthroughArgs: [],
+        applyScripts: [],
     };
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -1792,6 +1793,8 @@ async function processCLI(compileCallback, PROCESS = process) {
             config.outputFile = arg.split("=")[1];
         } else if (arg.startsWith("--input=")) {
             config.inputFile = arg.split("=")[1];
+        } else if (arg.startsWith("--apply=")) {
+            config.applyScripts.push(arg.split("=")[1]);
         } else if (arg.startsWith("--wat2wasm=")) {
             config.wat2wasmPath = arg.split("=")[1];
         } else if (arg.startsWith("--tag=")) {
@@ -1837,6 +1840,18 @@ async function processCLI(compileCallback, PROCESS = process) {
         console.error("Error: Input file required! Usage: wat4wasm <input.wat> [options]");
         PROCESS.exit(1);
     }
+    config.inputDirectory = process
+        .cwd()
+        .replaceAll("file://", "")
+        .concat(config
+            .inputFile
+            .split("/")
+            .reverse().slice(1)
+            .reverse()
+            .join("/")
+        )
+        .concat("/")
+        .replaceAll("//", "/");
     const isJSTarget = config.outputFile?.endsWith(".js");
     const isHTMLTarget = config.outputFile?.endsWith(".html");
     if (isHTMLTarget || isJSTarget) {
@@ -1855,7 +1870,16 @@ async function processCLI(compileCallback, PROCESS = process) {
         }
         const rawCode = fs.readFileSync(config.inputFile, "utf8");
         // 2. Call the provided compile function
-        const compiled = await compileCallback(rawCode);
+        let compiled = await compileCallback(rawCode);
+        let applyScript, applyCount = config.applyScripts.length;
+        while (applyScript = config.applyScripts[--applyCount]) {
+            const baseName = applyScript.split("/").pop().split(".").reverse().slice(1).reverse().join(".");
+            console.log(`\x1b[0m\x1b[34m🎸 apply call[\x1b[35m${applyCount}\x1b[0m] \x1b[32m-->\x1b[0m \x1b[35m${baseName}\x1b[0m(wat)\x1b[0m`);
+            const { default: applyFunction } = await import(
+                config.inputDirectory.concat(applyScript)
+            );
+            compiled = await applyFunction(compiled);
+        }
         console.log("\x1b[0m")
         // 3. Handle Output
         if (config.printOnly) {

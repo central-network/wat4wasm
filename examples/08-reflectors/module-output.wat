@@ -31,146 +31,27 @@
   (import "Reflect" "getOwnPropertyDescriptor" (func $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext (param externref externref) (result externref)))
 
 
-  (func $01-console.*
-
-    (table.get $wat4wasm (i32.const 6));; hello world
-
-    (call $self.console.log<ext>)
-
-    (table.get $wat4wasm (i32.const 5));; bye bye world
-    (i32.const -1)
-    (call $self.console.log<ext.i32>)
-
-    (table.get $wat4wasm (i32.const 16)) ;; $self.NaN<ext>
-
-    (call $self.console.warn<ext>)
-  )
-
-  (func $02-array.*
-
-    (call $self.Array.of<ext>ext
-      (call $self.Reflect.apply<ext.ext.ext>ext
-        (global.get $self.String.fromCharCode)
-        (global.get $self)
-        (call $self.Array.of<i32>ext (i32.const 55358)) ;; "🦋"
-      )
-    )
-    (drop)
-
-    (call $self.Array.isArray<ext>i32 (call $self.Array<>ext))
-    (drop)
-
-    (call $self.Array.fromAsync<ext>ext (call $self.Array<>ext))
-    (drop)
-  )
-
-  (func $03-object.*
-
-    (call $self.Object.is<ext.ext>i32 (ref.null extern) (table.get $wat4wasm (i32.const 17)) ;; $self.undefined<ext>
-    )
-    (drop)
-
-    (call $self.Object.is<ext.f32>i32 (table.get $wat4wasm (i32.const 16)) ;; $self.NaN<ext>
-      (f32.const nan))
-    (drop)
-
-    (call $self.Object.fromEntries<ext>ext (call $self.Array<>ext))
-    (drop)
-  )
-
-  (func $04-reflect.*
-
-    (call $self.Reflect.set<ext.ext.ext>i32
-      (global.get $self) (table.get $wat4wasm (i32.const 1));; name
-      (table.get $wat4wasm (i32.const 3));; test
-
-    )
-    (drop)
-
-    (call $self.Reflect.get<ext.ext>ext
-      (global.get $self) (table.get $wat4wasm (i32.const 1));; name
-
-    )
-    (drop)
-
-    (call $self.Reflect.apply<ext.ext.ext>ext
-      (table.get $wat4wasm (i32.const 10)) ;; $self.Math.floor<ext>
-      (ref.null extern) (call $self.Array.of<f32>ext (f32.const 2.1))
-    )
-    (drop)
-
-    (call $self.Reflect.construct<ext.ext>ext
-      (table.get $wat4wasm (i32.const 9)) ;; $self.Object<ext>
-      (call $self.Array<>ext)
-    )
-    (drop)
-
-    (call $self.Reflect.ownKeys<ext>ext
-      (table.get $wat4wasm (i32.const 8)) ;; $self.ArrayBuffer<ext>
-
-    )
-    (drop)
-
-    (call $self.Reflect.getPrototypeOf<ext>ext
-      (global.get $self)
-    )
-    (drop)
-
-    (call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
-      (global.get $self) (table.get $wat4wasm (i32.const 1));; name
-
-    )
-    (drop)
-  )
-
-  (func $05-string.*
 
 
-    (call $self.Reflect.apply<ext.ext.ext>ext
-      (global.get $self.String.fromCharCode)
-      (global.get $self)
-      (global.get $self)
-    )
 
-    (drop)
-  )
 
-  (func $06-number.*
 
-    (call $self.Number.isSafeInteger<i32>i32 (i32.const 47))
-    (drop)
 
-    (call $self.Number.isNaN<ext>i32 (global.get $self))
-    (drop)
-  )
 
-  (func $07-math.*
 
-    (call $self.Math.max<f32.f32>f32 (f32.const 47.2) (f32.const 42.7))
-    (drop)
 
-    (call $self.Math.random<>f32)
-    (drop)
-  )
 
-  (func $08-url.*
 
-    (call $self.URL.createObjectURL<ext>ext (call $self.Reflect.construct<ext.ext>ext
-        (table.get $wat4wasm (i32.const 7)) ;; $self.MediaSource<ext>
 
-        (call $self.Array.of<>ext)
-    ))
-    (drop)
 
-    (call $self.URL.revokeObjectURL<ext> (ref.null extern))
-    (nop)
-  )
+
+
 
   (global $wat4wasm (mut externref) (ref.null extern))
 
-  (table $wat4wasm 20 externref)
+  (table $wat4wasm 18 externref)
 
-
+  (elem $wat4wasm declare func)
 
 
   (func $wat4wasm
@@ -333,9 +214,9 @@
             (local.get $arguments) ;; name
         ))
       )
-      (block $decodeText/4:4
+      (block $decodeText/8:4
         (local.set $viewAt (i32.const 0))
-        (local.set $offset (i32.const 4))
+        (local.set $offset (i32.const 8))
         (local.set $length (i32.const 4))
         (local.set $arguments (call $self.Array<>ext))
 
@@ -378,103 +259,7 @@
           (call $self.Reflect.apply<ext.ext.ext>ext
             (local.get $textDecoder.decode)
             (local.get $textDecoder)
-            (local.get $arguments) ;; name
-        ))
-      )
-      (block $decodeText/8:4
-        (local.set $viewAt (i32.const 0))
-        (local.set $offset (i32.const 8))
-        (local.set $length (i32.const 4))
-        (local.set $arguments (call $self.Array<>ext))
-
-        (call $self.Reflect.set<ext.i32.i32>
-          (local.get $arguments) (i32.const 0) (local.get $length)
-        )
-        (local.set $arrayBufferView
-          (call $self.Reflect.construct<ext.ext>ext
-            (local.get $Uint8Array)
-            (local.get $arguments)
-          )
-        )
-        (loop $length--
-          (if (local.get $length)
-            (then
-              (memory.init $wat4wasm
-                (i32.const 0)
-                (local.get $offset)
-                (i32.const 1)
-              )
-              (call $self.Reflect.set<ext.i32.i32>
-                (local.get $arrayBufferView)
-                (local.get $viewAt)
-                (i32.load8_u (i32.const 0))
-              )
-              (local.set $viewAt (i32.add (local.get $viewAt) (i32.const 1)))
-              (local.set $offset (i32.add (local.get $offset) (i32.const 1)))
-              (local.set $length (i32.sub (local.get $length) (i32.const 1)))
-              (br $length--)
-            )
-          )
-        )
-        (local.set $arguments (call $self.Array<>ext))
-        (call $self.Reflect.set<ext.i32.ext>
-          (local.get $arguments)
-          (i32.const 0)
-          (local.get $arrayBufferView)
-        )
-        (table.set $wat4wasm (i32.const 3)
-          (call $self.Reflect.apply<ext.ext.ext>ext
-            (local.get $textDecoder.decode)
-            (local.get $textDecoder)
             (local.get $arguments) ;; test
-        ))
-      )
-      (block $decodeText/4:4
-        (local.set $viewAt (i32.const 0))
-        (local.set $offset (i32.const 4))
-        (local.set $length (i32.const 4))
-        (local.set $arguments (call $self.Array<>ext))
-
-        (call $self.Reflect.set<ext.i32.i32>
-          (local.get $arguments) (i32.const 0) (local.get $length)
-        )
-        (local.set $arrayBufferView
-          (call $self.Reflect.construct<ext.ext>ext
-            (local.get $Uint8Array)
-            (local.get $arguments)
-          )
-        )
-        (loop $length--
-          (if (local.get $length)
-            (then
-              (memory.init $wat4wasm
-                (i32.const 0)
-                (local.get $offset)
-                (i32.const 1)
-              )
-              (call $self.Reflect.set<ext.i32.i32>
-                (local.get $arrayBufferView)
-                (local.get $viewAt)
-                (i32.load8_u (i32.const 0))
-              )
-              (local.set $viewAt (i32.add (local.get $viewAt) (i32.const 1)))
-              (local.set $offset (i32.add (local.get $offset) (i32.const 1)))
-              (local.set $length (i32.sub (local.get $length) (i32.const 1)))
-              (br $length--)
-            )
-          )
-        )
-        (local.set $arguments (call $self.Array<>ext))
-        (call $self.Reflect.set<ext.i32.ext>
-          (local.get $arguments)
-          (i32.const 0)
-          (local.get $arrayBufferView)
-        )
-        (table.set $wat4wasm (i32.const 4)
-          (call $self.Reflect.apply<ext.ext.ext>ext
-            (local.get $textDecoder.decode)
-            (local.get $textDecoder)
-            (local.get $arguments) ;; name
         ))
       )
       (block $decodeText/12:13
@@ -518,7 +303,7 @@
           (i32.const 0)
           (local.get $arrayBufferView)
         )
-        (table.set $wat4wasm (i32.const 5)
+        (table.set $wat4wasm (i32.const 3)
           (call $self.Reflect.apply<ext.ext.ext>ext
             (local.get $textDecoder.decode)
             (local.get $textDecoder)
@@ -566,7 +351,7 @@
           (i32.const 0)
           (local.get $arrayBufferView)
         )
-        (table.set $wat4wasm (i32.const 6)
+        (table.set $wat4wasm (i32.const 4)
           (call $self.Reflect.apply<ext.ext.ext>ext
             (local.get $textDecoder.decode)
             (local.get $textDecoder)
@@ -574,10 +359,10 @@
         ))
       )
 
-      (block $decodeText/36:5
+      (block $decodeText/36:9
         (local.set $viewAt (i32.const 0))
         (local.set $offset (i32.const 36))
-        (local.set $length (i32.const 5))
+        (local.set $length (i32.const 9))
         (local.set $arguments (call $self.Array<>ext))
 
         (call $self.Reflect.set<ext.i32.i32>
@@ -619,13 +404,13 @@
           (call $self.Reflect.apply<ext.ext.ext>ext
             (local.get $textDecoder.decode)
             (local.get $textDecoder)
-            (local.get $arguments) ;; floor
+            (local.get $arguments) ;; undefined
         ))
       )
-      (block $decodeText/41:4
+      (block $decodeText/45:3
         (local.set $viewAt (i32.const 0))
-        (local.set $offset (i32.const 41))
-        (local.set $length (i32.const 4))
+        (local.set $offset (i32.const 45))
+        (local.set $length (i32.const 3))
         (local.set $arguments (call $self.Array<>ext))
 
         (call $self.Reflect.set<ext.i32.i32>
@@ -667,13 +452,13 @@
           (call $self.Reflect.apply<ext.ext.ext>ext
             (local.get $textDecoder.decode)
             (local.get $textDecoder)
-            (local.get $arguments) ;; Math
+            (local.get $arguments) ;; NaN
         ))
       )
-      (block $decodeText/45:6
+      (block $decodeText/48:5
         (local.set $viewAt (i32.const 0))
-        (local.set $offset (i32.const 45))
-        (local.set $length (i32.const 6))
+        (local.set $offset (i32.const 48))
+        (local.set $length (i32.const 5))
         (local.set $arguments (call $self.Array<>ext))
 
         (call $self.Reflect.set<ext.i32.i32>
@@ -715,13 +500,13 @@
           (call $self.Reflect.apply<ext.ext.ext>ext
             (local.get $textDecoder.decode)
             (local.get $textDecoder)
-            (local.get $arguments) ;; Object
+            (local.get $arguments) ;; floor
         ))
       )
-      (block $decodeText/51:11
+      (block $decodeText/53:4
         (local.set $viewAt (i32.const 0))
-        (local.set $offset (i32.const 51))
-        (local.set $length (i32.const 11))
+        (local.set $offset (i32.const 53))
+        (local.set $length (i32.const 4))
         (local.set $arguments (call $self.Array<>ext))
 
         (call $self.Reflect.set<ext.i32.i32>
@@ -763,13 +548,13 @@
           (call $self.Reflect.apply<ext.ext.ext>ext
             (local.get $textDecoder.decode)
             (local.get $textDecoder)
-            (local.get $arguments) ;; ArrayBuffer
+            (local.get $arguments) ;; Math
         ))
       )
-      (block $decodeText/62:11
+      (block $decodeText/57:6
         (local.set $viewAt (i32.const 0))
-        (local.set $offset (i32.const 62))
-        (local.set $length (i32.const 11))
+        (local.set $offset (i32.const 57))
+        (local.set $length (i32.const 6))
         (local.set $arguments (call $self.Array<>ext))
 
         (call $self.Reflect.set<ext.i32.i32>
@@ -811,104 +596,103 @@
           (call $self.Reflect.apply<ext.ext.ext>ext
             (local.get $textDecoder.decode)
             (local.get $textDecoder)
+            (local.get $arguments) ;; Object
+        ))
+      )
+      (block $decodeText/63:11
+        (local.set $viewAt (i32.const 0))
+        (local.set $offset (i32.const 63))
+        (local.set $length (i32.const 11))
+        (local.set $arguments (call $self.Array<>ext))
+
+        (call $self.Reflect.set<ext.i32.i32>
+          (local.get $arguments) (i32.const 0) (local.get $length)
+        )
+        (local.set $arrayBufferView
+          (call $self.Reflect.construct<ext.ext>ext
+            (local.get $Uint8Array)
+            (local.get $arguments)
+          )
+        )
+        (loop $length--
+          (if (local.get $length)
+            (then
+              (memory.init $wat4wasm
+                (i32.const 0)
+                (local.get $offset)
+                (i32.const 1)
+              )
+              (call $self.Reflect.set<ext.i32.i32>
+                (local.get $arrayBufferView)
+                (local.get $viewAt)
+                (i32.load8_u (i32.const 0))
+              )
+              (local.set $viewAt (i32.add (local.get $viewAt) (i32.const 1)))
+              (local.set $offset (i32.add (local.get $offset) (i32.const 1)))
+              (local.set $length (i32.sub (local.get $length) (i32.const 1)))
+              (br $length--)
+            )
+          )
+        )
+        (local.set $arguments (call $self.Array<>ext))
+        (call $self.Reflect.set<ext.i32.ext>
+          (local.get $arguments)
+          (i32.const 0)
+          (local.get $arrayBufferView)
+        )
+        (table.set $wat4wasm (i32.const 16)
+          (call $self.Reflect.apply<ext.ext.ext>ext
+            (local.get $textDecoder.decode)
+            (local.get $textDecoder)
+            (local.get $arguments) ;; ArrayBuffer
+        ))
+      )
+      (block $decodeText/74:11
+        (local.set $viewAt (i32.const 0))
+        (local.set $offset (i32.const 74))
+        (local.set $length (i32.const 11))
+        (local.set $arguments (call $self.Array<>ext))
+
+        (call $self.Reflect.set<ext.i32.i32>
+          (local.get $arguments) (i32.const 0) (local.get $length)
+        )
+        (local.set $arrayBufferView
+          (call $self.Reflect.construct<ext.ext>ext
+            (local.get $Uint8Array)
+            (local.get $arguments)
+          )
+        )
+        (loop $length--
+          (if (local.get $length)
+            (then
+              (memory.init $wat4wasm
+                (i32.const 0)
+                (local.get $offset)
+                (i32.const 1)
+              )
+              (call $self.Reflect.set<ext.i32.i32>
+                (local.get $arrayBufferView)
+                (local.get $viewAt)
+                (i32.load8_u (i32.const 0))
+              )
+              (local.set $viewAt (i32.add (local.get $viewAt) (i32.const 1)))
+              (local.set $offset (i32.add (local.get $offset) (i32.const 1)))
+              (local.set $length (i32.sub (local.get $length) (i32.const 1)))
+              (br $length--)
+            )
+          )
+        )
+        (local.set $arguments (call $self.Array<>ext))
+        (call $self.Reflect.set<ext.i32.ext>
+          (local.get $arguments)
+          (i32.const 0)
+          (local.get $arrayBufferView)
+        )
+        (table.set $wat4wasm (i32.const 17)
+          (call $self.Reflect.apply<ext.ext.ext>ext
+            (local.get $textDecoder.decode)
+            (local.get $textDecoder)
             (local.get $arguments) ;; MediaSource
-        ))
-      )
-
-      (block $decodeText/73:9
-        (local.set $viewAt (i32.const 0))
-        (local.set $offset (i32.const 73))
-        (local.set $length (i32.const 9))
-        (local.set $arguments (call $self.Array<>ext))
-
-        (call $self.Reflect.set<ext.i32.i32>
-          (local.get $arguments) (i32.const 0) (local.get $length)
-        )
-        (local.set $arrayBufferView
-          (call $self.Reflect.construct<ext.ext>ext
-            (local.get $Uint8Array)
-            (local.get $arguments)
-          )
-        )
-        (loop $length--
-          (if (local.get $length)
-            (then
-              (memory.init $wat4wasm
-                (i32.const 0)
-                (local.get $offset)
-                (i32.const 1)
-              )
-              (call $self.Reflect.set<ext.i32.i32>
-                (local.get $arrayBufferView)
-                (local.get $viewAt)
-                (i32.load8_u (i32.const 0))
-              )
-              (local.set $viewAt (i32.add (local.get $viewAt) (i32.const 1)))
-              (local.set $offset (i32.add (local.get $offset) (i32.const 1)))
-              (local.set $length (i32.sub (local.get $length) (i32.const 1)))
-              (br $length--)
-            )
-          )
-        )
-        (local.set $arguments (call $self.Array<>ext))
-        (call $self.Reflect.set<ext.i32.ext>
-          (local.get $arguments)
-          (i32.const 0)
-          (local.get $arrayBufferView)
-        )
-        (table.set $wat4wasm (i32.const 18)
-          (call $self.Reflect.apply<ext.ext.ext>ext
-            (local.get $textDecoder.decode)
-            (local.get $textDecoder)
-            (local.get $arguments) ;; undefined
-        ))
-      )
-      (block $decodeText/82:3
-        (local.set $viewAt (i32.const 0))
-        (local.set $offset (i32.const 82))
-        (local.set $length (i32.const 3))
-        (local.set $arguments (call $self.Array<>ext))
-
-        (call $self.Reflect.set<ext.i32.i32>
-          (local.get $arguments) (i32.const 0) (local.get $length)
-        )
-        (local.set $arrayBufferView
-          (call $self.Reflect.construct<ext.ext>ext
-            (local.get $Uint8Array)
-            (local.get $arguments)
-          )
-        )
-        (loop $length--
-          (if (local.get $length)
-            (then
-              (memory.init $wat4wasm
-                (i32.const 0)
-                (local.get $offset)
-                (i32.const 1)
-              )
-              (call $self.Reflect.set<ext.i32.i32>
-                (local.get $arrayBufferView)
-                (local.get $viewAt)
-                (i32.load8_u (i32.const 0))
-              )
-              (local.set $viewAt (i32.add (local.get $viewAt) (i32.const 1)))
-              (local.set $offset (i32.add (local.get $offset) (i32.const 1)))
-              (local.set $length (i32.sub (local.get $length) (i32.const 1)))
-              (br $length--)
-            )
-          )
-        )
-        (local.set $arguments (call $self.Array<>ext))
-        (call $self.Reflect.set<ext.i32.ext>
-          (local.get $arguments)
-          (i32.const 0)
-          (local.get $arrayBufferView)
-        )
-        (table.set $wat4wasm (i32.const 19)
-          (call $self.Reflect.apply<ext.ext.ext>ext
-            (local.get $textDecoder.decode)
-            (local.get $textDecoder)
-            (local.get $arguments) ;; NaN
         ))
       )
     )
@@ -916,44 +700,44 @@
 
 
       (block $self.MediaSource<ext>
-        (table.set $wat4wasm (i32.const 7)
+        (table.set $wat4wasm (i32.const 5)
           (call $self.Reflect.get<ext.ext>ext
             (global.get $self)
-            (table.get $wat4wasm (i32.const 15));; MediaSource
+            (table.get $wat4wasm (i32.const 17));; MediaSource
             ;; MediaSource
           )
       ))
 
 
       (block $self.ArrayBuffer<ext>
-        (table.set $wat4wasm (i32.const 8)
+        (table.set $wat4wasm (i32.const 6)
           (call $self.Reflect.get<ext.ext>ext
             (global.get $self)
-            (table.get $wat4wasm (i32.const 14));; ArrayBuffer
+            (table.get $wat4wasm (i32.const 16));; ArrayBuffer
             ;; ArrayBuffer
           )
       ))
 
 
       (block $self.Object<ext>
-        (table.set $wat4wasm (i32.const 9)
+        (table.set $wat4wasm (i32.const 7)
           (call $self.Reflect.get<ext.ext>ext
             (global.get $self)
-            (table.get $wat4wasm (i32.const 13));; Object
+            (table.get $wat4wasm (i32.const 15));; Object
             ;; Object
           )
       ))
 
 
       (block $self.Math.floor<ext>
-        (table.set $wat4wasm (i32.const 10)
+        (table.set $wat4wasm (i32.const 8)
           (call $self.Reflect.get<ext.ext>ext
             (call $self.Reflect.get<ext.ext>ext
               (global.get $self)
-              (table.get $wat4wasm (i32.const 12));; Math
+              (table.get $wat4wasm (i32.const 14));; Math
               ;; Math
             )
-            (table.get $wat4wasm (i32.const 11));; floor
+            (table.get $wat4wasm (i32.const 13));; floor
             ;; floor
           )
       ))
@@ -962,20 +746,20 @@
 
 
       (block $self.NaN<ext>
-        (table.set $wat4wasm (i32.const 16)
+        (table.set $wat4wasm (i32.const 9)
           (call $self.Reflect.get<ext.ext>ext
             (global.get $self)
-            (table.get $wat4wasm (i32.const 19));; NaN
+            (table.get $wat4wasm (i32.const 12));; NaN
             ;; NaN
           )
       ))
 
 
       (block $self.undefined<ext>
-        (table.set $wat4wasm (i32.const 17)
+        (table.set $wat4wasm (i32.const 10)
           (call $self.Reflect.get<ext.ext>ext
             (global.get $self)
-            (table.get $wat4wasm (i32.const 18));; undefined
+            (table.get $wat4wasm (i32.const 11));; undefined
             ;; undefined
           )
       ))
@@ -989,7 +773,9 @@
   )
 
 
-  (data $wat4wasm "\55\00\00\00\6e\61\6d\65\74\65\73\74\62\79\65\20\62\79\65\20\77\6f\72\6c\64\68\65\6c\6c\6f\20\77\6f\72\6c\64\66\6c\6f\6f\72\4d\61\74\68\4f\62\6a\65\63\74\41\72\72\61\79\42\75\66\66\65\72\4d\65\64\69\61\53\6f\75\72\63\65\75\6e\64\65\66\69\6e\65\64\4e\61\4e")
+  (data $wat4wasm "\55\00\00\00\6e\61\6d\65\74\65\73\74\62\79\65\20\62\79\65\20\77\6f\72\6c\64\68\65\6c\6c\6f\20\77\6f\72\6c\64\75\6e\64\65\66\69\6e\65\64\4e\61\4e\66\6c\6f\6f\72\4d\61\74\68\4f\62\6a\65\63\74\41\72\72\61\79\42\75\66\66\65\72\4d\65\64\69\61\53\6f\75\72\63\65")
 
   (memory $wat4wasm 1)
+
+  (start $wat4wasm)
 )
