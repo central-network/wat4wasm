@@ -1693,6 +1693,7 @@ function W4W (wat) {
     return calls;
 }
 function clean (wat) {
+    console.log("")
     let block, $name;
     block = FUNC_WAT4WASM_BLOCK_ONEXTERNREADY(wat);
     if (!block.hasAnyBlock) { wat = block.removedRaw(); }
@@ -1703,25 +1704,34 @@ function clean (wat) {
         wat = block.removedRaw();
         let $starts = FUNC_WAT4WASM_START_CALLS(wat);
         if ($starts.length === 1) {
-            wat = wat.replace(`(start $wat4wasm)`, `(start ${$starts.pop()})`);
+            const $start = $starts.pop();
+            wat = wat.replace(`(start $wat4wasm)`, `(start ${$start})`);
+            console.log(`⚠️  replaced --> \x1b[34m(start \x1b[35m$wat4wasm\x1b[0m --> \x1b[35m${$start}\x1b[0m)\x1b[0m`);
         }
         let $func = FUNC_WAT4WASM(wat);
         if ($func) {
+            console.log(`⚠️  removing --> \x1b[34m(func \x1b[35m$wat4wasm\x1b[0m ...)\x1b[0m`);
             wat = $func.removedRaw();
         }
         block = ELEM_WAT4WASM(wat);
-        if (block.isInitial) { wat = block.removedRaw(); }
-        block = TABLE_WAT4WASM(wat);
-        if (block.isInitial) { wat = block.removedRaw(); }
+        if (block.isInitial) {
+            console.log(`⚠️  removing --> \x1b[34m(elem \x1b[35m$wat4wasm\x1b[0m ...)\x1b[0m`);
+            wat = block.removedRaw();
+        }
         block = DATA_WAT4WASM(wat);
-        if (block.isInitial) { wat = block.removedRaw(); }
+        if (block.isInitial) {
+            console.log(`⚠️  removing --> \x1b[34m(data \x1b[35m$wat4wasm\x1b[0m ...)\x1b[0m`);
+            wat = block.removedRaw();
+        }
+        block = TABLE_WAT4WASM(wat);
+        if (block.isInitial) {
+            console.log(`⚠️  removing --> \x1b[34m(table \x1b[35m$wat4wasm\x1b[0m ...)\x1b[0m`);
+            wat = block.removedRaw();
+        }
         if (false === helpers.hasBlock(wat, "global.get", { $name: "$wat4wasm" }) &&
             false === helpers.hasBlock(wat, "global.set", { $name: "$wat4wasm" })) {
+            console.log(`⚠️  removing --> \x1b[34m(global \x1b[35m$wat4wasm\x1b[0m ...)\x1b[0m`);
             wat = GLOBAL_WAT4WASM(wat).removedRaw();
-        }
-        block = MEMORY_WAT4WASM(wat);
-        if (block && (helpers.containsMemoryOperation(wat) === false)) {
-            wat = block.removedRaw();
         }
     }
     const maskSet = new helpers.MaskSet(wat);
@@ -1757,8 +1767,16 @@ function clean (wat) {
     unusedCalls.forEach($name => {
         const begin = wat.lastIndexOf(`(func ${$name}`);
         const block = helpers.parseBlockAt(wat, begin);
+        $name = $name.replace(".prototype.", ":")
+        console.log(`⚠️  removing unused --> \x1b[34m(func \x1b[32m${$name}\x1b[0m ...)\x1b[0m`);
         if (block) { wat = block.removedRaw() }
     });
+    const nonWat4WasmMemory = wat.replace(WAT4WASM_BLOCKS.memory, "");
+    if (nonWat4WasmMemory.match(/\(memory\s+(\$|\d)/)) {
+        console.log(`⚠️  removing --> \x1b[34m(memory \x1b[35m$wat4wasm\x1b[0m ...)\x1b[0m`);
+        wat = nonWat4WasmMemory;
+    }
+    console.log("")
     return wat;
 }
 
@@ -2057,12 +2075,12 @@ processCLI(async wat4 => {
         const addedLines = outLines.length - commonLines;
         const netChange = outLines.length - inLines.length;
         const stat = [
-            `\x1b[32m+${addedLines}\x1b[0m`.padStart(15, " "),
-            `\x1b[34m-${removedLines}\x1b[0m`.padStart(15, " "),
-            `\x1b[${netChange && 36 || 33}m\u0394\x1b[0m`.padStart(12, " "),
-            `\x1b[${netChange && 36 || 33}m${netChange}\x1b[0m`.padStart(12, " "),
+            `\x1b[32m+${addedLines}\x1b[0m`.padStart(16, " "),
+            `\x1b[34m-${removedLines}\x1b[0m`.padStart(16, " "),
+            `\x1b[${netChange && 36 || 33}m\u0394\x1b[0m`.padStart(14, " "),
+            `\x1b[${netChange && 36 || 33}m${netChange}\x1b[0m`.padStart(14, " "),
             `  byte(\u03B4) :`,
-            `\x1b[33m${wat2.length}\x1b[0m`.padStart(14, " "),
+            `\x1b[33m${wat2.length}\x1b[0m`.padStart(16, " "),
             `-->`,
             `\x1b[33m${wat4.length}\x1b[0m`,
         ];
