@@ -1235,6 +1235,7 @@ function REPLACE_ALL (wat) {
         .replaceAll("(console $", "(call $self.console.")
         .replaceAll("(reflect $", "(call $self.Reflect.")
         .replaceAll("(bigint $", "(call $self.BigInt.")
+        .replaceAll("(promise $", "(call $self.Promise.")
         .replaceAll("(number $", "(call $self.Number.")
         .replaceAll("(math $", "(call $self.Math.")
         .replaceAll("(string $", "(call $self.String.")
