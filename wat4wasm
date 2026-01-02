@@ -1277,8 +1277,8 @@ function REPLACE_ALL (wat) {
 const START_BLOCK_NAME = "start";
 function START (wat, WAT4WASM) {
     let startCalls = [];
-    let removedWat = wat;
     wat = wat.replaceAll(/\(main(\s+)(\$.[^\s]*)(\s)/g, `(start$1$2)\n\n(func$1$2$3`)
+    let removedWat = wat;
     while (helpers.hasBlock(removedWat, START_BLOCK_NAME)) {
         let block = helpers.lastBlockOf(removedWat, START_BLOCK_NAME);
         removedWat = block.removedRaw();
@@ -1406,10 +1406,11 @@ const TEXT_ONINIT_BLOCK = (offset, length, setter) => String(
         ${setter}
     )    
 `).trim();
-const extern = new Set();
-function TEXT (wat, WAT4WASM) {
+function replaceAllText(wat, WAT4WASM) {
+    const extern = new Set();
     const maskSet = new helpers.MaskSet(wat);
     const textBlocks = new Array();
+    const textGetters = new Map();
     while (maskSet.hasBlock(TEXT_BLOCK_NAME)) {
         let block = maskSet.lastBlockOf(TEXT_BLOCK_NAME);
         maskSet.mask(block);
@@ -1428,6 +1429,7 @@ function TEXT (wat, WAT4WASM) {
             block.strContent = text;
             block.isExtended = true;
             wat = dataRequest.modifiedRaw;
+            textGetters.set(block.uuid, text)
         }
         else {
             block.isExtended = false;
@@ -1442,10 +1444,8 @@ function TEXT (wat, WAT4WASM) {
             (local.get $textDecoder)
             (local.get $arguments) ;; ${block.strPreview}
         )`).trim();
+        textGetters.set(textGetters.get(block.uuid), block.tableGetter)
         wat = growRequest.modifiedRaw;
-    });
-    textBlocks.filter(block => block.isExtended).forEach(block => {
-        wat = wat.replaceAll(block.toString(), block.tableGetter);
     });
     const oninit = textBlocks.filter(block => block.isExtended).map(block =>
         TEXT_ONINIT_BLOCK(
@@ -1455,6 +1455,20 @@ function TEXT (wat, WAT4WASM) {
     ).join("\n");
     if (oninit.trim()) {
         wat = APPEND_ON_INIT(wat, oninit);
+    }
+    while (helpers.hasBlock(wat, "text")) {
+        const block = helpers.lastBlockOf(wat, "text");
+        const text = helpers.findQuotedText(block);
+        const getter = textGetters.get(text);
+        if (getter) {
+            wat = block.replacedRaw(getter)
+        }
+    }
+    return wat;
+}
+function TEXT (wat) {
+    while (helpers.hasBlock(wat, "text")) {
+        wat = replaceAllText(wat);
     }
     return wat;
 }
