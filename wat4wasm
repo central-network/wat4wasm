@@ -1982,8 +1982,8 @@ async function processCLI(compileCallback, PROCESS = process) {
                             wasmGenerator = `Uint8Array.of(${wasmhex.toString().match(/[a-f0-9]{2}/g).map(h => parseInt(h, 16))})`;
                         }
                         extension = "js";
-                        filecontent = String(
-                            `const view = ${wasmGenerator};
+                        filecontent = String(`
+                            const view = ${wasmGenerator};
                             export let wasm = view.buffer;
                             
                             wasm.module = null;
@@ -2009,8 +2009,8 @@ async function processCLI(compileCallback, PROCESS = process) {
                             
                             export default wasm;`);
                         filecontent = filecontent.replaceAll(
-                            String(" ").repeat(filecontent.search(/\w/) - 1)
-                            , "");
+                            String(" ").repeat(filecontent.search(/\w/) - 1), ""
+                        );
                     }
                     else {
                         extension = "html";
