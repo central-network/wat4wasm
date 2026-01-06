@@ -1706,7 +1706,7 @@ function W4W (wat) {
     }
     return calls;
 }
-function clean (wat) {
+function clean (wat, config = {}) {
     console.log("")
     let block, $name;
     block = FUNC_WAT4WASM_BLOCK_ONEXTERNREADY(wat);
@@ -1721,6 +1721,10 @@ function clean (wat) {
             const $start = $starts.pop();
             wat = wat.replace(`(start $wat4wasm)`, `(start ${$start})`);
             console.log(`⚠️  replaced --> \x1b[34m(start \x1b[35m$wat4wasm\x1b[0m --> \x1b[35m${$start}\x1b[0m)\x1b[0m`);
+        }
+        else if ($starts.length === 0) {
+            console.log(`⚠️  removing --> \x1b[34m(start \x1b[35m$wat4wasm\x1b[0m)\x1b[0m`);
+            wat = wat.replace(`(start $wat4wasm)`, ``);
         }
         let $func = FUNC_WAT4WASM(wat);
         if ($func) {
@@ -1763,28 +1767,30 @@ function clean (wat) {
             .map(b => b.toString())
             .join("\n")
     );
-    const funcMask = new helpers.MaskSet(wat);
-    const unusedCalls = new Set();
-    funcMask.maskAll("import");
-    funcMask.maskComments();
-    while (block = funcMask.lastBlockOf("func")) {
-        funcMask.mask(block);
-        if (($name = block.$name)) {
-            if (wat.match(new RegExp(`\\\((call|start|ref\\.func)\\s+\\${$name}(\\s|\\\))`))) {
-                continue;
-            }
-            if (unusedCalls.has($name) === false) {
-                unusedCalls.add($name);
+    if (!config.keepUnusedFunctions) {
+        const funcMask = new helpers.MaskSet(wat);
+        const unusedCalls = new Set();
+        funcMask.maskAll("import");
+        funcMask.maskComments();
+        while (block = funcMask.lastBlockOf("func")) {
+            funcMask.mask(block);
+            if (($name = block.$name)) {
+                if (wat.match(new RegExp(`\\\((call|start|ref\\.func)\\s+\\${$name}(\\s|\\\))`))) {
+                    continue;
+                }
+                if (unusedCalls.has($name) === false) {
+                    unusedCalls.add($name);
+                }
             }
         }
+        unusedCalls.forEach($name => {
+            const begin = wat.lastIndexOf(`(func ${$name}`);
+            const block = helpers.parseBlockAt(wat, begin);
+            $name = $name.replace(".prototype.", ":")
+            console.log(`⚠️  removing unused --> \x1b[34m(func \x1b[32m${$name}\x1b[0m ...)\x1b[0m`);
+            if (block) { wat = block.removedRaw() }
+        });
     }
-    unusedCalls.forEach($name => {
-        const begin = wat.lastIndexOf(`(func ${$name}`);
-        const block = helpers.parseBlockAt(wat, begin);
-        $name = $name.replace(".prototype.", ":")
-        console.log(`⚠️  removing unused --> \x1b[34m(func \x1b[32m${$name}\x1b[0m ...)\x1b[0m`);
-        if (block) { wat = block.removedRaw() }
-    });
     const nonWat4WasmMemory = wat.replace(WAT4WASM_BLOCKS.memory, "");
     if (nonWat4WasmMemory.match(/\(memory\s+(\$|\d)/)) {
         console.log(`⚠️  removing --> \x1b[34m(memory \x1b[35m$wat4wasm\x1b[0m ...)\x1b[0m`);
@@ -1818,6 +1824,7 @@ async function processCLI(compileCallback, PROCESS = process) {
         printOnly: false,
         passthroughArgs: [],
         applyScripts: [],
+        keepUnusedFunctions: false
     };
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -1847,6 +1854,8 @@ async function processCLI(compileCallback, PROCESS = process) {
             config.windowtagName &&= "";
         } else if (arg === "--log-instance") {
             config.consoleLogInstance = true;
+        } else if (arg === "--keep-unused-functions") {
+            config.keepUnusedFunctions = true;
         } else if (arg === "--keep-window") {
             config.keepWindowObjects = true;
         } else if (arg === "--keep-chrome-global") {
@@ -1901,17 +1910,29 @@ async function processCLI(compileCallback, PROCESS = process) {
             throw new Error(`Input file not found: ${config.inputFile}`);
         }
         const rawCode = fs.readFileSync(config.inputFile, "utf8");
-        // 2. Call the provided compile function
-        let compiled = await compileCallback(rawCode);
-        let applyScript, applyCount = config.applyScripts.length;
-        while (applyScript = config.applyScripts[--applyCount]) {
-            const baseName = applyScript.split("/").pop().split(".").reverse().slice(1).reverse().join(".");
-            console.log(`\x1b[0m\x1b[34m🎸 apply call[\x1b[35m${applyCount}\x1b[0m] \x1b[32m-->\x1b[0m \x1b[35m${baseName}\x1b[0m(wat)\x1b[0m`);
-            const { default: applyFunction } = await import(
-                config.inputDirectory.concat(applyScript)
-            );
-            compiled = await applyFunction(compiled);
+        const applyScripts = await Array.fromAsync(
+            config.applyScripts.map(script => Object({
+                basename: script.split("/").pop().split(".").reverse().slice(1).reverse().join("."),
+                fullpath: config.inputDirectory.concat(script)
+            })).map(async script => Object.assign(script, {
+                function: await import(script.fullpath).then(s => s.default)
+            }))
+        );
+        config.APPLY = async function APPLY(code) {
+            let script, i = applyScripts.length;
+            while (script = applyScripts[--i]) {
+                const wat2 = await script.function.call(null, code);
+                const func = script.basename;
+                const diff = code.toString().length - wat2.toString().length;
+                if (diff) {
+                    console.log(`\x1b[0m\x1b[34m🎸 \x1b[35m${func}(\x1b[0mwat\x1b[35m)\x1b[0m \x1b[32m-->\x1b[0m \x1b[35m${diff}\x1b[0m byte(s)\x1b[0m`)
+                }
+                code = wat2;
+            }
+            return code;
         }
+        // 2. Call the provided compile function
+        const compiled = await compileCallback(rawCode, config);
         console.log("\x1b[0m")
         // 3. Handle Output
         if (config.printOnly) {
@@ -1961,9 +1982,9 @@ async function processCLI(compileCallback, PROCESS = process) {
                             wasmGenerator = `Uint8Array.of(${wasmhex.toString().match(/[a-f0-9]{2}/g).map(h => parseInt(h, 16))})`;
                         }
                         extension = "js";
-                        filecontent = `
-                            const view = ${wasmGenerator};
-                            let wasm = view.buffer;
+                        filecontent = String(
+                            `const view = ${wasmGenerator};
+                            export let wasm = view.buffer;
                             
                             wasm.module = null;
                             wasm.instances = new Array;
@@ -1986,8 +2007,10 @@ async function processCLI(compileCallback, PROCESS = process) {
                                 return instantiate();
                             };
                             
-                            default wasm;
-                        `;
+                            export default wasm;`);
+                        filecontent = filecontent.replaceAll(
+                            String(" ").repeat(filecontent.search(/\w/) - 1)
+                            , "");
                     }
                     else {
                         extension = "html";
@@ -2064,10 +2087,11 @@ const processors = [
     REF_EXTERN,
     DATA,
 ];
-processCLI(async wat4 => {
-    let wat2 = wat4, f, i = -1, llen, m = -1, c = 0, ci = 0;
+processCLI(async (wat4, config) => {
+    let wat2, f, i = -1, llen, m = -1, c = 0, ci = 0;
+    wat2 = await config.APPLY(wat4, W4W);
     while (f = processors[++i]) {
-        wat4 = f(wat2, W4W).toString();
+        wat4 = await f(wat2, W4W).toString();
         const input = wat2;
         const output = wat4;
         const inLines = input.split("\n").map(l => l.trim()).filter(Boolean);
@@ -2108,8 +2132,9 @@ processCLI(async wat4 => {
             else { console.log("☘️  untouched raw \x1b[32m-->\x1b[0m finalizing..") }
         }
     }
-    wat2 = clean(wat2);
+    wat2 = clean(wat2, config);
     wat2 = wat4beauty(wat2, "  ");
+    wat2 = await config.APPLY(wat2);
     return wat2;
 });
 

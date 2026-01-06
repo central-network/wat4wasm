@@ -4,7 +4,7 @@ import fs from "fs";
 
 const headers = [`#!/usr/bin/env node`, `import fs from "fs";`, `import cp, { spawnSync } from "child_process";`].join("\n").concat("\n\n");
 const index_js = fs.readFileSync("index.js", "utf8").split(/\n+/).filter(l => !l.startsWith("import") && !l.startsWith("#")).join("\n").concat("\n\n");
-const cli_js = fs.readFileSync("cli.js", "utf8").split(/\n+/).filter(l => !l.startsWith("import")).join("\n").replaceAll("export ", "").concat("\n\n");
+const cli_js = fs.readFileSync("cli.js", "utf8").split(/\n+/).filter(l => !l.startsWith("import")).join("\n").replace("export ", "").concat("\n\n");
 const helpers_js = fs.readFileSync("helpers.js", "utf8").split(/\n+/).filter(l => !l.startsWith("import") && !l.startsWith("export")).join("\n").concat("\n\n");
 const clean_js = fs.readFileSync("clean.js", "utf8").split(/\n+/).filter(l => !l.startsWith("import")).join("\n").concat("\n\n").replaceAll("export default function", "function clean");
 const imports = fs.readFileSync("index.js", "utf8").split(/\n+/).filter(l => l.startsWith("import") && l.includes("processors/")).map(i => i.split(/^import|\s+|from|\"|\.js/g).filter(Boolean))
