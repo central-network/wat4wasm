@@ -1,36 +1,29 @@
 cd 01-text
 wat4wasm --input=module.wat --output=module-output.wat
-rm wat4wasm
 cd ..
 
 cd 02-include
 wat4wasm --input=module.wat --output=module-output.wat
-rm wat4wasm
 cd ..
 
 cd 03-ref.extern
 wat4wasm --input=module.wat --output=module-output.wat
-rm wat4wasm
 cd ..
 
 cd 04-ref.func
 wat4wasm --input=module.wat --output=module-output.wat
-rm wat4wasm
 cd ..
 
 cd 05-global.get
 wat4wasm --input=module.wat --output=module-output.wat
-rm wat4wasm
 cd ..
 
 cd 06-async
 wat4wasm --input=module.wat --output=module-output.wat
-rm wat4wasm
 cd ..
 
 cd 07-data
 wat4wasm --input=module.wat --output=module-output.wat --wat2wasm=wat2wasm
-rm wat4wasm
 cd ..
 
 cd 08-reflectors

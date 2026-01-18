@@ -483,7 +483,7 @@ function wat4beauty(watContent, alignIndentsWith = "\t", exportPadStart = 90) {
         }
         return keyword;
     },
-    fixBlockKeyword(keyword, filter = {}) {
+    fixBlockKeyword(keyword = "", filter = {}) {
         if (keyword.split(/\s/).length > 1) {
             throw new Error(`Given keyword is wrong: ${keyword}`)
         }
@@ -704,6 +704,7 @@ function wat4beauty(watContent, alignIndentsWith = "\t", exportPadStart = 90) {
                     after: this.input.substring(this.end)
                 }
             },
+            mask: function (block) { return this.block = block.removedRaw(); },
             maskedRaw: function () { return this.replacedRaw(this.uuid); },
             removedRaw: function () { return this.replacedRaw(""); },
             replacedRaw: function (str) {
@@ -731,26 +732,51 @@ function wat4beauty(watContent, alignIndentsWith = "\t", exportPadStart = 90) {
                     return blockName;
                 }
             },
+            parentBlock: {
+                value: function () {
+                    const lastBlockBefore = helpers.lastBlockBefore(this.toString(), this.begin);
+                    if (lastBlockBefore) {
+                        if (lastBlockBefore.end > this.end) {
+                            return lastBlockBefore;
+                        }
+                        return lastBlockBefore.parentBlock();
+                    }
+                }
+            },
             generateId: { value: function () { return helpers.generateId(this.toString()) } },
             name: { get: function () { return `${this.$name}`.substring(1); } },
             rawContent: { get: function () { return helpers.rawContent(this.toString()) } },
             blockContent: { get: function () { return helpers.blockContent(this.toString()) } },
             hasAnyBlock: { get: function () { return helpers.hasAnyBlock(this.toString()) } },
-            indexOf: { value: function () { return this.block.indexOf(...arguments) } },
-            includes: { value: function () { return this.block.includes(...arguments) } },
-            lastIndexOf: { value: function () { return this.block.lastIndexOf(...arguments) } },
-            split: { value: function () { return this.block.split(...arguments) } },
-            at: { value: function () { return this.block.at(...arguments) } },
-            length: { get: function () { return this.block.length } },
+            indexOf: { value: function () { return this.toString().indexOf(...arguments) } },
+            includes: { value: function () { return this.toString().includes(...arguments) } },
+            lastIndexOf: { value: function () { return this.toString().lastIndexOf(...arguments) } },
+            split: { value: function () { return this.toString().split(...arguments) } },
+            at: { value: function () { return this.toString().at(...arguments) } },
+            length: { get: function () { return this.toString().length } },
             charCodeAt: { value: function () { return this.block.charCodeAt(...arguments) } },
-            concat: { value: function () { return this.block.concat(...arguments) } },
-            startsWith: { value: function () { return this.block.startsWith(...arguments) } },
-            endsWith: { value: function () { return this.block.endsWith(...arguments) } },
-            substring: { value: function () { return this.block.substring(...arguments) } },
-            replace: { value: function () { return this.block.replace(...arguments) } },
-            replaceAll: { value: function () { return this.block.replaceAll(...arguments) } },
-            lastBlockOf: { value: function () { return helpers.lastBlockOf(this.block, ...arguments) } },
-            [Symbol.toPrimitive]: { value: function () { return this.block; } },
+            children: {
+                get: function () {
+                    const blocks = new Array();
+                    let firstBlock, code = this.toString().substring(1, this.length - 1);
+                    while (code.includes("(")) {
+                        firstBlock = helpers.parseBlockAt(
+                            code, code.indexOf("(")
+                        ).toString();
+                        blocks.push(firstBlock);
+                        code = code.replace(firstBlock, "");
+                    }
+                    return blocks;
+                }
+            },
+            concat: { value: function () { return this.toString().concat(...arguments) } },
+            startsWith: { value: function () { return this.toString().startsWith(...arguments) } },
+            endsWith: { value: function () { return this.toString().endsWith(...arguments) } },
+            substring: { value: function () { return this.toString().substring(...arguments) } },
+            replace: { value: function () { return this.toString().replace(...arguments) } },
+            replaceAll: { value: function () { return this.toString().replaceAll(...arguments) } },
+            lastBlockOf: { value: function () { return helpers.lastBlockOf(this.toString(), ...arguments) } },
+            [Symbol.toPrimitive]: { value: function () { return this.toString(); } },
         })
     },
     lastBlockOf(raw, keyword, filter) {
@@ -782,6 +808,9 @@ function wat4beauty(watContent, alignIndentsWith = "\t", exportPadStart = 90) {
     parseFirstBlock(raw) {
         raw = raw.toString();
         return this.parseBlockAt(raw, raw.indexOf("(", 1));
+    },
+    lastBlockBefore(raw, begin) {
+        return this.parseBlockAt(raw, raw.lastIndexOf("(", raw.substring(0, begin)));
     }
 };
 
@@ -1186,6 +1215,28 @@ function REF_EXTERN (wat, WAT4WASM) {
 
 const REF_FUNC_BLOCK_NAME = "ref.func";
 function REF_FUNC (wat, WAT4WASM) {
+    const inlineFunctions = new Array();
+    helpers
+        .parseBlockAt(wat.toString(), 0)
+        .children
+        .filter(b => b.startsWith("(func"))
+        .filter(b => b.substring(1).includes("(func"))
+        .map(b => b.substring(5, b.length - 1).trim())
+        .forEach(content => {
+            const maskSet = new helpers.MaskSet(content);
+            while (maskSet.hasBlock("func")) {
+                const inl = maskSet.lastBlockOf("func");
+                inlineFunctions.push(helpers.parseBlockAt(inl.toString(), 0));
+                maskSet.mask(inl);
+            }
+        })
+        ;
+    if (inlineFunctions.length) {
+        inlineFunctions.forEach(func => {
+            wat = wat.replace(func.toString(), `(ref.func ${func.$name})`)
+        });
+        wat = helpers.append(wat, inlineFunctions.map(func => `\n\t${func}\n`).join("\n"));
+    }
     const maskSetElem = new helpers.MaskSet(wat);
     const elemSegments = new Array();
     const needReference = new Set();
