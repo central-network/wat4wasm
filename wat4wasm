@@ -852,12 +852,9 @@ function ASYNC (wat, WAT4WASM) {
     return wat;
 }
 
-const DATA_BLOCK_NAME = "data";
-const SIZE_BLOCK_NAME = "data.size";
-const VIEW_BLOCK_NAME = "data.view";
 const GENERATE_DATA_VIEWER = (size, $name) => {
     return `
-    (block ${$name}>
+    (block ${$name}
         (result externref)
         (global.set $wat4wasm (call $self.Array<>ext))
         
@@ -907,24 +904,186 @@ const GENERATE_DATA_VIEWER = (size, $name) => {
     )
     `;
 };
+const GENERATE_TEXT_VIEWER = (size, $name) => {
+    return `
+    (block ${$name}
+        (result externref)
+        (global.set $wat4wasm (call $self.Array<>ext))
+        
+        (call $self.Reflect.set<ext.i32.i32>
+            (global.get $wat4wasm) (i32.const 0) (i32.const ${size})
+        )
+        (global.set $wat4wasm
+            (call $self.Reflect.construct<ext.ext>ext
+                (ref.extern $self.Uint8Array<ext>)
+                (global.get $wat4wasm)
+            )
+        )
+        
+        (if (i32.const ${size})
+            (then
+                (i32.const 0)
+                (i64.load (i32.const 0))
+                (block $copy
+                    (i32.store (i32.const 0) (i32.const ${size}))
+                    (loop $i--
+                        (if (i32.load (i32.const 0))
+                            (then   
+                                (i32.store
+                                    (i32.const 0)
+                                    (i32.sub (i32.load (i32.const 0)) (i32.const 1))
+                                )
+                                (memory.init ${$name} 
+                                    (i32.const 4) 
+                                    (i32.load (i32.const 0)) 
+                                    (i32.const 1)
+                                )
+                                (call $self.Reflect.set<ext.i32.i32>
+                                    (global.get $wat4wasm)
+                                    (i32.load (i32.const 0))
+                                    (i32.load8_u (i32.const 4))
+                                )
+                                (br $i--)
+                            )
+                        )
+                    )
+                )
+                (i64.store (; stack stack ;))
+            )
+        )
+        
+        (local.set $arguments (call $self.Array<>ext))
+        
+        (call $self.Reflect.set<ext.i32.ext>
+          (local.get $arguments)
+          (i32.const 0)
+          (global.get $wat4wasm)
+        )
+        (call $self.Reflect.apply<ext.ext.ext>ext
+            (local.get $textDecoder.decode)
+            (local.get $textDecoder)
+            (local.get $arguments) 
+        )
+            
+        (global.set $wat4wasm (null))
+    )
+    `;
+};
+const GENERATE_HREF_VIEWER = (size, $name) => {
+    return `
+    (block ${$name}
+        (result externref)
+        (global.set $wat4wasm (call $self.Array<>ext))
+        
+        (call $self.Reflect.set<ext.i32.i32>
+            (global.get $wat4wasm) (i32.const 0) (i32.const ${size})
+        )
+        (global.set $wat4wasm
+            (call $self.Reflect.construct<ext.ext>ext
+                (ref.extern $self.Uint8Array<ext>)
+                (global.get $wat4wasm)
+            )
+        )
+        
+        (if (i32.const ${size})
+            (then
+                (i32.const 0)
+                (i64.load (i32.const 0))
+                (block $copy
+                    (i32.store (i32.const 0) (i32.const ${size}))
+                    (loop $i--
+                        (if (i32.load (i32.const 0))
+                            (then   
+                                (i32.store
+                                    (i32.const 0)
+                                    (i32.sub (i32.load (i32.const 0)) (i32.const 1))
+                                )
+                                (memory.init ${$name} 
+                                    (i32.const 4) 
+                                    (i32.load (i32.const 0)) 
+                                    (i32.const 1)
+                                )
+                                (call $self.Reflect.set<ext.i32.i32>
+                                    (global.get $wat4wasm)
+                                    (i32.load (i32.const 0))
+                                    (i32.load8_u (i32.const 4))
+                                )
+                                (br $i--)
+                            )
+                        )
+                    )
+                )
+                (i64.store (; stack stack ;))
+            )
+        )
+        
+        (local.set $arguments (call $self.Array<>ext))
+        
+        (call $self.Reflect.set<ext.i32.ext>
+          (local.get $arguments)
+          (i32.const 0)
+          (global.get $wat4wasm)
+        )
+        (call $self.Reflect.set<ext.i32.ext>
+            (local.get $arguments)
+            (i32.const 0)
+            (call $self.Reflect.apply<ext.ext.ext>ext
+                (local.get $textDecoder.decode)
+                (local.get $textDecoder)
+                (local.get $arguments) 
+            )
+        )
+        (call $self.Reflect.set<ext.i32.ext>
+            (local.get $arguments)
+            (i32.const 0)
+            (call $self.Reflect.construct<ext.ext>ext
+                (call $self.Reflect.get<ext.ext>ext (self) (string "Blob"))
+                (local.get $arguments) 
+            )
+        )
+        (call $self.Reflect.apply<ext.ext.ext>ext
+            (call $self.Reflect.get<ext.ext>ext 
+                (call $self.Reflect.get<ext.ext>ext (self) (string "URL"))
+                (string "createObjectURL")
+            )
+            (null)
+            (local.get $arguments) 
+        )
+            
+        (global.set $wat4wasm (null))
+    )
+    `;
+};
 function DATA (wat, WAT4WASM) {
     const maskSet = new helpers.MaskSet(wat);
     const externgetter = new Map();
     const segmentSizes = new Map();
     const sizeRequests = new Set();
     const viewRequests = new Set();
-    while (maskSet.hasBlock(VIEW_BLOCK_NAME)) {
-        const block = maskSet.lastBlockOf(VIEW_BLOCK_NAME);
+    const textRequests = new Set();
+    const hrefRequests = new Set();
+    while (maskSet.hasBlock("data.text")) {
+        const block = maskSet.lastBlockOf("data.text");
+        textRequests.add(block);
+        maskSet.mask(block);
+    }
+    while (maskSet.hasBlock("data.href")) {
+        const block = maskSet.lastBlockOf("data.href");
+        hrefRequests.add(block);
+        maskSet.mask(block);
+    }
+    while (maskSet.hasBlock("data.view")) {
+        const block = maskSet.lastBlockOf("data.view");
         viewRequests.add(block);
         maskSet.mask(block);
     }
-    while (maskSet.hasBlock(SIZE_BLOCK_NAME)) {
-        const block = maskSet.lastBlockOf(SIZE_BLOCK_NAME);
+    while (maskSet.hasBlock("data.size")) {
+        const block = maskSet.lastBlockOf("data.size");
         sizeRequests.add(block);
         maskSet.mask(block);
     }
-    while (maskSet.hasBlock(DATA_BLOCK_NAME)) {
-        const block = maskSet.lastBlockOf(DATA_BLOCK_NAME);
+    while (maskSet.hasBlock("data")) {
+        const block = maskSet.lastBlockOf("data");
         const content = helpers.findQuotedText(block);
         maskSet.mask(block);
         if (helpers.hasProtocol(content) === false) {
@@ -975,6 +1134,14 @@ function DATA (wat, WAT4WASM) {
         block.id = helpers.referenceId();
         maskSet.update(block, block.id);
     });
+    textRequests.forEach(block => {
+        block.id = helpers.referenceId();
+        maskSet.update(block, block.id);
+    });
+    hrefRequests.forEach(block => {
+        block.id = helpers.referenceId();
+        maskSet.update(block, block.id);
+    });
     wat = maskSet.restore();
     let oninit = String();
     viewRequests.forEach(block => {
@@ -991,7 +1158,45 @@ function DATA (wat, WAT4WASM) {
             );
         }
     });
+    textRequests.forEach(block => {
+        if (externgetter.has(block.$name) === false) {
+            const size = segmentSizes.get(block.$name);
+            const code = GENERATE_TEXT_VIEWER(size, block.$name);
+            const growRequest = WAT4WASM_GROW_EXTERN_TABLE(wat);
+            block.tableSetter = growRequest.generateSetter(code);
+            wat = growRequest.modifiedRaw;
+            oninit = `${oninit}\n\n${block.tableSetter}\n\n`;
+            externgetter.set(
+                block.$name,
+                growRequest.getter.concat(` ;; ${block.$name}\n`)
+            );
+        }
+    });
+    hrefRequests.forEach(block => {
+        if (externgetter.has(block.$name) === false) {
+            const size = segmentSizes.get(block.$name);
+            const code = GENERATE_HREF_VIEWER(size, block.$name);
+            const growRequest = WAT4WASM_GROW_EXTERN_TABLE(wat);
+            block.tableSetter = growRequest.generateSetter(code);
+            wat = growRequest.modifiedRaw;
+            oninit = `${oninit}\n\n${block.tableSetter}\n\n`;
+            externgetter.set(
+                block.$name,
+                growRequest.getter.concat(` ;; ${block.$name}\n`)
+            );
+        }
+    });
     viewRequests.forEach(block => {
+        wat = wat.replaceAll(
+            block.id, externgetter.get(block.$name)
+        );
+    });
+    textRequests.forEach(block => {
+        wat = wat.replaceAll(
+            block.id, externgetter.get(block.$name)
+        );
+    });
+    hrefRequests.forEach(block => {
         wat = wat.replaceAll(
             block.id, externgetter.get(block.$name)
         );
