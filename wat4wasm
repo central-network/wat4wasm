@@ -1038,7 +1038,7 @@ const GENERATE_HREF_VIEWER = (size, $name) => {
             (i32.const 0)
             (call $self.Reflect.construct<ext.ext>ext
                 (call $self.Reflect.get<ext.ext>ext (self) (string "Blob"))
-                (local.get $arguments) 
+                (call $self.Array<ext>ext (local.get $arguments))
             )
         )
         (call $self.Reflect.apply<ext.ext.ext>ext
