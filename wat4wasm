@@ -1154,7 +1154,7 @@ function DATA (wat, WAT4WASM) {
             oninit = `${oninit}\n\n${block.tableSetter}\n\n`;
             externgetter.set(
                 block.$name,
-                growRequest.getter.concat(` ;; ${block.$name}\n`)
+                growRequest.getter.concat(` (; ${block.$name} ;)\n`)
             );
         }
     });
@@ -1168,7 +1168,7 @@ function DATA (wat, WAT4WASM) {
             oninit = `${oninit}\n\n${block.tableSetter}\n\n`;
             externgetter.set(
                 block.$name,
-                growRequest.getter.concat(` ;; ${block.$name}\n`)
+                growRequest.getter.concat(` (; ${block.$name} ;)\n`)
             );
         }
     });
@@ -1182,7 +1182,7 @@ function DATA (wat, WAT4WASM) {
             oninit = `${oninit}\n\n${block.tableSetter}\n\n`;
             externgetter.set(
                 block.$name,
-                growRequest.getter.concat(` ;; ${block.$name}\n`)
+                growRequest.getter.concat(` (; ${block.$name} ;)\n`)
             );
         }
     });
@@ -1250,7 +1250,7 @@ const PATH_WALKER_CODE = ($name) => {
         pathWalker = String(`
         (call $self.Reflect.get<ext.ext>${stepType.pop()}
             ${pathWalker} 
-            (text "${currentKey}") ;; ${currentKey}
+            (text "${currentKey}")
         )`).trim();
     }
     if (descriptorKey !== "value") {
@@ -1259,9 +1259,9 @@ const PATH_WALKER_CODE = ($name) => {
         (call $self.Reflect.get<ext.ext>ext
             (call $self.Reflect.getOwnPropertyDescriptor<ext.ext>ext
                 ${pathWalker} 
-                (text "${currentKey}") ;; ${currentKey}
+                (text "${currentKey}") (; ${currentKey} ;)
             )
-            (text "${descriptorKey}") ;; ${descriptorKey}
+            (text "${descriptorKey}") (; ${descriptorKey} ;)
         )`).trim();
     }
     return String(`
@@ -1385,6 +1385,21 @@ const FIXNAME_SELF_PATH = ($name, descriptorKey) => {
     return $name;
 };
 function REF_EXTERN (wat, WAT4WASM) {
+    const globals = Array.from(
+        wat.matchAll(
+            /\(global\s+(\$.[^\s]*)\s+new\s+([A-Z].[^\s\)]*)\)/g
+        )
+    ).reverse().map(m => {
+        wat = wat.replace(m[0], `(global ${m[1]} (mut externref) (ref.null extern))`);
+        return `(global.set ${m[1]}
+            (reflect $construct<ext.ext>ext 
+                (ref.extern $${m[2]}) (array)
+            )
+        )`;
+    });
+    if (globals.length) {
+        wat = APPEND_ON_EXTERN_READY(wat, `\n${globals.join("\n\n")}\n`);
+    }
     const externs = new Map();
     const getters = new Map();
     const maskSet = new helpers.MaskSet(wat);
@@ -1401,7 +1416,7 @@ function REF_EXTERN (wat, WAT4WASM) {
     externs.forEach((dKey, $name) => {
         const pathWalker = PATH_WALKER_CODE($name);
         const growExtern = WAT4WASM_GROW_EXTERN_TABLE(wat);
-        const __getter__ = growExtern.getter.concat(` ;; ${$name}\n`);
+        const __getter__ = growExtern.getter.concat(` (; ${$name} ;)\n`);
         const __setter__ = growExtern.generateSetter(pathWalker);
         wat = growExtern.modifiedRaw;
         oninit = `${oninit}\n\n(block ${$name}\n${__setter__})\n`;
@@ -1479,15 +1494,21 @@ function REPLACE_ALL (wat) {
         .replaceAll("(self)", "(global.get $self)")
         .replaceAll("(null)", "(ref.null extern)")
         .replaceAll("(func)", "(ref.null func)")
+        .replaceAll("(void)", "(call $self.Function<>ext)")
         .replaceAll("(this)", "(local.get 0)")
         .replaceAll("(array)", "(call $self.Array<>ext)")
         .replaceAll("(NaN)", "(ref.extern $self.NaN<ext>)")
         .replaceAll("(nan)", "(f32.const nan)")
         .replaceAll("(true)", "(i32.const 1)")
+        .replaceAll("(isNaN ", "(call $self.isNaN<ext>i32 ")
+        .replaceAll("(bool ", "(call $self.Boolean<ext>i32 ")
         .replaceAll("(false)", "(i32.const 0)")
         .replaceAll("(undefined)", "(ref.extern $self.undefined<ext>)")
         .replaceAll("(object)", "(call $self.Object<>ext)")
         .replaceAll("(string)", "(call $self.String<>ext)")
+        .replaceAll(/\(arguments(\s+)(\d+)\)/g, `(local.get $1)`)
+        .replaceAll(/\((log|warn|debug|error|groupEnd|group)(\s*)\"(.[^\"]*?)\"\s*\)/g, `(call $self.console.$1<ext>$2(text "$3"))`)
+        .replaceAll(/\((log|warn|debug|error)(\s+)/g, `(call $self.console.$1<ext>$2`)
         .replaceAll("(console $", "(call $self.console.")
         .replaceAll("(reflect $", "(call $self.Reflect.")
         .replaceAll("(bigint $", "(call $self.BigInt.")
@@ -1589,7 +1610,7 @@ function STRING (wat) {
                 (reflect $apply<ext.ext.ext>ext
                     (global.get $self.String.fromCharCode)
                     (self)
-                    (array $of<i32>ext (i32.const ${string.charCodeAt(0)})) ;; "${string}"
+                    (array $of<i32>ext (i32.const ${string.charCodeAt(0)})) (; "${string}" ;)
                 )
             `);
         }
@@ -1698,12 +1719,12 @@ function replaceAllText(wat, WAT4WASM) {
     });
     textBlocks.filter(block => block.isExtended).forEach(block => {
         const growRequest = WAT4WASM_GROW_EXTERN_TABLE(wat);
-        block.tableGetter = growRequest.getter.concat(`;; ${block.strPreview} \n`);
+        block.tableGetter = growRequest.getter.concat(` (; ${block.strPreview} ;)`);
         block.tableSetter = growRequest.generateSetter(`
         (call $self.Reflect.apply<ext.ext.ext>ext
             (local.get $textDecoder.decode)
             (local.get $textDecoder)
-            (local.get $arguments) ;; ${block.strPreview}
+            (local.get $arguments) (; ${block.strPreview} ;)
         )`).trim();
         textGetters.set(textGetters.get(block.uuid), block.tableGetter)
         wat = growRequest.modifiedRaw;
@@ -1728,6 +1749,17 @@ function replaceAllText(wat, WAT4WASM) {
     return wat;
 }
 function TEXT (wat) {
+    const globals = Array.from(
+        wat.matchAll(
+            /\(global\s+(\$.[^\s]*)\s+\"(.[^\"]*)\"\)/g
+        )
+    ).reverse().map(m => {
+        wat = wat.replace(m[0], `(global ${m[1]} (mut externref) (ref.null extern))`);
+        return `(global.set ${m[1]} (text "${m[2]}"))`;
+    });
+    if (globals.length) {
+        wat = APPEND_ON_EXTERN_READY(wat, `\n${globals.join("\n\n")}\n`);
+    }
     while (helpers.hasBlock(wat, "text")) {
         wat = replaceAllText(wat);
     }
